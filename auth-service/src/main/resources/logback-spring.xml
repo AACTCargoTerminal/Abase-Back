@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- Spring Boot의 프로퍼티(logging.level.root)를 읽어서 ROOT_LOG_LEVEL로 저장 -->
+    <springProperty scope="context"
+                    name="ROOT_LOG_LEVEL"
+                    source="logging.level.root"
+                    defaultValue="INFO"/>
+
+    <!-- 패턴 공통 정의 -->
+    <property name="LOG_PATTERN"
+              value="%d{HH:mm:ss.SSS} %-5level [%thread] %logger - %msg%n" />
+
+    <!-- 콘솔 출력 -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ===================== 2) 날짜별 파일 Appender ===================== -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- 날짜별로 굴리기 -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- 날짜별 파일 이름 -->
+            <fileNamePattern>./logAuth/app-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- 최대 며칠치 보관할지 (예: 30일) -->
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ===================== ROOT 로거 설정 ===================== -->
+    <!-- 여기서 하드코딩 대신 프로퍼티 사용 -->
+    <root level="${ROOT_LOG_LEVEL}">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
+    </root>
+
+</configuration>

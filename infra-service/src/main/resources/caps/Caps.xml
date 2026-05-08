@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aact.infraservice.repo.CapsMapper">
+
+    <!-- 조회 기준에 해당되는 유저정보 가져오기-->
+
+    <select id="findUsersWithGroup" resultType="com.aact.infraservice.dto.CapsUserDTO">
+        SELECT U.id , U.name, U.idno ,
+        SUBSTRING(L.e_date,1,4) + '-' +
+        SUBSTRING(L.e_date,5,2) + '-' +
+        SUBSTRING(L.e_date,7,2) + ' ' +
+        SUBSTRING(L.e_time,1,2) + ':' +
+        SUBSTRING(L.e_time,3,2) + ':' +
+        SUBSTRING(L.e_time,5,2) AS date, L.e_mode
+        FROM dbo.tuser U
+        CROSS APPLY (
+        SELECT TOP 1
+        E.e_date,
+        E.e_time,
+        E.e_mode
+        FROM dbo.tenter E
+        WHERE E.e_id = U.id
+        AND E.e_date BETWEEN #{start} AND #{end}
+        ORDER BY E.e_date DESC, E.e_time DESC
+        ) L
+        WHERE U.name LIKE '%' + #{name} + '%'
+        AND U.idno LIKE '%' + #{id} + '%'
+        <if test="modes != null and modes.length > 0">
+            AND L.e_mode IN
+            <foreach collection="modes" item="mode" open="(" separator="," close=")">
+                #{mode}
+            </foreach>
+        </if>
+        GROUP BY U.id , U.name, U.idno , L.e_date, L.e_time,L.e_mode
+        ORDER BY U.name
+    </select>
+
+    <select id="findEnterToUser" resultType="com.aact.infraservice.dto.CapsEnterDTO">
+        SELECT e_date,e_time,e_mode,g_id
+        FROM dbo.tenter
+        WHERE e_id = #{id}
+        AND e_date BETWEEN #{start} AND #{end}
+        <if test="modes != null and modes.length > 0">
+            AND e_mode IN
+            <foreach collection="modes" item="mode" open="(" separator="," close=")">
+                #{mode}
+            </foreach>
+        </if>
+        ORDER BY e_date DESC,e_time DESC
+    </select>
+
+    <select id="findDateToId" resultType="com.aact.infraservice.dto.CapsEnterDTO">
+        SELECT E.e_date , E.e_time, U.idno AS g_id,E.e_mode
+        FROM dbo.tenter E
+        JOIN dbo.tuser U
+        ON E.e_id = U.id
+        JOIN dbo.tgate G
+        ON G.id = E.g_id
+        WHERE U.idno = #{id}
+        AND E.e_date = #{date}
+        ORDER BY E.e_date ,E.e_time
+    </select>
+
+</mapper>

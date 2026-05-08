@@ -1,0 +1,19 @@
+plugins {
+    id 'java'
+    id 'io.spring.dependency-management'
+}
+
+bootJar {
+    enabled = false
+}
+
+jar {
+    enabled = true
+}
+
+dependencies {
+    implementation project(':common-core')
+    implementation 'com.zaxxer:HikariCP'
+    implementation 'com.oracle.database.jdbc:ojdbc11'
+
+}

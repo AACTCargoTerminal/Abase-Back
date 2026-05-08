@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Gradle Imported" enabled="true">
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.projectlombok/lombok/1.18.42/8365263844ebb62398e0dc33057ba10ba472d3b8/lombok-1.18.42.jar" />
+        </processorPath>
+        <module name="aact.infra-service.main" />
+        <module name="aact.common-secure.main" />
+        <module name="aact.common-db.main" />
+        <module name="aact.common-core.main" />
+        <module name="aact.common-client.main" />
+        <module name="aact.auth-service.main" />
+        <module name="aact.sys-service.main" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel target="17" />
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="aact.auth-service" options="-parameters" />
+      <module name="aact.auth-service.main" options="-parameters" />
+      <module name="aact.auth-service.test" options="-parameters" />
+      <module name="aact.common-biz" options="-parameters" />
+      <module name="aact.common-biz.main" options="-parameters" />
+      <module name="aact.common-biz.test" options="-parameters" />
+      <module name="aact.common-client" options="-parameters" />
+      <module name="aact.common-client.main" options="-parameters" />
+      <module name="aact.common-client.test" options="-parameters" />
+      <module name="aact.common-core" options="-parameters" />
+      <module name="aact.common-core.main" options="-parameters" />
+      <module name="aact.common-core.test" options="-parameters" />
+      <module name="aact.common-db" options="-parameters" />
+      <module name="aact.common-db.main" options="-parameters" />
+      <module name="aact.common-db.test" options="-parameters" />
+      <module name="aact.common-exception" options="-parameters" />
+      <module name="aact.common-exception.main" options="-parameters" />
+      <module name="aact.common-exception.test" options="-parameters" />
+      <module name="aact.common-secure" options="-parameters" />
+      <module name="aact.common-secure.main" options="-parameters" />
+      <module name="aact.common-secure.test" options="-parameters" />
+      <module name="aact.infra-service" options="-parameters" />
+      <module name="aact.infra-service.main" options="-parameters" />
+      <module name="aact.infra-service.test" options="-parameters" />
+      <module name="aact.sys-service" options="-parameters" />
+      <module name="aact.sys-service.main" options="-parameters" />
+      <module name="aact.sys-service.test" options="-parameters" />
+      <module name="auth-service" options="-parameters" />
+      <module name="auth-service.main" options="-parameters" />
+      <module name="auth-service.test" options="-parameters" />
+      <module name="infra-service" options="-parameters" />
+      <module name="infra-service.main" options="-parameters" />
+      <module name="infra-service.test" options="-parameters" />
+      <module name="sys-service" options="-parameters" />
+      <module name="sys-service.main" options="-parameters" />
+      <module name="sys-service.test" options="-parameters" />
+    </option>
+  </component>
+</project>

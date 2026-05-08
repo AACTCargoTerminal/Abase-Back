@@ -1,0 +1,6 @@
+# Spring 설정파일만 제외
+**/src/main/resources/*.properties
+/logAuth/
+/logInfra/
+/logSys/
+/logWas/
