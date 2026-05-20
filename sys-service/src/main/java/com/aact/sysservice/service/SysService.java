@@ -30,6 +30,13 @@ public class SysService extends ServiceBase {
         });
     }
 
+    public ResponseDTO<?> reload(String classCode){
+        return execute(()->{
+            codeCache.loadClassCode(classCode);
+            return ResponseDTO.builder().errFlag("N").errMsg("재조회 완료").build();
+        });
+    }
+
     public ResponseDTO<?> getSch(String fltDate, String inoutFlag) {
         ClsUserInfo info = UserContext.get();
         SysRepo repo = sysRepo.getObject();

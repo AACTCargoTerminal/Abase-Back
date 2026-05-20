@@ -45,4 +45,37 @@ public class WorkDTO {
             @JsonProperty("day") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String day,
             @JsonProperty("userArray") List<BigDecimal> userArray) {
     }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record HrSearchDTO(
+            @JsonProperty("type") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String type,
+            @JsonProperty("reqFlag") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String reqFlag,
+            @JsonProperty("deptCode") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String deptCode,
+            @JsonProperty("terminalCode") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String terminalCode,
+            @JsonProperty("toDate") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String toDate,
+            @JsonProperty("fromDate") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String fromDate,
+            @JsonProperty("userName") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String userName) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record HrSchSaveDTO(
+            @JsonProperty("YEAR") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String year,
+            @JsonProperty("MON") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String mon,
+            @JsonProperty("DAY") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String day,
+            @JsonProperty("USER_SID") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") BigDecimal userSid,
+            @JsonProperty("USER_ID") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String userId,
+            @JsonProperty("schArray") List<HrSchSaveRowDTO> schArray){
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record HrSchSaveRowDTO(
+
+            @JsonProperty("SEQ") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") BigDecimal seq,
+            @JsonProperty("WORK_TYPE_CODE") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String workTypeCode,
+            @JsonProperty("ADD_WORK_HOUR") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") BigDecimal addHour) {
+
+    }
+
+
+
 }

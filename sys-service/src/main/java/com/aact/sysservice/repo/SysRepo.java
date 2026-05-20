@@ -41,6 +41,22 @@ public class SysRepo extends BizBase {
         return ret;
     }
 
+    public DbDto getAllCode(String classCode){
+        DbDto ret = null;
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT  COD.* ");
+        sql.append(",   NVL(OBL.OBJECT_NAME, COD.CODE_NAME)     CODE_NAME2 ");
+        sql.append("FROM    TCM_CODE_MASTER                 COD ");
+        sql.append("LEFT JOIN    TCM_OBJECT_LANGUAGE             OBL ");
+        sql.append("ON      OBL.OBJECT_SID          =       COD.CODE_SID ");
+        sql.append("AND     OBL.LANGUAGE_CODE       =       'KOR' ");
+        sql.append("WHERE   COD.USABLE_FLAG         =       'Y' ");
+        sql.append("AND     COD.CLASS_CODE          =       '"+classCode+"' ");
+        sql.append("ORDER   BY COD.CLASS_CODE,COD.ORDER_SEQ");
+        ret = callSql(sql.toString());
+        return ret;
+    }
+
     public DbDto getCodeP010(String classCode, String codeName, String value1Char, String value2Char, String value3Char,
                              String value4Char, String value5Char, String value6Char, String value7Char, String value8Char,
                              String value9Char, String lang, String prgressGuid, String requestId, String requestIp, String programId) {

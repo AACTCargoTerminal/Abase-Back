@@ -20,8 +20,15 @@ public class SysController {
     private final SysService sysService;
 
     @GetMapping(value = "/reload")
-    public ResponseDTO<?> reload() {
-        return sysService.reload();
+    public ResponseDTO<?> reload(
+            @RequestParam(value = "classCode", required = false)
+            String classCode
+    ) {
+        if (classCode == null || classCode.isBlank()) {
+            return sysService.reload();
+        }
+
+        return sysService.reload(classCode);
     }
 
 

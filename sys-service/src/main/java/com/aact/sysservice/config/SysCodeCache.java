@@ -31,6 +31,9 @@ public class SysCodeCache {
         log.info("공통코드 캐시 로딩 시작...");
 
         SysRepo repo = sysRepo.getObject();
+        if(!cache.isEmpty()){
+            cache.clear();
+        }
 
         DbDto dbRet = repo.getAllCode();
 
@@ -56,6 +59,41 @@ public class SysCodeCache {
         }
 
         log.info("공통코드 캐시 로딩 완료: {}건", cache.size());
+    }
+
+    public void loadClassCode(String classCode) {
+        log.info(classCode+"공통코드 캐시 로딩 시작...");
+
+        if(!cache.isEmpty()&&cache.get(classCode)!= null){
+            cache.put(classCode,new ArrayList<>());
+        }
+
+        SysRepo repo = sysRepo.getObject();
+
+        DbDto dbRet = repo.getAllCode(classCode);
+
+        if (dbRet.getErrFlag().equals("Y")) {
+            ResponseDTO.setError("공통코드 로드", dbRet.getErrMsg());
+        } else {
+            ResponseDTO<Map<Integer, List<Map<String, Object>>>> ret = ResponseDTO.from(dbRet);
+            for(Map<String,Object> row:ret.getData().get(0)){
+
+                String tmpClassCode = Util.getStrChk(row.get("CLASS_CODE"));
+                if(tmpClassCode.isBlank()){
+                    log.error(classCode+"공통코드 에러 : {}","빈클래스 코드");
+                    throw new IllegalStateException("공통코드 에러");
+                }
+
+                if(cache.get(classCode)==null){
+                    cache.put(classCode,new ArrayList<>());
+                    cache.get(classCode).add(row);
+                }else{
+                    cache.get(classCode).add(row);
+                }
+            }
+        }
+
+        log.info(classCode+"공통코드 캐시 로딩 완료: {}건", cache.size());
     }
 
     public ResponseDTO<List<Map<String, Object>>> getCodeToName(String classCode, String codeName,

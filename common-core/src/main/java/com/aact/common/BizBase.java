@@ -210,8 +210,6 @@ public abstract class BizBase {
 
             // sql 처리부분
             try (CallableStatement cs = conn.prepareCall(sql.toString())) {
-                System.out.println("conn hash = " + System.identityHashCode(conn));
-                System.out.println(procName);
                 for (int i = 0; i < inputParams.size(); i++) {
 
                     switch (inputParams.get(i).getInout()) {

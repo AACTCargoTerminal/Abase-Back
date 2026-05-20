@@ -39,10 +39,17 @@ public class Beans {
 
     @Bean
     public DefaultCookieSerializer cookieSerializer() {
+        String domain = env.getProperty("session.cookie.domain");
         DefaultCookieSerializer s = new DefaultCookieSerializer();
         s.setCookieName("WMSSESSION");
         s.setUseHttpOnlyCookie(true);
-        s.setUseSecureCookie(false);
+        if(domain != null && !domain.isBlank()) {
+            s.setUseSecureCookie(true);
+            s.setDomainName(domain);
+        }else{
+            s.setUseSecureCookie(false);
+        }
+
         s.setSameSite("Lax");
         s.setUseBase64Encoding(true);
 

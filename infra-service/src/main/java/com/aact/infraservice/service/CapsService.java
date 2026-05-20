@@ -232,66 +232,65 @@ public class CapsService extends ServiceBase {
         } else {
 
             if (tmpEnter.size() == 3) {
-
                 capsStartDate = tmpEnter.get(1).getE_date();
                 capsStartTime = roundTime(tmpEnter.get(1).getE_time());
-                capsOrgStartTime = tmpEnter.get(1).getE_time().substring(0, 6);
+                capsOrgStartTime = tmpEnter.get(1).getE_time().substring(0,4);
                 capsEndDate = tmpEnter.get(2).getE_date();
                 capsEndTime = floorTo30(tmpEnter.get(2).getE_time());
-                capsOrgEndTime = tmpEnter.get(2).getE_time().substring(0, 6);
+                capsOrgEndTime = tmpEnter.get(2).getE_time().substring(0,4);
 
             } else if (tmpEnter.size() == 2) {
 
                 if (tmpEnter.get(0).getE_mode().equals("1")) {
                     capsStartDate = tmpEnter.get(0).getE_date();
                     capsStartTime = roundTime(tmpEnter.get(0).getE_time());
-                    capsOrgStartTime = tmpEnter.get(0).getE_time().substring(0, 6);
+                    capsOrgStartTime = tmpEnter.get(0).getE_time().substring(0,4);
                     capsEndDate = tmpEnter.get(1).getE_date();
                     capsEndTime = floorTo30(tmpEnter.get(1).getE_time());
-                    capsOrgEndTime = tmpEnter.get(1).getE_time().substring(0, 6);
+                    capsOrgEndTime = tmpEnter.get(1).getE_time().substring(0,4);
                 } else if (tmpEnter.get(0).getE_mode().equals("2")) {
                     capsStartDate = tmpEnter.get(1).getE_date();
                     capsStartTime = roundTime(tmpEnter.get(1).getE_time());
-                    capsOrgStartTime = tmpEnter.get(1).getE_time().substring(0, 6);
+                    capsOrgStartTime = tmpEnter.get(1).getE_time().substring(0,4);
                     LocalDate next = LocalDate.parse(date, formatter).plusDays(1);
                     List<CapsEnterDTO> tmpCaps = extractBy1HourGap(capsMapper.findDateToId(id, next.format(formatter)));
                     if (!tmpCaps.isEmpty()) {
                         capsEndDate = tmpCaps.get(0).getE_date();
                         capsEndTime = floorTo30(tmpCaps.get(0).getE_time());
-                        capsOrgEndTime = tmpCaps.get(0).getE_time().substring(0, 6);
+                        capsOrgEndTime = tmpCaps.get(0).getE_time().substring(0,4);
                     }
                 } else {
                     if (tmpEnter.get(1).getE_mode().equals("1")) {
                         capsStartDate = tmpEnter.get(1).getE_date();
                         capsStartTime = roundTime(tmpEnter.get(1).getE_time());
-                        capsOrgStartTime = tmpEnter.get(1).getE_time().substring(0, 6);
+                        capsOrgStartTime = tmpEnter.get(1).getE_time().substring(0,4);
                         LocalDate next = LocalDate.parse(date, formatter).plusDays(1);
                         List<CapsEnterDTO> tmpCaps = extractBy1HourGap(capsMapper.findDateToId(id, next.format(formatter)));
                         if (!tmpCaps.isEmpty()) {
                             capsEndDate = tmpCaps.get(0).getE_date();
                             capsEndTime = floorTo30(tmpCaps.get(0).getE_time());
-                            capsOrgEndTime = tmpCaps.get(0).getE_time().substring(0, 6);
+                            capsOrgEndTime = tmpCaps.get(0).getE_time().substring(0,4);
                         }
                     } else if (tmpEnter.get(1).getE_mode().equals("2")) {
                         capsStartDate = tmpEnter.get(0).getE_date();
                         capsStartTime = roundTime(tmpEnter.get(0).getE_time());
-                        capsOrgStartTime = tmpEnter.get(0).getE_time().substring(0, 6);
+                        capsOrgStartTime = tmpEnter.get(0).getE_time().substring(0,4);
                         capsEndDate = tmpEnter.get(1).getE_date();
                         capsEndTime = floorTo30(tmpEnter.get(1).getE_time());
-                        capsOrgEndTime = tmpEnter.get(1).getE_time().substring(0, 6);
+                        capsOrgEndTime = tmpEnter.get(1).getE_time().substring(0,4);
                     }
                 }
 
             } else if (tmpEnter.size() == 1) {
                 capsStartDate = tmpEnter.get(0).getE_date();
                 capsStartTime = roundTime(tmpEnter.get(0).getE_time());
-                capsOrgStartTime = tmpEnter.get(0).getE_time().substring(0, 6);
+                capsOrgStartTime = tmpEnter.get(0).getE_time().substring(0,4);
                 LocalDate next = LocalDate.parse(date, formatter).plusDays(1);
                 List<CapsEnterDTO> tmpCaps = extractBy1HourGap(capsMapper.findDateToId(id, next.format(formatter)));
                 if (!tmpCaps.isEmpty()) {
                     capsEndDate = tmpCaps.get(0).getE_date();
                     capsEndTime = floorTo30(tmpCaps.get(0).getE_time());
-                    capsOrgEndTime = tmpEnter.get(0).getE_time().substring(0, 6);
+                    capsOrgEndTime = tmpEnter.get(0).getE_time().substring(0,4);
                 }
             }
 

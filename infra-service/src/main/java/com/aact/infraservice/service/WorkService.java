@@ -12,6 +12,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -54,17 +55,30 @@ public class WorkService extends ServiceBase {
         });
     }
 
-    public ResponseDTO<?> getWorkM010_006() {
+    public ResponseDTO<?> getWorkM010_006(WorkDTO.HrSearchDTO dto) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
 
         return execute(repo, () -> {
-
-
-            DbDto dbRet = repo.getWorkM010_006(info.getUserLang(), Util.getGUID(),
+            DbDto dbRet = repo.getWorkM010_006(dto.type(),dto.reqFlag(),dto.deptCode(),dto.terminalCode(),dto.toDate(),dto.fromDate(),dto.userName(),info.getUserLang(), Util.getGUID(),
                     info.getUserId(), info.getUserIpAddress(), info.getPgmId());
 
             return okOrThrow("getWorkM010_006", dbRet);
+        });
+    }
+
+    public ResponseDTO<?> getWorkM010_007(String date,BigDecimal userSid,BigDecimal seq) {
+        ClsUserInfo info = UserContext.get();
+        WorkRepo repo = workRepoProvider.getObject();
+
+        return execute(repo, () -> {
+            String yyyy = date.substring(0,4);
+            String mon = date.substring(4,6);
+            Integer day = Integer.parseInt(date.substring(6,8));
+            DbDto dbRet = repo.getWorkM010_007(yyyy,mon,userSid,Util.getStrChk(day),seq,info.getUserLang(), Util.getGUID(),
+                    info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+
+            return okOrThrow("getWorkM010_007", dbRet);
         });
     }
 
@@ -121,13 +135,6 @@ public class WorkService extends ServiceBase {
                             if (str.length > 2) {
                                 throw new BizException("setWorkM010_014", row.userId() + "근무자 " + row2.day() + "일 " + "하루에 코드는 2개까지입니다.");
                             }
-                            dbRet = repo.setWorkM010_021(yyyy, mon, row2.day(), userSid, terminalCode, dto.teamCode(), new BigDecimal(str.length), info.getUserLang(), Util.getGUID(),
-                                    info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-
-                            if (dbRet.getErrFlag().equals("Y")) {
-                                throw new BizException("setWorkM010_014", dbRet.getErrMsg());
-                            }
-
                             if (str.length == 0) {
                                 continue;
                             }
@@ -172,32 +179,8 @@ public class WorkService extends ServiceBase {
 
                                 }
 
-
-                                dbRet = repo.setWorkM010_015(yyyy, mon, row2.day(), userSid, new BigDecimal(i), code, ot, info.getUserLang(), Util.getGUID(),
-                                        info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-                                if (dbRet.getErrFlag().equals("Y")) {
-                                    throw new BizException("setWorkM010_014", dbRet.getErrMsg());
-                                }
-
-                                dbRet = repo.setWorkM010_016(yyyy, mon, row2.day(), userSid, new BigDecimal(i), "HRPAT", dto.teamCode(), info.getUserLang(), Util.getGUID(),
-                                        info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-
-                                if (dbRet.getErrFlag().equals("Y")) {
-                                    throw new BizException("setWorkM010_014", dbRet.getErrMsg());
-                                }
-
                                 if (!terminal.isEmpty()) {
-                                    if (terminal.equals("A")) {
-                                        for (Map<String, DbTypeDTO> dbRow : hrtrm.getResult().get(0)) {
-                                            dbRet = repo.setWorkM010_016(yyyy, mon, row2.day(), userSid, new BigDecimal(i), "HRTRM", dbRow.get("CODE_CODE").toString(), info.getUserLang(), Util.getGUID(),
-                                                    info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-
-                                            if (dbRet.getErrFlag().equals("Y")) {
-                                                throw new BizException("setWorkM010_014", dbRet.getErrMsg());
-                                            }
-                                        }
-                                    } else {
-
+                                    if (!terminal.equals("A")) {
                                         boolean flag = false;
                                         for (Map<String, DbTypeDTO> dbRow : hrtrm.getResult().get(0)) {
                                             if (dbRow.get("CODE_CODE").getObj().toString().equals(terminal)) {
@@ -208,39 +191,57 @@ public class WorkService extends ServiceBase {
                                         if (!flag) {
                                             throw new BizException("setWorkM010_014", terminal + "< 터미널은 없는 터미널입니다.");
                                         }
-
-
-                                        dbRet = repo.setWorkM010_016(yyyy, mon, row2.day(), userSid, new BigDecimal(i), "HRTRM", terminal, info.getUserLang(), Util.getGUID(),
-                                                info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-
-                                        if (dbRet.getErrFlag().equals("Y")) {
-                                            throw new BizException("setWorkM010_014", dbRet.getErrMsg());
-                                        }
                                     }
                                 }
 
-                                dbRet = repo.setWorkM010_016(yyyy, mon, row2.day(), userSid, new BigDecimal(i), "TRMCD", terminalCode, info.getUserLang(), Util.getGUID(),
+                                dbRet = repo.setWorkM010_013(yyyy, mon, userSid,row2.day() , new BigDecimal(i), code,"","" ,ot,BigDecimal.ZERO,BigDecimal.ZERO,
+                                        "",terminal,terminalCode,dto.teamCode(),"G",info.getUserLang(), Util.getGUID(),
                                         info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-
                                 if (dbRet.getErrFlag().equals("Y")) {
                                     throw new BizException("setWorkM010_014", dbRet.getErrMsg());
                                 }
-
                             }
 
-
-                        }
-
-                        dbRet = repo.setWorkM010_014(yyyy, mon, row.userId(), info.getUserLang(), Util.getGUID(),
-                                info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-                        if (dbRet.getErrFlag().equals("Y")) {
-                            throw new BizException("setWorkM010_014", dbRet.getErrMsg());
+                            dbRet = repo.setStatusUpdate(yyyy, mon, userSid,row2.day() ,info.getUserLang(), Util.getGUID(),
+                                    info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+                            if (dbRet.getErrFlag().equals("Y")) {
+                                throw new BizException("setWorkM010_014", dbRet.getErrMsg());
+                            }
                         }
                     }
                     return okOrThrow("setWorkM010_014", dbRet);
 
                 }
         );
+    }
+
+    public ResponseDTO<?> setHrSchSave(WorkDTO.HrSchSaveDTO dtos){
+        ClsUserInfo info = UserContext.get();
+        WorkRepo repo = workRepoProvider.getObject();
+        return  execute(repo,()->{
+
+            if(dtos.schArray() == null||dtos.schArray().isEmpty()){
+                throw new BizException("setHrSchSave","수정항목이 없습니다.");
+            }
+            DbDto dbRet = null;
+            for(WorkDTO.HrSchSaveRowDTO row: dtos.schArray()){
+                BigDecimal result = row.addHour()
+                        .multiply(BigDecimal.valueOf(2))
+                        .setScale(0, RoundingMode.HALF_UP)
+                        .divide(BigDecimal.valueOf(2));
+                dbRet = repo.setWorkM010_015(dtos.year(),dtos.mon(),dtos.day(),dtos.userSid(),row.seq(),row.workTypeCode(),result, info.getUserLang(), Util.getGUID(),
+                        info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+                if(dbRet.getErrFlag().equals("Y")){
+                    throw new BizException("setHrSchSave",dbRet.getErrMsg());
+                }
+
+
+            }
+            dbRet = repo.setWorkM010_014(dtos.year(),dtos.mon(),dtos.userId(),info.getUserLang(), Util.getGUID(),
+                    info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+
+            return okOrThrow("setHrSchSave", dbRet);
+        });
     }
 
     public String[] parsingDayStr(String dayStr) {
@@ -289,7 +290,7 @@ public class WorkService extends ServiceBase {
 
     }
 
-    public ResponseDTO<?> setWorkM010_017(WorkDTO.CloseDTO dto) {
+    public ResponseDTO<?> setWorkM010_017(String date,String teamCode) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
 
@@ -299,19 +300,11 @@ public class WorkService extends ServiceBase {
             }
             DbDto dbRet = null;
 
-            for (BigDecimal row : dto.userArray()) {
-                dbRet = repo.setWorkM010_017(dto.date().substring(0, 4), dto.date().substring(4, 6), row, info.getUserLang(), Util.getGUID(),
-                        info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-                if (dbRet.getErrFlag().equals("Y")) {
-                    throw new BizException("setWorkM010_017", dbRet.getErrMsg());
-                }
+            dbRet = repo.setWorkM010_017(date.substring(0, 4), date.substring(4, 6), teamCode, info.getUserLang(), Util.getGUID(),
+                    info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+            if (dbRet.getErrFlag().equals("Y")) {
+                throw new BizException("setWorkM010_017", dbRet.getErrMsg());
             }
-
-            if (dbRet == null) {
-                throw new BizException("setWorkM010_017", "유저를 선택하여 주세요.");
-            }
-
-
             return okOrThrow("setWorkM010_017", dbRet);
         });
 

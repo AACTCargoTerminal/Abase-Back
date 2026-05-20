@@ -11,6 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -26,9 +27,14 @@ public class WorkController {
         return workService.getWorkM010_002(date, deptCode, approveFlag);
     }
 
-    @GetMapping(value = "/getWorkM010_006")
-    public ResponseDTO<?> getWorkM010_006() {
-        return workService.getWorkM010_006();
+    @PostMapping(value = "/getWorkM010_006")
+    public ResponseDTO<?> getWorkM010_006(@RequestBody WorkDTO.HrSearchDTO dto) {
+        return workService.getWorkM010_006(dto);
+    }
+
+    @GetMapping(value = "/getWorkM010_007")
+    public ResponseDTO<?> getWorkM010_007(@RequestParam("date")String date, @RequestParam("userSid")BigDecimal userSid,@RequestParam("seq")BigDecimal seq) {
+        return workService.getWorkM010_007(date,userSid,seq);
     }
 
     @GetMapping(value = "/getHoliDay")
@@ -41,9 +47,9 @@ public class WorkController {
         return workService.setWorkM010_014(dto);
     }
 
-    @PostMapping(value = "/setWorkM010_017")
-    public ResponseDTO<?> setWorkM010_017(@RequestBody WorkDTO.CloseDTO dto) {
-        return workService.setWorkM010_017(dto);
+    @GetMapping(value = "/setWorkM010_017")
+    public ResponseDTO<?> setWorkM010_017(@RequestParam("date")String date, @RequestParam("teamCode")String teamCode) {
+        return workService.setWorkM010_017(date,teamCode);
     }
 
     //getWorkCapsData
@@ -89,5 +95,10 @@ public class WorkController {
     @PostMapping(value = "/setWorkM010_032")
     public ResponseDTO<?> setWorkM010_032(@RequestBody WorkDTO.ApproveDTO dto) {
         return workService.setWorkM010_032(dto);
+    }
+
+    @PostMapping(value = "/setHrSchSave")
+    public ResponseDTO<?> setHrSchSave(@RequestBody WorkDTO.HrSchSaveDTO dto) {
+        return workService.setHrSchSave(dto);
     }
 }
