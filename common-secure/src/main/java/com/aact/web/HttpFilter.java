@@ -47,7 +47,7 @@ public class HttpFilter extends OncePerRequestFilter {
                     }
 
                     // API 응답: 401 (웹앱이면 여기서 로그인 페이지로 리다이렉트 해도 됨)
-                    res.setStatus(HttpServletResponse.SC_CONFLICT);
+                    res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                     res.setContentType("text/plain;charset=UTF-8");
                     PrintWriter out = res.getWriter();
                     out.write("로그인 한 유저가 있습니다.");
@@ -55,7 +55,7 @@ public class HttpFilter extends OncePerRequestFilter {
                     return;
                 } else {
                     if (req.getHeader("PGMID") == null) {
-                        res.setStatus(HttpServletResponse.SC_CONFLICT);
+                        res.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                         res.setContentType("text/plain;charset=UTF-8");
                         PrintWriter out = res.getWriter();
                         out.write("프로그램 ID 필요");
@@ -71,7 +71,7 @@ public class HttpFilter extends OncePerRequestFilter {
                         dto.setUserIpAddress(dto.getUserTerminalCodeWork() + ":" + req.getRemoteAddr());
                         UserContext.set(dto);
                     } else {
-                        res.setStatus(HttpServletResponse.SC_CONFLICT);
+                        res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                         res.setContentType("text/plain;charset=UTF-8");
                         PrintWriter out = res.getWriter();
                         out.write("유저 정보 필요");
@@ -86,7 +86,7 @@ public class HttpFilter extends OncePerRequestFilter {
                     if (redisSessionId == null || !redisSessionId.equals(currentSessionId)) {
                         session.invalidate();
 
-                        res.setStatus(HttpServletResponse.SC_CONFLICT);
+                        res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                         res.setContentType("text/plain;charset=UTF-8");
                         res.getWriter().write("재 로그인 필요");
                         return;
@@ -97,7 +97,7 @@ public class HttpFilter extends OncePerRequestFilter {
                     if (ttlSec == -2 || ttlSec == -1) {
                         session.invalidate();
 
-                        res.setStatus(HttpServletResponse.SC_CONFLICT);
+                        res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                         res.setContentType("text/plain;charset=UTF-8");
                         res.getWriter().write("재 로그인 필요");
                         return;
@@ -110,7 +110,7 @@ public class HttpFilter extends OncePerRequestFilter {
 
                 }
             } else if (!validURI(req.getRequestURI()) && !validIp(req.getRemoteAddr())) {
-                res.setStatus(HttpServletResponse.SC_CONFLICT);
+                res.setStatus(HttpServletResponse.SC_FORBIDDEN);
                 res.setContentType("text/plain;charset=UTF-8");
                 PrintWriter out = res.getWriter();
                 out.write("허용된 URL이 아닙니다.");
