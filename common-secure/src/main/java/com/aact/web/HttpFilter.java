@@ -109,7 +109,7 @@ public class HttpFilter extends OncePerRequestFilter {
                     }
 
                 }
-            } else if (!validURI(req.getRequestURI()) && !validIp(req.getRemoteAddr())) {
+            } else if (!validURI(req.getRequestURI()) && !validIp(req.getHeader("X-Forwarded-For"))) {
                 log.info("접속 URI = [{}]", req.getRequestURI());
                 log.info("접속 IP = [{}]", req.getHeader("X-Forwarded-For"));
                 res.setStatus(HttpServletResponse.SC_FORBIDDEN);
