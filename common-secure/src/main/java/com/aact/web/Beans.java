@@ -14,6 +14,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.session.data.redis.config.annotation.web.http.EnableRedisHttpSession;
+import org.springframework.session.web.http.CookieSerializer;
 import org.springframework.session.web.http.DefaultCookieSerializer;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -42,7 +43,7 @@ public class Beans {
     }
 
     @Bean
-    public DefaultCookieSerializer cookieSerializer() {
+    public CookieSerializer cookieSerializer() {
         String domain = env.getProperty("session.cookie.domain");
         DefaultCookieSerializer s = new DefaultCookieSerializer();
         s.setCookieName("WMSSESSION");
