@@ -47,6 +47,7 @@ public class Beans {
         DefaultCookieSerializer s = new DefaultCookieSerializer();
         s.setCookieName("WMSSESSION");
         s.setUseHttpOnlyCookie(true);
+        log.info("session.cookie.domain = [{}]", domain);
         if(domain != null && !domain.isBlank()) {
             s.setUseSecureCookie(true);
             s.setDomainName(domain);
