@@ -62,6 +62,39 @@ public final class Util {
         return ret;
     }
 
+    public static Double getDouble(Object str) {
+        Double ret = 0.0;
+        try {
+
+            ret = Double.parseDouble(str.toString());
+
+        } catch (Exception e) {
+            // TODO: handle exception
+
+            ret = 0.0;
+        }
+        return ret;
+    }
+
+    //HHmm->HH:mm
+    public static String formatTime_HHmm(String value){
+
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+
+        value = value.trim();
+
+        if (value.length() <= 2) {
+            value = String.format("%02d00", Integer.parseInt(value));
+        }
+        else if (value.length() == 3) {
+            value = "0" + value;
+        }
+
+        return value.substring(0, 2) + ":" + value.substring(2, 4);
+    }
+
     public static String getStrChk(Object str) {
         String ret = "";
         try {

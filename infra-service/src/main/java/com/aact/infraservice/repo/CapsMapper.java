@@ -14,5 +14,5 @@ public interface CapsMapper {
     List<CapsEnterDTO> findEnterToUser(@Param("id") String id, @Param("modes") String[] modes,
                                        @Param("start") String start, @Param("end") String end);
 
-    List<CapsEnterDTO> findDateToId(@Param("id") String id, @Param("date") String date);
+    List<CapsEnterDTO> findDateToId(@Param("id") String id, @Param("startDate") String startDate, @Param("endDate") String endDate);
 }

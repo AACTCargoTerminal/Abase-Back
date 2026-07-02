@@ -4,6 +4,7 @@ import com.aact.common.BizException;
 import com.aact.common.ResponseDTO;
 import com.aact.common.ServiceBase;
 import com.aact.infraservice.dto.CapsEnterDTO;
+import com.aact.infraservice.dto.CapsGetType;
 import com.aact.infraservice.dto.CapsTimeDTO;
 import com.aact.infraservice.dto.CapsUserDTO;
 import com.aact.infraservice.repo.CapsMapper;
@@ -13,11 +14,13 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -48,299 +51,63 @@ public class CapsService extends ServiceBase {
 
     }
 
-    public ResponseDTO<CapsTimeDTO.CapsRangeResult> findDateToId(String id, String date, String start, String end, int plusDay) {
-        String capsStartDate = "";
-        String capsEndDate = "";
-        String capsStartTime = "";
-        String capsEndTime = "";
-        String capsOrgStartTime = "";
-        String capsOrgEndTime = "";
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
-        LocalDate now = LocalDate.parse(date, formatter);
-        List<CapsEnterDTO> dbRet = capsMapper.findDateToId(id, date);
-        List<CapsEnterDTO> tmpEnter = extractBy1HourGap(dbRet);
-        if (tmpEnter.size() > 3) {
-            throw new BizException("findDateToId", "캡스데이터가 너무 많습니다. ( " + tmpEnter.size() + " )");
+    public ResponseDTO<CapsTimeDTO.CapsRangeResult> findDateToId(CapsGetType getType, String id, String date, String time) {
+        String endDate = "";
+        String capsTime = "";
+        String capsOrgTime = "";
+        List<CapsEnterDTO> dbRet = null;
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmm");
+        LocalDateTime  now = LocalDateTime.parse(date+time, formatter);
+        //캡스 조회 제한
+        if(getType==CapsGetType.START){
+            endDate = now.minusHours(2).format(formatter);
+            dbRet = capsMapper.findDateToId(id, endDate,date+time);
+        }else{
+            endDate = now.plusMinutes(30).format(formatter);
+            dbRet = capsMapper.findDateToId(id,date+time, endDate);
         }
 
-
-        if (!start.isEmpty() && !end.isEmpty()) {
-            if (start.length() == 2) {
-                start += "00";
+        if (dbRet.isEmpty()) {
+            capsTime = "0000";
+            capsOrgTime = "0000";
+        }else{
+            LocalTime nowTime = LocalTime.parse(time,DateTimeFormatter.ofPattern("HHmm"));
+            Stream<CapsEnterDTO> nearest;
+            if (getType == CapsGetType.START) {
+                nearest = dbRet.stream()
+                        .filter(v -> !"2".equals(v.getE_mode()));
+            } else {
+                nearest = dbRet.stream()
+                        .filter(v -> !"1".equals(v.getE_mode()))
+                        .filter(v -> !"5".equals(v.getE_mode()));
             }
-            if (end.length() == 2) {
-                end += "00";
+            CapsEnterDTO ret = nearest.filter(v -> v.getE_time() != null && v.getE_time().length() == 4)
+                    .min(Comparator.comparingLong(dto -> {
+                LocalTime compareTime =
+                        LocalTime.parse(dto.getE_time(),
+                                DateTimeFormatter.ofPattern("HHmm"));
+
+                return Math.abs(
+                        Duration.between(nowTime, compareTime)
+                                .toMinutes()
+                );
+            })).orElse(null);
+            if(ret == null){
+                capsTime = "0000";
+                capsOrgTime = "0000";
+            }else{
+                if (getType == CapsGetType.START) {
+                    capsTime = roundTime(ret.getE_time());
+                }else{
+                    capsTime = floorTo30(ret.getE_time());
+                }
+                capsOrgTime =  ret.getE_time();
             }
-            boolean flag = false;
-            ClosestResult tmpRet = null;
-            if (tmpEnter.size() == 3) {
-                tmpRet = findClosest(tmpEnter.get(1), date, start);
-                if (tmpRet != null) {
-                    if (tmpRet.data.getE_mode().equals("1") || tmpRet.data.getE_mode().equals("3")) {
-                        if (tmpRet.diffMinutes > -30 && tmpRet.diffMinutes < 30) {
-                            capsStartDate = date;
-                            capsStartTime = start;
-                            flag = true;
-                        } else {
-                            capsStartDate = date;
-                            capsStartTime = roundTime(tmpRet.data.getE_time());
-                        }
-                        capsOrgStartTime = tmpRet.data.getE_time_raw();
-                    }
-
-                }
-                tmpRet = findClosest(tmpEnter.get(2), now.plusDays(plusDay).format(formatter), end);
-                if (tmpRet != null) {
-                    if (tmpRet.data.getE_mode().equals("2") || tmpRet.data.getE_mode().equals("3")) {
-                        if (tmpRet.diffMinutes > -30 && tmpRet.diffMinutes < 30 && flag) {
-                            throw new BizException("getWorkCapsData", "OT 해당사항 없음.");
-                        } else if (tmpRet.diffMinutes > 30) {
-                            capsEndDate = date;
-                            capsEndTime = floorTo30(tmpRet.data.getE_time());
-                            capsOrgEndTime = tmpRet.data.getE_time_raw();
-                        }
-                    }
-                }
-            } else if (tmpEnter.size() == 2) {
-                if (tmpEnter.get(0).getE_mode().equals("1")) {
-                    tmpRet = findClosest(tmpEnter.get(0), date, start);
-                    if (tmpRet.diffMinutes > -30 && tmpRet.diffMinutes < 30) {
-                        capsStartDate = date;
-                        capsStartTime = start;
-                        flag = true;
-                    } else {
-                        capsStartDate = date;
-                        capsStartTime = roundTime(tmpRet.data.getE_time());
-                    }
-                    capsOrgStartTime = tmpRet.data.getE_time_raw();
-                    tmpRet = findClosest(tmpEnter.get(1), now.plusDays(plusDay).format(formatter), end);
-                    if (tmpRet != null) {
-                        if (tmpRet.data.getE_mode().equals("2") || tmpRet.data.getE_mode().equals("3")) {
-                            if (tmpRet.diffMinutes > -30 && tmpRet.diffMinutes < 30 && flag) {
-                                throw new BizException("getWorkCapsData", "OT 해당사항 없음.");
-                            } else if (tmpRet.diffMinutes > 30) {
-                                capsEndDate = date;
-                                capsEndTime = floorTo30(tmpRet.data.getE_time());
-                                capsOrgEndTime = tmpRet.data.getE_time_raw();
-                            }
-                        }
-                    }
-                } else if (tmpEnter.get(0).getE_mode().equals("2")) {
-                    tmpRet = findClosest(tmpEnter.get(1), date, start);
-                    if (tmpRet.diffMinutes > -30 && tmpRet.diffMinutes < 30) {
-                        capsStartDate = date;
-                        capsStartTime = start;
-                        flag = true;
-                    } else {
-                        capsStartDate = date;
-                        capsStartTime = roundTime(tmpRet.data.getE_time());
-                    }
-                    capsOrgStartTime = tmpRet.data.getE_time_raw();
-                    LocalDate next = LocalDate.parse(date, formatter).plusDays(1);
-                    List<CapsEnterDTO> tmpCaps = extractBy1HourGap(capsMapper.findDateToId(id, next.format(formatter)));
-                    if (!tmpCaps.isEmpty()) {
-                        tmpRet = findClosest(tmpCaps.get(0), now.plusDays(plusDay).format(formatter), end);
-                        if (tmpRet.diffMinutes > -30 && tmpRet.diffMinutes < 30 && flag) {
-                            throw new BizException("getWorkCapsData", "OT 해당사항 없음.");
-                        } else if (tmpRet.diffMinutes > 30) {
-                            capsEndDate = next.format(formatter);
-                            capsEndTime = floorTo30(tmpRet.data.getE_time());
-                            capsOrgEndTime = tmpRet.data.getE_time_raw();
-                        }
-                    }
-                } else {
-                    tmpRet = findClosest(tmpEnter.get(0), date, start);
-                    int diff1 = tmpRet.diffMinutes;
-                    tmpRet = findClosest(tmpEnter.get(1), date, start);
-                    int diff2 = tmpRet.diffMinutes;
-                    if (diff1 < 30 && diff2 < 30) { // 두번째 출근으로 봄
-                        tmpRet = findClosest(tmpEnter.get(1), date, start);
-                        if (tmpRet.diffMinutes > -30 && tmpRet.diffMinutes < 30) {
-                            capsStartDate = date;
-                            capsStartTime = start;
-                            flag = true;
-                        } else {
-                            capsStartDate = date;
-                            capsStartTime = roundTime(tmpRet.data.getE_time());
-                        }
-                        capsOrgStartTime = tmpRet.data.getE_time_raw();
-                        LocalDate next = LocalDate.parse(date, formatter).plusDays(1);
-                        List<CapsEnterDTO> tmpCaps = extractBy1HourGap(capsMapper.findDateToId(id, next.format(formatter)));
-                        if (!tmpCaps.isEmpty()) {
-                            tmpRet = findClosest(tmpCaps.get(0), now.plusDays(plusDay).format(formatter), end);
-                            if (tmpRet.diffMinutes > -30 && tmpRet.diffMinutes < 30 && flag) {
-                                throw new BizException("getWorkCapsData", "OT 해당사항 없음.");
-                            } else if (tmpRet.diffMinutes > 30) {
-                                capsEndDate = next.format(formatter);
-                                capsEndTime = floorTo30(tmpRet.data.getE_time());
-                                capsOrgEndTime = tmpRet.data.getE_time_raw();
-                            }
-                        }
-                    } else {
-                        tmpRet = findClosest(tmpEnter.get(0), date, start);
-                        if (tmpRet.diffMinutes > -30 && tmpRet.diffMinutes < 30) {
-                            capsStartDate = date;
-                            capsStartTime = start;
-                            flag = true;
-                        } else if (tmpRet.diffMinutes <= -30) {
-                            capsStartDate = date;
-                            capsStartTime = roundTime(tmpRet.data.getE_time());
-                        }
-                        capsOrgStartTime = tmpRet.data.getE_time_raw();
-                        tmpRet = findClosest(tmpEnter.get(1), now.plusDays(plusDay).format(formatter), end);
-                        if (tmpRet != null) {
-                            if (tmpRet.data.getE_mode().equals("2") || tmpRet.data.getE_mode().equals("3")) {
-                                if (tmpRet.diffMinutes > -30 && tmpRet.diffMinutes < 30 && flag) {
-                                    throw new BizException("getWorkCapsData", "OT 해당사항 없음.");
-                                } else if (tmpRet.diffMinutes > 30) {
-                                    capsEndDate = date;
-                                    capsEndTime = floorTo30(tmpRet.data.getE_time());
-                                    capsOrgEndTime = tmpRet.data.getE_time_raw();
-                                }
-                            }
-                        }
-                    }
-                }
-            } else if (tmpEnter.size() == 1) {
-                if (!tmpEnter.get(0).getE_mode().equals("2")) {
-                    tmpRet = findClosest(tmpEnter.get(0), date, start);
-                    if (tmpRet.diffMinutes > -30 && tmpRet.diffMinutes < 30) {
-                        capsStartDate = date;
-                        capsStartTime = start;
-                        flag = true;
-                    } else {
-                        capsStartDate = date;
-                        capsStartTime = roundTime(tmpRet.data.getE_time());
-                    }
-                    capsOrgStartTime = tmpRet.data.getE_time_raw();
-                }
-                LocalDate next = LocalDate.parse(date, formatter).plusDays(1);
-                List<CapsEnterDTO> tmpCaps = extractBy1HourGap(capsMapper.findDateToId(id, next.format(formatter)));
-                if (!tmpCaps.isEmpty()) {
-                    tmpRet = findClosest(tmpCaps.get(0), now.plusDays(plusDay).format(formatter), end);
-                    if (tmpRet.diffMinutes > -30 && tmpRet.diffMinutes < 30 && flag) {
-                        throw new BizException("getWorkCapsData", "OT 해당사항 없음.");
-                    } else if (tmpRet.diffMinutes > 30) {
-                        capsEndDate = next.format(formatter);
-                        capsEndTime = floorTo30(tmpRet.data.getE_time());
-                        capsOrgEndTime = tmpRet.data.getE_time_raw();
-                    }
-                }
-            }
-
-
-        } else {
-
-            if (tmpEnter.size() == 3) {
-
-                capsStartDate = tmpEnter.get(1).getE_date();
-                capsStartTime = roundTime(tmpEnter.get(1).getE_time());
-                capsOrgStartTime = tmpEnter.get(1).getE_time().substring(0, 6);
-                capsEndDate = tmpEnter.get(2).getE_date();
-                capsEndTime = floorTo30(tmpEnter.get(2).getE_time());
-                capsOrgEndTime = tmpEnter.get(2).getE_time().substring(0, 6);
-
-            } else if (tmpEnter.size() == 2) {
-
-                if (tmpEnter.get(0).getE_mode().equals("1")) {
-                    capsStartDate = tmpEnter.get(0).getE_date();
-                    capsStartTime = roundTime(tmpEnter.get(0).getE_time());
-                    capsOrgStartTime = tmpEnter.get(0).getE_time().substring(0, 6);
-                    capsEndDate = tmpEnter.get(1).getE_date();
-                    capsEndTime = floorTo30(tmpEnter.get(1).getE_time());
-                    capsOrgEndTime = tmpEnter.get(1).getE_time().substring(0, 6);
-                } else if (tmpEnter.get(0).getE_mode().equals("2")) {
-                    capsStartDate = tmpEnter.get(1).getE_date();
-                    capsStartTime = roundTime(tmpEnter.get(1).getE_time());
-                    capsOrgStartTime = tmpEnter.get(1).getE_time().substring(0, 6);
-                    LocalDate next = LocalDate.parse(date, formatter).plusDays(1);
-                    List<CapsEnterDTO> tmpCaps = extractBy1HourGap(capsMapper.findDateToId(id, next.format(formatter)));
-                    if (!tmpCaps.isEmpty()) {
-                        capsEndDate = tmpCaps.get(0).getE_date();
-                        capsEndTime = floorTo30(tmpCaps.get(0).getE_time());
-                        capsOrgEndTime = tmpCaps.get(0).getE_time().substring(0, 6);
-                    }
-                } else {
-                    if (tmpEnter.get(1).getE_mode().equals("1")) {
-                        capsStartDate = tmpEnter.get(1).getE_date();
-                        capsStartTime = roundTime(tmpEnter.get(1).getE_time());
-                        capsOrgStartTime = tmpEnter.get(1).getE_time().substring(0, 6);
-                        LocalDate next = LocalDate.parse(date, formatter).plusDays(1);
-                        List<CapsEnterDTO> tmpCaps = extractBy1HourGap(capsMapper.findDateToId(id, next.format(formatter)));
-                        if (!tmpCaps.isEmpty()) {
-                            capsEndDate = tmpCaps.get(0).getE_date();
-                            capsEndTime = floorTo30(tmpCaps.get(0).getE_time());
-                            capsOrgEndTime = tmpCaps.get(0).getE_time().substring(0, 6);
-                        }
-                    } else if (tmpEnter.get(1).getE_mode().equals("2")) {
-                        capsStartDate = tmpEnter.get(0).getE_date();
-                        capsStartTime = roundTime(tmpEnter.get(0).getE_time());
-                        capsOrgStartTime = tmpEnter.get(0).getE_time().substring(0, 6);
-                        capsEndDate = tmpEnter.get(1).getE_date();
-                        capsEndTime = floorTo30(tmpEnter.get(1).getE_time());
-                        capsOrgEndTime = tmpEnter.get(1).getE_time().substring(0, 6);
-                    }
-                }
-
-            } else if (tmpEnter.size() == 1) {
-                capsStartDate = tmpEnter.get(0).getE_date();
-                capsStartTime = roundTime(tmpEnter.get(0).getE_time());
-                capsOrgStartTime = tmpEnter.get(0).getE_time().substring(0, 6);
-                LocalDate next = LocalDate.parse(date, formatter).plusDays(1);
-                List<CapsEnterDTO> tmpCaps = extractBy1HourGap(capsMapper.findDateToId(id, next.format(formatter)));
-                if (!tmpCaps.isEmpty()) {
-                    capsEndDate = tmpCaps.get(0).getE_date();
-                    capsEndTime = floorTo30(tmpCaps.get(0).getE_time());
-                    capsOrgEndTime = tmpEnter.get(0).getE_time().substring(0, 6);
-                }
-            }
-
-
         }
-
-        ResponseDTO<CapsTimeDTO.CapsRangeResult> ret = ResponseDTO.<CapsTimeDTO.CapsRangeResult>builder().errMsg("").errFlag("N").data(new CapsTimeDTO.CapsRangeResult(capsStartDate, capsStartTime, capsEndDate, capsEndTime, capsOrgStartTime, capsOrgEndTime)).build();
+        ResponseDTO<CapsTimeDTO.CapsRangeResult> ret = ResponseDTO.<CapsTimeDTO.CapsRangeResult>builder().errMsg("").errFlag("N").data(new CapsTimeDTO.CapsRangeResult(capsTime, capsOrgTime)).build();
 
         return okOrThrow("findDateToId", ret);
 
-    }
-
-    List<CapsEnterDTO> extractBy1HourGap(List<CapsEnterDTO> list) {
-
-        if (list == null || list.isEmpty()) return Collections.emptyList();
-
-        // 시간순 정렬 (이미 정렬돼있으면 생략 가능)
-        list.sort(Comparator.comparing(v -> v.getE_time()));
-
-        List<CapsEnterDTO> result = new ArrayList<>();
-
-        CapsEnterDTO prev = null;
-
-        for (CapsEnterDTO cur : list) {
-
-            if (prev == null) {
-                result.add(cur); // 첫 값은 무조건 추가
-                prev = cur;
-                continue;
-            }
-
-            int prevMin = toMinutes(prev.getE_time());
-            int curMin = toMinutes(cur.getE_time());
-
-            if (curMin - prevMin >= 60) {
-                result.add(cur); // 1시간 이상 차이 → 새 그룹 시작
-            }
-
-            prev = cur;
-        }
-
-        return result;
-    }
-
-    private int toMinutes(String time) {
-        String t = time.substring(0, 4); // HHmm
-        int h = Integer.parseInt(t.substring(0, 2));
-        int m = Integer.parseInt(t.substring(2, 4));
-        return h * 60 + m;
     }
 
     ClosestResult findClosest(CapsEnterDTO dto, String targetDate, String targetTime) {

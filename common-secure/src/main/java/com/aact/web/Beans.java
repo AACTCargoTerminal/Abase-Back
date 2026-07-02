@@ -5,6 +5,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.JdkSerializationRedisSerializer;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -39,10 +43,17 @@ public class Beans {
 
     @Bean
     public DefaultCookieSerializer cookieSerializer() {
+        String domain = env.getProperty("session.cookie.domain");
         DefaultCookieSerializer s = new DefaultCookieSerializer();
         s.setCookieName("WMSSESSION");
         s.setUseHttpOnlyCookie(true);
-        s.setUseSecureCookie(false);
+        if(domain != null && !domain.isBlank()) {
+            s.setUseSecureCookie(true);
+            s.setDomainName(domain);
+        }else{
+            s.setUseSecureCookie(false);
+        }
+
         s.setSameSite("Lax");
         s.setUseBase64Encoding(true);
 
@@ -83,6 +94,24 @@ public class Beans {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
+    }
+
+    @Bean
+    public RedisTemplate<String, Object> redisTemplate(
+            RedisConnectionFactory connectionFactory
+    ) {
+        RedisTemplate<String, Object> template = new RedisTemplate<>();
+        template.setConnectionFactory(connectionFactory);
+
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setHashKeySerializer(new StringRedisSerializer());
+
+        // Spring Session에 저장된 객체를 그대로 읽으려면 우선 JDK serializer가 안전함
+        template.setValueSerializer(new JdkSerializationRedisSerializer());
+        template.setHashValueSerializer(new JdkSerializationRedisSerializer());
+
+        template.afterPropertiesSet();
+        return template;
     }
 
 }

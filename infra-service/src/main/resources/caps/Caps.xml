@@ -52,15 +52,20 @@
     </select>
 
     <select id="findDateToId" resultType="com.aact.infraservice.dto.CapsEnterDTO">
-        SELECT E.e_date , E.e_time, U.idno AS g_id,E.e_mode
+        SELECT E.e_date ,LEFT(E.e_time, 4) AS e_time, U.idno AS g_id,E.e_mode
         FROM dbo.tenter E
         JOIN dbo.tuser U
         ON E.e_id = U.id
         JOIN dbo.tgate G
         ON G.id = E.g_id
         WHERE U.idno = #{id}
-        AND E.e_date = #{date}
-        ORDER BY E.e_date ,E.e_time
+        AND (
+        CAST(E.e_date AS VARCHAR(8))
+        + LEFT(RIGHT('000000' + CAST(E.e_time AS VARCHAR(6)), 6), 4)
+        )
+        BETWEEN #{startDate}
+        AND #{endDate}
+        ORDER BY E.e_date, E.e_time
     </select>
 
 </mapper>
