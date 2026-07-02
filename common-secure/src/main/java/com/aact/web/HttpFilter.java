@@ -115,6 +115,7 @@ public class HttpFilter extends OncePerRequestFilter {
                 PrintWriter out = res.getWriter();
                 out.write("허용된 URL이 아닙니다.");
                 out.flush();
+
                 return;
             }
 
