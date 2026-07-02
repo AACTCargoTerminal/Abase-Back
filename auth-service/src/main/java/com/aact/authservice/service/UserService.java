@@ -53,7 +53,7 @@ public class UserService extends ServiceBase {
                     }
                 }
 
-                DbDto relRet = repo.getUserRel(Util.getDecimal(sid),"Y","KOR", Util.getGUID(),dto.username(),hReq.,"login");
+                DbDto relRet = repo.getUserRel(Util.getDecimal(sid),"Y","KOR", Util.getGUID(),dto.username(),hReq.getRemoteAddr(),"login");
 
                 ResponseDTO<Map<Integer, List<Map<String, Object>>>> chgRet = ResponseDTO.from(relRet);
 

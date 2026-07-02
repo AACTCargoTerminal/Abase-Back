@@ -17,6 +17,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.PrintWriter;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 @Component
@@ -109,9 +110,9 @@ public class HttpFilter extends OncePerRequestFilter {
                     }
 
                 }
-            } else if (!validURI(req.getRequestURI()) && !validIp(req.getHeader("X-Forwarded-For"))) {
+            } else if (!validURI(req.getRequestURI()) && !validIp(req.getRemoteAddr())) {
                 log.info("접속 URI = [{}]", req.getRequestURI());
-                log.info("접속 IP = [{}]", req.getHeader("X-Forwarded-For"));
+                log.info("접속 IP = [{}]", req.getRemoteAddr());
                 res.setStatus(HttpServletResponse.SC_FORBIDDEN);
                 res.setContentType("text/plain;charset=UTF-8");
                 PrintWriter out = res.getWriter();
