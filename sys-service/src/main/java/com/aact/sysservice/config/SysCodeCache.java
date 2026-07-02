@@ -64,9 +64,7 @@ public class SysCodeCache {
     public void loadClassCode(String classCode) {
         log.info(classCode+"공통코드 캐시 로딩 시작...");
 
-        if(!cache.isEmpty()&&cache.get(classCode)!= null){
-            cache.put(classCode,new ArrayList<>());
-        }
+        cache.remove(classCode);
 
         SysRepo repo = sysRepo.getObject();
 
@@ -84,16 +82,56 @@ public class SysCodeCache {
                     throw new IllegalStateException("공통코드 에러");
                 }
 
-                if(cache.get(classCode)==null){
-                    cache.put(classCode,new ArrayList<>());
-                    cache.get(classCode).add(row);
-                }else{
-                    cache.get(classCode).add(row);
-                }
+                cache.computeIfAbsent(tmpClassCode, k -> new ArrayList<>())
+                        .add(row);
             }
         }
 
         log.info(classCode+"공통코드 캐시 로딩 완료: {}건", cache.size());
+    }
+
+    public void loadClassCodeRepo(SysRepo repo,String classCode) {
+        log.info(classCode+"공통코드 캐시 로딩 시작...");
+
+        cache.remove(classCode);
+
+        DbDto dbRet = repo.getAllCode(classCode);
+
+        if (dbRet.getErrFlag().equals("Y")) {
+            ResponseDTO.setError("공통코드 로드", dbRet.getErrMsg());
+        } else {
+            ResponseDTO<Map<Integer, List<Map<String, Object>>>> ret = ResponseDTO.from(dbRet);
+            for(Map<String,Object> row:ret.getData().get(0)){
+
+                String tmpClassCode = Util.getStrChk(row.get("CLASS_CODE"));
+                if(tmpClassCode.isBlank()){
+                    log.error(classCode+"공통코드 에러 : {}","빈클래스 코드");
+                    throw new IllegalStateException("공통코드 에러");
+                }
+
+                cache.computeIfAbsent(tmpClassCode, k -> new ArrayList<>())
+                        .add(row);
+            }
+        }
+
+        log.info(classCode+"공통코드 캐시 로딩 완료: {}건", cache.size());
+    }
+
+    public ResponseDTO<List<Map<String, Object>>> getCodeToClassSid(BigDecimal classSid){
+        try{
+            List<Map<String,Object>> list = cache.values().stream().filter(v->
+                    v.stream().filter(j->
+                            Util.getDecimal(j.get("CLASS_SID")).compareTo(classSid)==0)
+                            .toList().size()>0)
+                    .findFirst().orElse(null);
+            if(list == null||list.isEmpty()){
+                return ResponseDTO.setError2("getCodeToClassSid",classSid+"관련 코드는 없습니다.");
+            }
+
+            return ResponseDTO.<List<Map<String, Object>>>builder().errFlag("N").errMsg("조회완료").data(list).build();
+        }catch (Exception ex){
+            return ResponseDTO.setError2("getCodeToClassSid",ex);
+        }
     }
 
     public ResponseDTO<List<Map<String, Object>>> getCodeToName(String classCode, String codeName,

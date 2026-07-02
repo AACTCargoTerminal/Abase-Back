@@ -12,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -33,6 +35,7 @@ public class UserService extends ServiceBase {
 
     private final ObjectProvider<UserRepo> userRepo;
     private final StringRedisTemplate stringRedisTemplate;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     public ResponseDTO<?> login(LoginReq.LoginDTO dto, HttpServletRequest hReq){
         UserRepo repo = userRepo.getObject();
@@ -439,13 +442,17 @@ public class UserService extends ServiceBase {
 
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
-                int rgb = src.getRGB(x, y);
-                int r = (rgb >> 16) & 0xff;
-                int g = (rgb >> 8) & 0xff;
-                int b = rgb & 0xff;
+                int argb = src.getRGB(x, y);
 
-                // ✅ "threshold(=100) 아래"면 잉크로 판단
-                if (isInk(r, g, b, threshold)){
+                // ✅ 투명 픽셀은 제외
+                int a = (argb >> 24) & 0xff;
+                if (a == 0) continue;
+
+                int r = (argb >> 16) & 0xff;
+                int g = (argb >> 8) & 0xff;
+                int b = argb & 0xff;
+
+                if (isInk(r, g, b, threshold)) {
                     if (x < minX) minX = x;
                     if (y < minY) minY = y;
                     if (x > maxX) maxX = x;
@@ -470,13 +477,46 @@ public class UserService extends ServiceBase {
 
         // ✅ getSubimage는 (x, y, width, height)
         BufferedImage cropped = src.getSubimage(minX, minY, cropW, cropH);
+        BufferedImage transparent = makeTransparentInkOnly(cropped, threshold);
 
-        // ✅ 가로가 더 길면 90도 회전
         if (cropW + 50 < cropH) {
-            return rotate90(cropped);
+            return rotate90(transparent);
         }
 
-        return cropped;
+        return transparent;
+    }
+
+    private BufferedImage makeTransparentInkOnly(BufferedImage src, int threshold) {
+        int w = src.getWidth();
+        int h = src.getHeight();
+
+        BufferedImage out = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                int argb = src.getRGB(x, y);
+
+                int a = (argb >> 24) & 0xff;
+
+                // ✅ 이미 투명한 픽셀은 그대로 투명 처리
+                if (a == 0) {
+                    out.setRGB(x, y, 0x00000000);
+                    continue;
+                }
+
+                int r = (argb >> 16) & 0xff;
+                int g = (argb >> 8) & 0xff;
+                int b = argb & 0xff;
+
+                if (isInk(r, g, b, threshold)) {
+                    out.setRGB(x, y, (a << 24) | (r << 16) | (g << 8) | b);
+                } else {
+                    out.setRGB(x, y, 0x00000000);
+                }
+            }
+        }
+
+        return out;
     }
 
     private BufferedImage rotate90(BufferedImage src) {
@@ -531,6 +571,32 @@ public class UserService extends ServiceBase {
                 dbRet = repo.setUserRel(row.userSid(),row.classCode(),row.codeCode(),row.yyyy(),row.value1(),row.value2(),row.value3(),row.value4(),info.getUserLang(), Util.getGUID(), info.getUserId(), info.getUserIpAddress(), info.getPgmId());
                 if(dbRet.getErrFlag().equals("Y")){
                     throw new BizException("setUserRel", dbRet.getErrMsg());
+                }
+            }
+            String key = "sess:user:";
+            for(InfraUser.UserRelDTO row: dtos){
+                String sessionKey = stringRedisTemplate.opsForValue().get(key+row.userSid());
+                if (sessionKey == null) {
+                    continue;
+                }
+                ClsUserInfo userProfile = (ClsUserInfo) redisTemplate.opsForHash()
+                        .get(sessionKey, "sessionAttr:USER_PROFILE");
+
+
+
+                if (userProfile != null) {
+
+                    DbDto dbDto = repo.getUserRel(row.userSid(),"Y","KOR", Util.getGUID(),info.getUserId(),info.getUserIpAddress(),"login");
+
+                    ResponseDTO<Map<Integer, List<Map<String, Object>>>> ret = ResponseDTO.from(dbDto);
+
+                    userProfile.setRelArray(ret.getData().get(0));
+
+                    redisTemplate.opsForHash().put(
+                            sessionKey,
+                            "sessionAttr:USER_PROFILE",
+                            userProfile
+                    );
                 }
             }
 

@@ -95,7 +95,7 @@ public class ClientService extends ServiceBase {
         });
     }
 
-    private void testServer(ResourceClient cli, ClientName clientName) {
+    public void testServer(ResourceClient cli, ClientName clientName) {
         try {
             ClsUserInfo info = UserContext.get();
             cli.getWebClient()

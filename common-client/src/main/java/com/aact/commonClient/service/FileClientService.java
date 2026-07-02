@@ -9,13 +9,16 @@ import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class FileClientService extends ServiceBase {
     private final ClientService clientService;
     private final Environment env;
+    private final Map<ClientName, ResourceClient> multiWebClient;
 
     public ResponseDTO<?> fileSave(List<MultipartFile> files) {
 
@@ -43,6 +46,39 @@ public class FileClientService extends ServiceBase {
             return clientService.postMultipart(ClientName.FILE,
                     uriBuilder -> uriBuilder.path("/save").queryParam("dir", dir).build(),
                     builder,typeRef);
+        });
+
+    }
+
+    public ResponseDTO<byte[]> fileRead(String path) {
+
+        return execute(()->{
+            if (path == null || path.isEmpty()) {
+                throw new SysException("fileRead","경로문제");
+            }
+
+            ResourceClient cli = multiWebClient.get(ClientName.FILE);
+            if(cli == null){
+                throw new SysException("fileRead","FILE 서버 등록 안됨.");
+            }
+            ClsUserInfo info = UserContext.get();
+
+            byte[] ret = cli.getWebClient()
+                    .get()
+                    .uri(uriBuilder ->
+                            uriBuilder
+                                    .path("/read")
+                                    .queryParam("path", path)
+                                    .build()
+                    )
+                    .header("PGMID", info.getPgmId())
+                    .cookie("WMSSESSION", info.getSesId())
+                    .retrieve()
+                    .bodyToMono(byte[].class)
+                    .block(Duration.ofMillis(
+                            cli.getResponseTimeout()));
+
+            return ResponseDTO.<byte[]>builder().errFlag("N").data(ret).build();
         });
 
     }

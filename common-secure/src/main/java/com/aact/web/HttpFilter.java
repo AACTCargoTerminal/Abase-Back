@@ -17,6 +17,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.PrintWriter;
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 @Component
 @Slf4j
@@ -38,9 +39,7 @@ public class HttpFilter extends OncePerRequestFilter {
                 String mark = stringRedisTemplate.opsForValue().get(reasonKey);
 
                 if (mark != null) {
-                    // 마커 소비(정리)
                     stringRedisTemplate.delete(reasonKey);
-
                     // 현재 세션 무효화
                     try {
                         session.invalidate();
@@ -81,21 +80,36 @@ public class HttpFilter extends OncePerRequestFilter {
                     }
                     String userKey = "sess:user:" + dto.getUserSid().toString();
 
-                    Long ttlSec = stringRedisTemplate.getExpire(userKey);
+                    String redisSessionId = stringRedisTemplate.opsForValue().get(userKey);
+                    String currentSessionId = session.getId();
 
-                    boolean lowRedisTTL = (ttlSec != null) && (ttlSec >= 0) // TTL이 있을 때만 판단
-                            && (ttlSec <= 300L);
+                    if (redisSessionId == null || !redisSessionId.equals(currentSessionId)) {
+                        session.invalidate();
 
-                    if (lowRedisTTL) {
-                        // (A) 세션 슬라이딩 연장
+                        res.setStatus(HttpServletResponse.SC_CONFLICT);
+                        res.setContentType("text/plain;charset=UTF-8");
+                        res.getWriter().write("재 로그인 필요");
+                        return;
+                    }
+
+                    long ttlSec = stringRedisTemplate.getExpire(userKey);
+
+                    if (ttlSec == -2 || ttlSec == -1) {
+                        session.invalidate();
+
+                        res.setStatus(HttpServletResponse.SC_CONFLICT);
+                        res.setContentType("text/plain;charset=UTF-8");
+                        res.getWriter().write("재 로그인 필요");
+                        return;
+                    }
+
+                    if (ttlSec <= 300L) {
                         session.setMaxInactiveInterval(30 * 60);
-
-                        // (B) 사용자 정의 키도 함께 연장(선택)
-                        stringRedisTemplate.expire(userKey, 30 * 60, java.util.concurrent.TimeUnit.SECONDS);
+                        stringRedisTemplate.expire(userKey, 30 * 60, TimeUnit.SECONDS);
                     }
 
                 }
-            } else if (session == null && (!validURI(req.getRequestURI()) && !validIp(req.getRemoteAddr()))) {
+            } else if (!validURI(req.getRequestURI()) && !validIp(req.getRemoteAddr())) {
                 res.setStatus(HttpServletResponse.SC_CONFLICT);
                 res.setContentType("text/plain;charset=UTF-8");
                 PrintWriter out = res.getWriter();

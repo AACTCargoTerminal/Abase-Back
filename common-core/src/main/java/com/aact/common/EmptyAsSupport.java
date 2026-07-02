@@ -20,7 +20,11 @@ public final class EmptyAsSupport {
     /**
      * 필드에 붙여서 "빈값/null이면 이 값으로 대체"
      */
-    @Target(ElementType.FIELD)
+    @Target({
+            ElementType.FIELD,
+            ElementType.PARAMETER,
+            ElementType.RECORD_COMPONENT
+    })
     @Retention(RetentionPolicy.RUNTIME)
     public @interface EmptyAs {
         String value(); // 문자열로 받고, 필드 타입에 맞게 변환

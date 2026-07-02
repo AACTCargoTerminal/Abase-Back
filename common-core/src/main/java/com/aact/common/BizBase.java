@@ -397,6 +397,10 @@ public abstract class BizBase {
         } catch (Exception e) {
             // TODO: handle exception
             ret = DbDto.builder().errFlag("Y").errCode("SERVER").errMsg(e.getMessage()).build();
+        }finally {
+            if (!transFlag) {
+                close();
+            }
         }
 
         return ret;

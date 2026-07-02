@@ -244,15 +244,14 @@ public class SysService extends ServiceBase {
                 if (key.contains("CHAR_CLASS_SID")) {
                     if (value instanceof BigDecimal) {
                         if (((BigDecimal) value).compareTo(BigDecimal.ZERO) != 0) {
-                            dbRet = repo.callSql("SELECT * FROM TCM_CODE_MASTER WHERE CLASS_SID = " + value);
-                            if (dbRet.getErrFlag().equals("Y")) {
-                                throw new BizException("getCodeA010Mgm", dbRet.getErrMsg());
+                            ResponseDTO<List<Map<String, Object>>> classRet = codeCache.getCodeToClassSid(Util.getDecimal(value));
+                            if (classRet.getErrFlag().equals("Y")) {
+                                throw new BizException("getCodeA010Mgm", classRet.getErrMsg());
                             } else {
-                                if (dbRet.getResult().get(0) == null || dbRet.getResult().get(0).isEmpty()) {
+                                if (classRet.getData().get(0) == null || classRet.getData().get(0).isEmpty()) {
                                     throw new BizException("getCodeA010Mgm", "CLASS 항목에 문제가 있습니다.\n관리자에게 문의하세요.");
                                 }
-                                ResponseDTO<Map<Integer, List<Map<String, Object>>>> tmp = ResponseDTO.from(dbRet);
-                                toAdd.put(key + "_ARRAY", tmp.getData().get(0));
+                                toAdd.put(key + "_ARRAY", classRet.getData());
                             }
                         }
                     }
@@ -289,10 +288,15 @@ public class SysService extends ServiceBase {
 
 
             for (SysDTO.CodeSaveDTO row : dtoList) {
-                dtRet = repo.setCodeA010_012(row.classCode(), row.code(), row.asisCode(), row.codeName1(), row.codeName2(), row.codeDesc(), row.value1Char(), row.value2Char(), row.value3Char(), row.value4Char(), row.value5Char(), row.value6Char(), row.value7Char(), row.value8Char(), row.value9Char(), row.value1Num(), row.value2Num(), row.value3Num(), row.value4Num(), row.value5Num(), row.value6Num(), row.value7Num(), row.value8Num(), row.value9Num(), row.seq(), info.getUserLang(), Util.getGUID(), info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+                dtRet = repo.setCodeA010_012(row.getClassCode(), row.getCode(), row.getAsisCode(), row.getCodeName1(), row.getCodeName2(), row.getCodeDesc(),
+                        row.getValue1Char(), row.getValue2Char(), row.getValue3Char(), row.getValue4Char(), row.getValue5Char(),
+                        row.getValue6Char(), row.getValue7Char(), row.getValue8Char(), row.getValue9Char(),
+                        row.getValue1Num(), row.getValue2Num(), row.getValue3Num(), row.getValue4Num(), row.getValue5Num(), row.getValue6Num(),
+                        row.getValue7Num(), row.getValue8Num(), row.getValue9Num(), row.getSeq(), info.getUserLang(), Util.getGUID(), info.getUserId(), info.getUserIpAddress(), info.getPgmId());
                 if (dtRet.getErrFlag().equals("Y")) {
                     throw new BizException("setCodeA010_012", dtRet.getErrMsg());
                 }
+                codeCache.loadClassCodeRepo(repo,row.getClassCode());
             }
 
 
@@ -315,6 +319,7 @@ public class SysService extends ServiceBase {
                 if (dtRet.getErrFlag().equals("Y")) {
                     throw new BizException("setCodeA010_022", dtRet.getErrMsg());
                 }
+                codeCache.loadClassCodeRepo(repo,row.classCode());
             }
 
 
