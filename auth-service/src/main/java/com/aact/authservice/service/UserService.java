@@ -61,9 +61,9 @@ public class UserService extends ServiceBase {
                     throw new BizException("login",chgRet.getErrMsg());
                 }
 
-                String menuMode = hReq.getHeader("MENU-MODE");
+                String menuMode =dto.menuType();
 
-                if(menuMode!=null&&menuMode.equals("INFRA")){
+                if(menuMode!=null&&menuMode.equals("INTRA")){
                     if(chgRet.getData().get(0)!=null&&!chgRet.getData().get(0).isEmpty()){
                         List<Map<String, Object>> tmpObj = chgRet.getData().get(0);
                         Map<String,Object> findObj = tmpObj.stream().filter((m)->Util.getStrChk(m.get("CLASS_CODE")).equals("HRPAT")).findFirst().orElse(null);

@@ -13,7 +13,8 @@ public class LoginReq {
     public record LoginDTO(
             @JsonProperty("username") @JsonDeserialize(using = EmptyAsDeserializer.class) @EmptyAs("*") String username,
             @JsonProperty("password") @JsonDeserialize(using = EmptyAsDeserializer.class) @EmptyAs("*") String password,
-            @JsonProperty("terminal") @JsonDeserialize(using = EmptyAsDeserializer.class) @EmptyAs("") String terminal
+            @JsonProperty("terminal") @JsonDeserialize(using = EmptyAsDeserializer.class) @EmptyAs("") String terminal,
+            @JsonProperty("menuType") @JsonDeserialize(using = EmptyAsDeserializer.class) @EmptyAs("*") String menuType
           ) {
     }
 
