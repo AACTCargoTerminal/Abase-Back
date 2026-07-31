@@ -4,6 +4,7 @@ import com.aact.common.EmptyAsSupport;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -14,6 +15,7 @@ public class WorkDTO {
             @JsonProperty("date") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String date,
             @JsonProperty("halfType") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String halfType,
             @JsonProperty("teamCode") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String teamCode,
+            @JsonProperty("terminalCode") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String terminalCode,
             @JsonProperty("userArray") List<SaveUserDTO> userArray
     ) {
 
@@ -97,6 +99,17 @@ public class WorkDTO {
 
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record HrFileSaveDTO(
 
+            @JsonProperty("year") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String year,
+            @JsonProperty("mon") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String mon,
+            @JsonProperty("day") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String day,
+            @JsonProperty("seq") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") BigDecimal seq,
+            @JsonProperty("userSid") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") BigDecimal userSid,
+            @JsonProperty("imgType") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String imgType,
+            @JsonProperty("files") List<MultipartFile> files) {
+
+    }
 
 }

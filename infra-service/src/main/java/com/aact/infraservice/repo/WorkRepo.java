@@ -94,7 +94,7 @@ public class WorkRepo extends BizBase {
 
     }
 
-    public DbDto getWorkM010_005(String yyyy, String mon, String day, String deptCode, String userName, String approveFlag, String langCode, String guid, String userId, String ipAddr, String pgmId) {
+    public DbDto getWorkM010_005(String yyyy, String mon, String day, String deptCode, String terminalCode,String userName, String approveFlag, String langCode, String guid, String userId, String ipAddr, String pgmId) {
 
         List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
 
@@ -102,6 +102,7 @@ public class WorkRepo extends BizBase {
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_MON", mon));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_DAY", day));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_DEPT_CODE", deptCode));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_TERMINAL_CODE", terminalCode));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_USER_NAME", userName));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_APPROVE_FLAG", approveFlag));
 
@@ -543,7 +544,7 @@ public class WorkRepo extends BizBase {
 
     }
 
-    public DbDto setWorkM010_017(String yyyy, String mon, String teamCode, String langCode, String guid, String userId, String ipAddr, String pgmId) {
+    public DbDto setWorkM010_017(String yyyy, String mon, String teamCode,String terminalCode, String langCode, String guid, String userId, String ipAddr, String pgmId) {
 
         List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
 
@@ -551,6 +552,7 @@ public class WorkRepo extends BizBase {
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_YYYY", yyyy));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_MON", mon));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_TEAM_CODE", teamCode));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_TERMINAL_CODE", terminalCode));
 
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_LANGUAGE_CODE", langCode));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_PROGRESS_GUID", guid));
@@ -697,6 +699,32 @@ public class WorkRepo extends BizBase {
 
     }
 
+    public DbDto setWorkM010_036(String yyyy, String mm, String day, BigDecimal workUserSid, BigDecimal seq,
+                                 String remark, String langCode, String guid, String userId, String ipAddr, String pgmId) {
+
+        List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_YYYY", yyyy));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_MON", mm));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_DAY", day));
+        input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_USER_SID", workUserSid));
+        input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_SEQ", seq));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REMARK", remark));
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_LANGUAGE_CODE", langCode));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_PROGRESS_GUID", guid));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_USER_ID", userId));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_IP_ADDRESS", ipAddr));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_PROGRAM_ID", pgmId));
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_ERROR_FLAG", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_CODE", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_MESSAGE", ""));
+
+        return callProc("USR_WORK_REQUEST_M010.PHM_WORK_REQUEST_M010_036", input);
+
+    }
+
     public DbDto setWorkM010_038(String yyyy, String mm, String day, BigDecimal workUserSid, BigDecimal seq, String capsStart, String capsEnd, String startTime,
                                  String endTime, BigDecimal addDay, BigDecimal addWorkHour, BigDecimal nightWorkHour, BigDecimal holiWorkHour, BigDecimal holiAddHour,
                                  String remark, String langCode, String guid, String userId, String ipAddr, String pgmId) {
@@ -730,6 +758,63 @@ public class WorkRepo extends BizBase {
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_MESSAGE", ""));
 
         return callProc("USR_WORK_REQUEST_M010.PHM_WORK_REQUEST_M010_038", input);
+
+    }
+
+    public DbDto setWorkM010_040(String yyyy, String mm,String workUserId, String day, BigDecimal seq,
+                                 String workTypeCode,BigDecimal addHour,String tmpTerminalCode,String terminalCode,String teamCode,
+                                 String langCode, String guid, String userId, String ipAddr, String pgmId) {
+
+        List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_YYYY", yyyy));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_MON", mm));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_USER_ID", workUserId));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_DAY", day));
+        input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_SEQ", seq));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_WORK_TYPE_CODE", workTypeCode));
+        input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_ADD_WORK_HOUR", addHour));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_TERMINAL_CODE", terminalCode));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_TEAM_CODE", teamCode));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_TMP_TERMINAL_CODE", tmpTerminalCode));
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_LANGUAGE_CODE", langCode));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_PROGRESS_GUID", guid));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_USER_ID", userId));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_IP_ADDRESS", ipAddr));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_PROGRAM_ID", pgmId));
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_USER_SID", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_ERROR_FLAG", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_CODE", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_MESSAGE", ""));
+
+        return callProc("USR_WORK_REQUEST_M010.PHM_WORK_REQUEST_M010_040", input);
+
+    }
+
+    public DbDto setWorkM010_041(String yyyy, String mm,BigDecimal userSid, String day, BigDecimal seq,
+                                 String langCode, String guid, String userId, String ipAddr, String pgmId) {
+
+        List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_YYYY", yyyy));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_MON", mm));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_DAY", day));
+        input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_USER_SID", userSid));
+        input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_SEQ", seq));
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_LANGUAGE_CODE", langCode));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_PROGRESS_GUID", guid));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_USER_ID", userId));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_IP_ADDRESS", ipAddr));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_PROGRAM_ID", pgmId));
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_ERROR_FLAG", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_CODE", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_MESSAGE", ""));
+
+        return callProc("USR_WORK_REQUEST_M010.PHM_WORK_REQUEST_M010_041", input);
 
     }
 }

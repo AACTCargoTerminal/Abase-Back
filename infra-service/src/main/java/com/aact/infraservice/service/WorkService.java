@@ -20,6 +20,7 @@ import org.apache.poi.xssf.usermodel.*;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.awt.*;
 import java.io.ByteArrayInputStream;
@@ -45,24 +46,11 @@ public class WorkService extends ServiceBase {
     private final FileClientService fileClientService;
     private final ClientService clientService;
 
-    public ResponseDTO<?> getWorkM010_002(String date, String deptCode, String approveFlag) {
+    public ResponseDTO<?> getWorkM010_002(String date, String deptCode, String terminalCode,String approveFlag) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
 
         return execute(repo, () -> {
-            String terminalCode = "";
-
-            Map<String, Object> tmp = info.getRelArray().stream().filter((m) -> "TRMCD".equals(String.valueOf(m.get("CLASS_CODE")))).findFirst().orElse(null);
-            if (tmp != null) {
-                if (tmp.get("CODE_CODE") != null) {
-                    terminalCode = String.valueOf(tmp.get("CODE_CODE"));
-                }
-            }
-
-            if (terminalCode.isEmpty()) {
-                throw new BizException("getWorkM010_002", info.getUserId() + "의 기본 터미널 근무지가 없습니다.");
-            }
-
             DbDto dbRet = repo.getWorkM010_002(date, deptCode, terminalCode, Util.getStrChk(approveFlag), info.getUserLang(), Util.getGUID(),
                     info.getUserId(), info.getUserIpAddress(), info.getPgmId());
 
@@ -97,6 +85,23 @@ public class WorkService extends ServiceBase {
         });
     }
 
+    public ResponseDTO<?> setWorkM010_041(WorkDTO.HrReqSaveDTO dto) {
+        ClsUserInfo info = UserContext.get();
+        WorkRepo repo = workRepoProvider.getObject();
+        return execute(repo, () -> {
+
+            DbDto dbRet = null;
+            for (WorkDTO.HrReqSaveRowDTO row : dto.reqArray()) {
+                dbRet = repo.setWorkM010_041(row.year(), row.mon(), row.userSid(), row.day(), row.seq(),info.getUserLang(), Util.getGUID(),
+                        info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+                if (dbRet.getErrFlag().equals("Y")) {
+                    throw new BizException("setWorkM010_041", dbRet.getErrMsg());
+                }
+            }
+            return okOrThrow("setWorkM010_041", dbRet);
+        });
+    }
+
     public ResponseDTO<?> setWorkM010_014(WorkDTO.SaveDTO dto) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
@@ -104,19 +109,6 @@ public class WorkService extends ServiceBase {
 
                     if (info.getSignData() == null || info.getSignData().length == 0) {
                         throw new BizException("setWorkM010_014", "도장을 등록하여 주세요.");
-                    }
-
-                    String terminalCode = "";
-
-                    Map<String, Object> tmpMap = info.getRelArray().stream().filter((m) -> "TRMCD".equals(String.valueOf(m.get("CLASS_CODE")))).findFirst().orElse(null);
-                    if (tmpMap != null) {
-                        if (tmpMap.get("CODE_CODE") != null) {
-                            terminalCode = String.valueOf(tmpMap.get("CODE_CODE"));
-                        }
-                    }
-
-                    if (terminalCode.isEmpty()) {
-                        throw new BizException("setWorkM010_014", info.getUserId() + "의 기본 터미널 근무지가 없습니다.");
                     }
 
                     DbDto dbRet = null;
@@ -133,11 +125,6 @@ public class WorkService extends ServiceBase {
 
                     for (WorkDTO.SaveUserDTO row : dto.userArray()) {
                         BigDecimal userSid = null;
-                        DbDto userRet = repo.callSql("SELECT USER_SID FROM TCM_USER_MASTER WHERE USER_ID = '" + row.userId() + "' AND USABLE_FLAG = 'Y'");
-                        if (userRet.getErrFlag().equals("Y")) {
-                            throw new BizException("setWorkM010_014", userRet.getErrMsg());
-                        }
-                        userSid = Util.getDecimal(userRet.getResult().get(0).get(0).get("USER_SID").getObj().toString());
 
                         if (row.dayArray() == null) {
                             throw new BizException("setWorkM010_014", row.userId() + "에 스케줄 작성이 안돼있습니다.");
@@ -211,20 +198,14 @@ public class WorkService extends ServiceBase {
                                     }
                                 }
 
-                                dbRet = repo.setWorkM010_013(yyyy, mon, userSid,row2.day() , new BigDecimal(i), code,"","" ,
-                                        "","",BigDecimal.ZERO,
-                                        ot,BigDecimal.ZERO,BigDecimal.ZERO,BigDecimal.ZERO,
-                                        "",terminal,terminalCode,dto.teamCode(),"G",info.getUserLang(), Util.getGUID(),
+                                dbRet = repo.setWorkM010_040(yyyy, mon, row.userId(),row2.day() , new BigDecimal(i),
+                                        code,ot,terminal,dto.terminalCode(),dto.teamCode(),
+                                        info.getUserLang(), Util.getGUID(),
                                         info.getUserId(), info.getUserIpAddress(), info.getPgmId());
                                 if (dbRet.getErrFlag().equals("Y")) {
                                     throw new BizException("setWorkM010_014", dbRet.getErrMsg());
                                 }
-                            }
-
-                            dbRet = repo.setStatusUpdate(yyyy, mon, userSid,row2.day() ,info.getUserLang(), Util.getGUID(),
-                                    info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-                            if (dbRet.getErrFlag().equals("Y")) {
-                                throw new BizException("setWorkM010_014", dbRet.getErrMsg());
+                                userSid = Util.getDecimal(dbRet.getRetObj().get("O_USER_SID"));
                             }
 
                             if((dayIdx == row.dayArray().size()-1)&&row.closeFlag().equals("Y")){
@@ -318,7 +299,7 @@ public class WorkService extends ServiceBase {
 
     }
 
-    public ResponseDTO<?> setWorkM010_017(String date,String teamCode) {
+    public ResponseDTO<?> setWorkM010_017(String date,String teamCode,String terminalCode) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
 
@@ -328,7 +309,7 @@ public class WorkService extends ServiceBase {
             }
             DbDto dbRet = null;
 
-            dbRet = repo.setWorkM010_017(date.substring(0, 4), date.substring(4, 6), teamCode, info.getUserLang(), Util.getGUID(),
+            dbRet = repo.setWorkM010_017(date.substring(0, 4), date.substring(4, 6), teamCode, terminalCode,info.getUserLang(), Util.getGUID(),
                     info.getUserId(), info.getUserIpAddress(), info.getPgmId());
             if (dbRet.getErrFlag().equals("Y")) {
                 throw new BizException("setWorkM010_017", dbRet.getErrMsg());
@@ -352,6 +333,45 @@ public class WorkService extends ServiceBase {
             }
 
            return okOrThrow("getWorkM010_003", dbRet);
+        });
+    }
+
+    public ResponseDTO<?> setWorkM010_018(WorkDTO.HrFileSaveDTO dto){
+        ClsUserInfo info = UserContext.get();
+        WorkRepo repo = workRepoProvider.getObject();
+        return execute(repo,()->{
+            DbDto dbRet = null;
+
+            if(dto.files()==null||dto.files().isEmpty()){
+                throw new BizException("setWorkM010_018", "파일이 없습니다.");
+            }
+
+            ResponseDTO<?> saveRet = fileClientService.fileSave(dto.files());
+            if (saveRet.getErrFlag().equals("Y")) {
+                throw new BizException("setWorkM010_018", "파일저장실패 : " + saveRet.getErrMsg());
+            }
+
+            List<FileMeta> metaRet = Util.castIfMatch(saveRet.getData(), new TypeReference<List<FileMeta>>() {
+            });
+            if (metaRet == null || metaRet.isEmpty()) {
+                throw new BizException("setWorkM010_018", "파일변환실패");
+            }
+
+            FileMeta meta = metaRet.get(0);
+            BigDecimal fileSize = Util.getDecimal(meta.getSize());
+            if (fileSize.compareTo(BigDecimal.ZERO) == 0) {
+                throw new BizException("setWorkM010_018", "파일사이즈 문제");
+            }
+
+            dbRet = repo.setWorkM010_018(dto.year(), dto.mon(), Util.getInteger(dto.day()).toString(), dto.userSid(), dto.seq(), dto.imgType(),
+                    meta.getDir(), meta.getOriginName(), meta.getChangeName(), meta.getFullpath(),
+                    fileSize, meta.getMime(), meta.getExt(), info.getUserLang(), Util.getGUID(),
+                    info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+            if (dbRet.getErrFlag().equals("Y")) {
+                throw new BizException("setWorkM010_018", dbRet.getErrMsg());
+            }
+
+            return okOrThrow("setWorkM010_018", dbRet);
         });
     }
 
@@ -504,6 +524,27 @@ public class WorkService extends ServiceBase {
 
     }
 
+    public ResponseDTO<?> setWorkM010_036(String date,BigDecimal userSid,BigDecimal seq,String remark) {
+        ClsUserInfo info = UserContext.get();
+        WorkRepo repo = workRepoProvider.getObject();
+
+        return execute(repo, () -> {
+            DbDto dbRet = null;
+            String yyyy = date.substring(0, 4);
+            String mon = date.substring(4, 6);
+            String day = String.valueOf(Integer.parseInt(date.substring(6, 8)));
+
+            dbRet = repo.setWorkM010_036(yyyy, mon, day, userSid, seq,remark,  info.getUserLang(), Util.getGUID(),
+                    info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+
+            if (dbRet.getErrFlag().equals("Y")) {
+                throw new BizException("setWorkM010_036", dbRet.getErrMsg());
+            }
+
+            return okOrThrow("setWorkM010_036", dbRet);
+        });
+    }
+
     public ResponseDTO<?> setWorkM010_038(CapsTimeDTO.SearchDTO dto) {
 
         ClsUserInfo info = UserContext.get();
@@ -555,7 +596,7 @@ public class WorkService extends ServiceBase {
         });
     }
 
-    public ResponseDTO<?> getWorkM010_005(String date, String deptCode, String userName, String approveFlag) {
+    public ResponseDTO<?> getWorkM010_005(String date, String deptCode, String terminalCode,String userName, String approveFlag) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
         return execute(repo, () -> {
@@ -572,7 +613,7 @@ public class WorkService extends ServiceBase {
             } else {
                 throw new BizException("getWorkM010_005", "날짜 에러");
             }
-            DbDto dbRet = repo.getWorkM010_005(yyyy, mon, day, deptCode, userName, approveFlag, info.getUserLang(), Util.getGUID(),
+            DbDto dbRet = repo.getWorkM010_005(yyyy, mon, day, deptCode,terminalCode, userName, approveFlag, info.getUserLang(), Util.getGUID(),
                     info.getUserId(), info.getUserIpAddress(), info.getPgmId());
             return okOrThrow("getWorkM010_005", dbRet);
         });
@@ -693,12 +734,11 @@ public class WorkService extends ServiceBase {
         });
     }
 
-    public ResponseDTO<?> getExWorkSch(String teamCode,String date){
+    public ResponseDTO<?> getExWorkSch(String teamCode,String terminalCode ,String date){
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
         return execute(repo,()->{
             DbDto dbRet = null;
-            String terminalCode = "";
             String teamName = "";
             String holiday = "";
             List<Map<String,Object>> headers = null;
@@ -725,18 +765,7 @@ public class WorkService extends ServiceBase {
                 throw new BizException("getExWorkSch", opcodRes.getErrMsg());
             }
 
-            Map<String, Object> tmp = info.getRelArray().stream().filter((m) -> "TRMCD".equals(String.valueOf(m.get("CLASS_CODE")))).findFirst().orElse(null);
-            if (tmp != null) {
-                if (tmp.get("CODE_CODE") != null) {
-                    terminalCode = String.valueOf(tmp.get("CODE_CODE"));
-                }
-            }
-
-            if (terminalCode.isEmpty()) {
-                throw new BizException("getExWorkSch", info.getUserId() + "의 기본 터미널 근무지가 없습니다.");
-            }
-
-            tmp = hrpatRes.getData().stream().filter(v->v.get("CODE_CODE").equals(teamCode)).findFirst().orElse(null);
+            Map<String, Object> tmp = hrpatRes.getData().stream().filter(v->v.get("CODE_CODE").equals(teamCode)).findFirst().orElse(null);
             if(tmp==null){
                 throw new BizException("getExWorkSch", "팀명을 가져올수 없습니다.");
             }
@@ -959,6 +988,10 @@ public class WorkService extends ServiceBase {
                 row = copySheet.getRow(6);
                 cell = row.getCell(2, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                 cell.setCellValue(dto.getTeamCode());
+
+                row = copySheet.getRow(7);
+                cell = row.getCell(2, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                cell.setCellValue(terminalCode);
 
                 row = copySheet.getRow(7);
                 cell = row.getCell(36, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);

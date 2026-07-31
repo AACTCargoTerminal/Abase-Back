@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -23,8 +24,8 @@ public class WorkController {
     private final WorkService workService;
 
     @GetMapping(value = "/getWorkM010_002")
-    public ResponseDTO<?> getWorkM010_002(@RequestParam("date") String date, @RequestParam("deptCode") String deptCode, @RequestParam("approveFlag") String approveFlag) {
-        return workService.getWorkM010_002(date, deptCode, approveFlag);
+    public ResponseDTO<?> getWorkM010_002(@RequestParam("date") String date, @RequestParam("deptCode") String deptCode, @RequestParam("terminalCode") String terminalCode, @RequestParam("approveFlag") String approveFlag) {
+        return workService.getWorkM010_002(date, deptCode, terminalCode,approveFlag);
     }
 
     @PostMapping(value = "/getWorkM010_006")
@@ -48,10 +49,13 @@ public class WorkController {
     }
 
     @GetMapping(value = "/setWorkM010_017")
-    public ResponseDTO<?> setWorkM010_017(@RequestParam("date")String date, @RequestParam("teamCode")String teamCode) {
-        return workService.setWorkM010_017(date,teamCode);
+    public ResponseDTO<?> setWorkM010_017(@RequestParam("date")String date, @RequestParam("teamCode")String teamCode, @RequestParam("terminalCode")String terminalCode) {
+        return workService.setWorkM010_017(date,teamCode,terminalCode);
     }
-
+    @PostMapping(value = "/setWorkM010_018", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseDTO<?> setWorkM010_018(@Validated @ModelAttribute WorkDTO.HrFileSaveDTO dto) {
+        return workService.setWorkM010_018(dto);
+    }
     @PostMapping(value = "/setWorkM010_019", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseDTO<?> setWorkM010_019(@Validated @ModelAttribute CapsTimeDTO.SearchDTO dto) {
         return workService.setWorkM010_019(dto);
@@ -69,8 +73,12 @@ public class WorkController {
 
     //getWorkM010_005
     @GetMapping(value = "/getWorkM010_005")
-    public ResponseDTO<?> getWorkM010_005(@RequestParam("date") String date, @RequestParam("deptCode") String deptCode, @RequestParam("username") String username, @RequestParam("approveFlag") String approveFlag) {
-        return workService.getWorkM010_005(date, deptCode, username, approveFlag);
+    public ResponseDTO<?> getWorkM010_005(@RequestParam("date") String date,
+                                          @RequestParam("deptCode") String deptCode,
+                                          @RequestParam("terminalCode") String terminalCode,
+                                          @RequestParam("username") String username,
+                                          @RequestParam("approveFlag") String approveFlag) {
+        return workService.getWorkM010_005(date, deptCode, terminalCode,username, approveFlag);
     }
 
     @PostMapping(value = "/setWorkM010_022")
@@ -84,10 +92,10 @@ public class WorkController {
     //setWorkM010_031
     @PostMapping(value = "/setWorkM010_031")
     public ResponseDTO<?> setWorkM010_031(@RequestBody Map<String, List<CapsTimeDTO.DeleteDTO>> dtos) {
-        if (dtos.get("DEL") == null) {
+        if(dtos.get("array")==null){
             throw new SysException("setWorkM010_031", "목록이 없습니다.");
         }
-        return workService.setWorkM010_031(dtos.get("DEL"));
+        return workService.setWorkM010_031(dtos.get("array"));
     }
 
     //setWorkM010_032
@@ -104,6 +112,11 @@ public class WorkController {
     @PostMapping(value = "/setWorkM010_035")
     public ResponseDTO<?> setWorkM010_035(@RequestBody WorkDTO.HrReqSaveDTO dto) {
         return workService.setWorkM010_035(dto);
+    }
+
+    @PostMapping(value = "/setWorkM010_041")
+    public ResponseDTO<?> setWorkM010_041(@RequestBody WorkDTO.HrReqSaveDTO dto) {
+        return workService.setWorkM010_041(dto);
     }
 
     @PostMapping(value = "/setHrSchSave")
@@ -143,8 +156,18 @@ public class WorkController {
     //getExWorkSch
     @GetMapping(value = "/getExWorkSch")
     public ResponseDTO<?> getExWorkSch(@RequestParam("teamCode") String teamCode,
-                                        @RequestParam("date") String date) {
-        return workService.getExWorkSch(teamCode,date);
+                                        @RequestParam("date") String date,
+                                       @RequestParam("terminalCode") String terminalCode) {
+        return workService.getExWorkSch(teamCode,terminalCode,date);
+    }
+
+    //setWorkM010_037
+    @GetMapping(value = "/setWorkM010_036")
+    public ResponseDTO<?> setWorkM010_036(@RequestParam("date") String date,
+                                          @RequestParam("userSid") BigDecimal userSid,
+                                          @RequestParam("seq") BigDecimal seq,
+                                          @RequestParam("remark") String remark) {
+        return workService.setWorkM010_036(date,userSid,seq,remark);
     }
 
     //setWorkM010_037
