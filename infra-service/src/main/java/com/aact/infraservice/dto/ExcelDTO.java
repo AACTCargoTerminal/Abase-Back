@@ -169,6 +169,7 @@ public class ExcelDTO {
 
         private String seq;
         private String day;
+        private String weekDay;
         private String workTypeName;
         private String schStart;
         private String schEnd;
@@ -206,6 +207,16 @@ public class ExcelDTO {
         private double nowAddHour;
         private double nowNightHour;
         private double nowHoliHour;
+
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class HoldImgDTO {
+
+        private String mime;
+        private byte[] data;
 
     }
 }

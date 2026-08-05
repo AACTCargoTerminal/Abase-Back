@@ -1,14 +1,11 @@
 package com.aact.authservice.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
+@Builder
 public class SetUserDTO {
 	private String pass;
 	private String passHp;

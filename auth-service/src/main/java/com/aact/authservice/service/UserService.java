@@ -37,6 +37,7 @@ public class UserService extends ServiceBase {
     private final StringRedisTemplate stringRedisTemplate;
     private final RedisTemplate<String, Object> redisTemplate;
 
+
     public ResponseDTO<?> login(LoginReq.LoginDTO dto, HttpServletRequest hReq){
         UserRepo repo = userRepo.getObject();
         return execute(repo,()-> {
@@ -207,7 +208,7 @@ public class UserService extends ServiceBase {
         ClsUserInfo info = UserContext.get();
         UserRepo repo = userRepo.getObject();
         return execute(repo,()->{
-            DbDto dbRet = repo.getUserList("AACT","",deptCode,userId,userName,usableFlag,info.getUserLang(), Util.getGUID(), info.getUserId(),
+            DbDto dbRet = repo.getUserL010_002(deptCode,userId,userName,usableFlag,info.getUserLang(), Util.getGUID(), info.getUserId(),
                     info.getUserIpAddress(), info.getPgmId());
 
             return okOrThrow("getUserList", dbRet);
@@ -272,8 +273,6 @@ public class UserService extends ServiceBase {
             DbDto dbRet = null;
 
             String userId = dto.userId();
-
-
             if(!dto.userIdChange().isEmpty()){
                 dbRet = repo.callSql("SELECT USER_SID FROM TCM_USER_MASTER WHERE USABLE_FLAG = 'Y' AND USER_ID = '"+dto.userIdChange()+"'");
                 if(dbRet.getErrFlag().equals("N")){

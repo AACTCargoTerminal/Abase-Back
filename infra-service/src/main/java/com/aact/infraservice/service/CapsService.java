@@ -68,8 +68,8 @@ public class CapsService extends ServiceBase {
         }
 
         if (dbRet.isEmpty()) {
-            capsTime = "0000";
-            capsOrgTime = "0000";
+            capsTime = "XXXX";
+            capsOrgTime = "XXXX";
         }else{
             LocalTime nowTime = LocalTime.parse(time,DateTimeFormatter.ofPattern("HHmm"));
             Stream<CapsEnterDTO> nearest;
@@ -93,8 +93,8 @@ public class CapsService extends ServiceBase {
                 );
             })).orElse(null);
             if(ret == null){
-                capsTime = "0000";
-                capsOrgTime = "0000";
+                capsTime = "XXXX";
+                capsOrgTime = "XXXX";
             }else{
                 if (getType == CapsGetType.START) {
                     capsTime = roundTime(ret.getE_time());
