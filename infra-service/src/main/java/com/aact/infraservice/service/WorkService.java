@@ -63,7 +63,8 @@ public class WorkService extends ServiceBase {
         WorkRepo repo = workRepoProvider.getObject();
 
         return execute(repo, () -> {
-            DbDto dbRet = repo.getWorkM010_006(dto.type(),dto.reqFlag(),dto.deptCode(),dto.terminalCode(),dto.toDate(),dto.fromDate(),dto.date(),dto.userName(),info.getUserLang(), Util.getGUID(),
+            DbDto dbRet = repo.getWorkM010_006(dto.type(),dto.reqFlag(),dto.deptCode(),dto.terminalCode(),dto.toDate(),dto.fromDate(),dto.date(),dto.userName(),
+                    dto.otFlag(),info.getUserLang(), Util.getGUID(),
                     info.getUserId(), info.getUserIpAddress(), info.getPgmId());
 
             return okOrThrow("getWorkM010_006", dbRet);
@@ -99,6 +100,40 @@ public class WorkService extends ServiceBase {
                 }
             }
             return okOrThrow("setWorkM010_041", dbRet);
+        });
+    }
+
+    public ResponseDTO<?> setWorkM010_042(WorkDTO.HrFileSearchDTO dto) {
+        ClsUserInfo info = UserContext.get();
+        WorkRepo repo = workRepoProvider.getObject();
+        return execute(repo, () -> {
+
+            DbDto dbRet = repo.setWorkM010_042(dto.year(), dto.mon(), dto.userSid(), dto.day(), dto.seq(),dto.imgType(),info.getUserLang(), Util.getGUID(),
+                    info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+            if (dbRet.getErrFlag().equals("Y")) {
+                throw new BizException("setWorkM010_042", dbRet.getErrMsg());
+            }
+
+            if(dbRet.getResult().get(0).isEmpty()){
+                throw new BizException("setWorkM010_042", "파일이 없습니다.");
+            }
+
+            List<ExcelDTO.HoldImgDTO> tmpFile = new ArrayList<>();
+
+            for(Map<String, DbTypeDTO> row: dbRet.getResult().get(0)){
+                ResponseDTO<byte[]> fileRet = fileClientService.fileRead(Util.getStrChk(row.get("FULL_PATH").getObj()));
+                if(fileRet.getErrFlag().equals("Y")){
+                    throw new BizException("setWorkM010_042", fileRet.getErrMsg());
+                }
+                ExcelDTO.HoldImgDTO tmpRow = new ExcelDTO.HoldImgDTO();
+                tmpRow.setData(fileRet.getData());
+                tmpRow.setMime(Util.getStrChk(row.get("MIME").getObj()));
+                tmpFile.add(tmpRow);
+            }
+
+
+
+            return okOrThrow("setWorkM010_042", ResponseDTO.<List<ExcelDTO.HoldImgDTO>>builder().errFlag("N").errMsg("조회완료").data(tmpFile).build());
         });
     }
 
@@ -1514,12 +1549,12 @@ public class WorkService extends ServiceBase {
 
                     for(int i = 1;i<=downCount;i++){
                         row = copySheet.getRow(selectIdx + 2+i);
-                        cell = row.getCell(8);
+                        cell = row.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                         cell.setCellValue(Util.getStrChk(downLine.get("VALUE"+(i+1)+"_CHAR"))+" :");
 
-                        cell = row.getCell(10);
+                        cell = row.getCell(10, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                         cell.setCellValue(Util.getStrChk(downName.get("VALUE"+(i+1)+"_CHAR")));
-                        cell = row.getCell(11);
+                        cell = row.getCell(11, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                         cell.setCellValue("(인)");
                         cell.setCellStyle(rightStyle);
                     }
@@ -1600,15 +1635,28 @@ public class WorkService extends ServiceBase {
                         .format(DateTimeFormatter.ofPattern("yyyyMM"));
 
                 StringBuilder sql = new StringBuilder();
-                sql.append("SELECT YEAR||MON YYYYMM, SUM(ADD_WORK_HOUR) SUM_ADD_HOUR, SUM(NIGHT_WORK_HOUR) SUM_NIGHT_HOUR, SUM(HOLIDAY_WORK_HOUR + HOLIDAY_ADD_HOUR) SUM_HOLIDAY_HOUR ");
-                sql.append(", TEAM_CODE, SYS_FUNCTION.FCM_GET_CODE_NAME_BY_AK1('HRPAT',TEAM_CODE,'KOR') TEAM_NAME ");
-                sql.append("FROM THR_OT_DETAIL_LOG ");
-                sql.append("WHERE YEAR||MON IN ('"+date+"','"+prevMonth+"') ");
-                sql.append("AND REQ_FLAG = 'C' ");
-                sql.append("AND USABLE_FLAG = 'Y' ");
-                sql.append("AND REQ_START_TIME IS NOT NULL ");
-                sql.append("AND REQ_END_TIME IS NOT NULL ");
-                sql.append("GROUP BY TEAM_CODE,YEAR,MON");
+
+                sql.append("SELECT YEAR||MON YYYYMM, ");
+                sql.append("       SUM(ADD_WORK_HOUR) SUM_ADD_HOUR, ");
+                sql.append("       SUM(NIGHT_WORK_HOUR) SUM_NIGHT_HOUR, ");
+                sql.append("       SUM(HOLIDAY_WORK_HOUR + HOLIDAY_ADD_HOUR) SUM_HOLIDAY_HOUR, ");
+                sql.append("       TEAM_CODE, ");
+                sql.append("       SYS_FUNCTION.FCM_GET_CODE_NAME_BY_AK1('HRPAT', TEAM_CODE, 'KOR') TEAM_NAME ");
+                sql.append("FROM ( ");
+                sql.append("    SELECT T.*, ");
+                sql.append("           ROW_NUMBER() OVER ( ");
+                sql.append("               PARTITION BY YEAR, MON, USER_SID, DAY, SEQ ");
+                sql.append("               ORDER BY LOG_SEQ DESC ");
+                sql.append("           ) RN ");
+                sql.append("    FROM THR_OT_DETAIL_LOG T ");
+                sql.append("    WHERE YEAR||MON IN ('").append(date).append("','").append(prevMonth).append("') ");
+                sql.append("      AND REQ_FLAG = 'C' ");
+                sql.append("      AND USABLE_FLAG = 'Y' ");
+                sql.append("      AND REQ_START_TIME IS NOT NULL ");
+                sql.append("      AND REQ_END_TIME IS NOT NULL ");
+                sql.append(") ");
+                sql.append("WHERE RN = 1 ");
+                sql.append("GROUP BY TEAM_CODE, YEAR, MON");
 
                 dbRetSum = repo.callSql(sql.toString());
                 if (dbRetSum.getErrFlag().equals("Y")) {
@@ -1813,7 +1861,7 @@ public class WorkService extends ServiceBase {
 
                             String day = String.format("%02d", Integer.parseInt(cellRow.getDay()));
                             cell = row.getCell(2);
-                            cell.setCellValue(dto.getYyyy()+"-"+dto.getMon()+"-"+day);
+                            cell.setCellValue(dto.getYyyy()+"-"+dto.getMon()+"-"+day+" "+cellRow.getWeekDay());
                             if(cellRow.getSchStart().isEmpty()&&cellRow.getSchEnd().isEmpty()){
                                 cell = row.getCell(3);
                                 cell.setCellValue(cellRow.getWorkTypeName());
@@ -2142,6 +2190,7 @@ public class WorkService extends ServiceBase {
                 if(filterCellDto == null){
                     filterCellDto   =   new ExcelDTO.DetailCellDTO();
                     filterCellDto.setSeq(Util.getStrChk(row.get("SEQ").getObj()));
+                    filterCellDto.setWeekDay(Util.getStrChk(row.get("WEEK_DAY").getObj()));
                     filterCellDto.setDay(Util.getStrChk(row.get("DAY").getObj()));
                     filterCellDto.setWorkTypeName(Util.getStrChk(row.get("CODE_NAME").getObj()));
                     filterCellDto.setSchStart(Util.getStrChk(row.get("REQ_START_TIME").getObj()));

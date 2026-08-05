@@ -119,6 +119,11 @@ public class WorkController {
         return workService.setWorkM010_041(dto);
     }
 
+    @PostMapping(value = "/setWorkM010_042")
+    public ResponseDTO<?> setWorkM010_042(@RequestBody WorkDTO.HrFileSearchDTO dto) {
+        return workService.setWorkM010_042(dto);
+    }
+
     @PostMapping(value = "/setHrSchSave")
     public ResponseDTO<?> setHrSchSave(@RequestBody WorkDTO.HrSchSaveDTO dto) {
         return workService.setHrSchSave(dto);

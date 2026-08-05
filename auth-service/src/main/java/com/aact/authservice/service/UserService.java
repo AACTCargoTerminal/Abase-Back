@@ -273,8 +273,6 @@ public class UserService extends ServiceBase {
             DbDto dbRet = null;
 
             String userId = dto.userId();
-
-
             if(!dto.userIdChange().isEmpty()){
                 dbRet = repo.callSql("SELECT USER_SID FROM TCM_USER_MASTER WHERE USABLE_FLAG = 'Y' AND USER_ID = '"+dto.userIdChange()+"'");
                 if(dbRet.getErrFlag().equals("N")){

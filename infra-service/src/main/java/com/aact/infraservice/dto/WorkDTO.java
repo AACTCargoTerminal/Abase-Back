@@ -57,7 +57,8 @@ public class WorkDTO {
             @JsonProperty("toDate") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String toDate,
             @JsonProperty("date") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String date,
             @JsonProperty("fromDate") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String fromDate,
-            @JsonProperty("userName") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String userName) {
+            @JsonProperty("userName") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String userName,
+            @JsonProperty("otFlag") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String otFlag) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -109,6 +110,17 @@ public class WorkDTO {
             @JsonProperty("userSid") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") BigDecimal userSid,
             @JsonProperty("imgType") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String imgType,
             @JsonProperty("files") List<MultipartFile> files) {
+
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record HrFileSearchDTO(
+            @JsonProperty("year") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String year,
+            @JsonProperty("mon") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String mon,
+            @JsonProperty("day") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String day,
+            @JsonProperty("seq") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") BigDecimal seq,
+            @JsonProperty("userSid") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") BigDecimal userSid,
+            @JsonProperty("imgType") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String imgType) {
 
     }
 
