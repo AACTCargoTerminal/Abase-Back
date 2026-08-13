@@ -115,7 +115,7 @@ public class UserRepo extends BizBase {
         return callProc("USR_SCHEDULE_L010.PWM_SCHEDULE_L010_003", input);
     }
 
-    public DbDto setUserInfo(String userId, String paas, String passHp, String userName1, String userName2,
+    public DbDto setUserInfo(String userId, String changeId,String paas, String passHp, String userName1, String userName2,
                              String companyCode, String branchCode, String deptCode, String langCode, String email, String phone,
                              String mobile, String fax, String trmCode, String trmName, String workYn, String boardYn, String inYn,
                              String boardHpYn, String itYn, String lang, String prgressGuid, String requestId, String requestIp,
@@ -123,6 +123,7 @@ public class UserRepo extends BizBase {
         List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
 
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_USER_ID", userId));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_USER_ID_CHANGE", changeId));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_USER_PASSWORD", paas));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_USER_PASSWORD_HP", passHp));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_USER_NAME1", userName1));
@@ -316,6 +317,25 @@ public class UserRepo extends BizBase {
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_MESSAGE", ""));
 
         return callProc("USR_USER_L010.PCM_USER_L010_002", input);
+    }
+
+    public DbDto getUserL010_003(String lang, String prgressGuid, String requestId, String requestIp,
+                                 String programId) {
+        List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_LANGUAGE_CODE", lang));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_PROGRESS_GUID", prgressGuid));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_USER_ID", requestId));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_IP_ADDRESS", requestIp));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_PROGRAM_ID", programId));
+
+        input.add(new DbTypeDTO(Type.CURSOR, Inout.OUT, "O_RESULT_CURSOR", ""));
+        input.add(new DbTypeDTO(Type.CURSOR, Inout.OUT, "O_RESULT_CURSOR_2", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_ERROR_FLAG", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_CODE", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_MESSAGE", ""));
+
+        return callProc("USR_USER_L010.PCM_USER_L010_003", input);
     }
 
     public DbDto setUserDelete(String userId,String usableFlag, String lang, String prgressGuid, String requestId, String requestIp,

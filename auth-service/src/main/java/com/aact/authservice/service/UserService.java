@@ -6,13 +6,19 @@ import com.aact.authservice.dto.SetUserDTO;
 import com.aact.authservice.repo.UserRepo;
 import com.aact.common.*;
 import com.aact.common.ServiceBase;
+import com.aact.commonClient.service.ClientService;
+import com.aact.commonClient.service.FileClientService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import org.apache.coyote.Response;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.PDFRenderer;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -20,12 +26,14 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
+import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -36,6 +44,8 @@ public class UserService extends ServiceBase {
     private final ObjectProvider<UserRepo> userRepo;
     private final StringRedisTemplate stringRedisTemplate;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final ClientService clientService;
+    private final FileClientService fileClientService;
 
 
     public ResponseDTO<?> login(LoginReq.LoginDTO dto, HttpServletRequest hReq){
@@ -242,7 +252,7 @@ public class UserService extends ServiceBase {
                 passHp = dto.getPassHp();
             }
 
-            dbRet = repo.setUserInfo(info.getUserId(), pass, passHp, dto.getUserName2(), info.getUserName(),
+            dbRet = repo.setUserInfo(info.getUserId(),"", pass, passHp, dto.getUserName2(), info.getUserName(),
                     info.getUserCompany(), info.getUserBranch(), info.getUserDepart(), dto.getLangCode(), dto.getEmail(),
                     dto.getPhone(), dto.getMobile(), dto.getFax(), info.getUserTerminalCodeWork(),
                     info.getUserTerminalNameWork(), info.getUserAUTH_WORKTIMELINE_YN(), info.getUserAUTH_BOARD_WRITE_YN(),
@@ -272,33 +282,7 @@ public class UserService extends ServiceBase {
         return execute(repo,()->{
             DbDto dbRet = null;
 
-            String userId = dto.userId();
-            if(!dto.userIdChange().isEmpty()){
-                dbRet = repo.callSql("SELECT USER_SID FROM TCM_USER_MASTER WHERE USABLE_FLAG = 'Y' AND USER_ID = '"+dto.userIdChange()+"'");
-                if(dbRet.getErrFlag().equals("N")){
-                    if(!dbRet.getResult().get(0).isEmpty()){
-                        throw new BizException("setUserInfoMgm", dto.userIdChange()+"는 이미 사용중입니다.");
-                    }else{
-                        userId = dto.userIdChange();
-                    }
-
-                }else{
-                    throw new BizException("setUserInfoMgm", dbRet.getErrMsg());
-                }
-            }
-
-            dbRet = repo.getUserInfo(info.getUserId(), info.getUserLang(), Util.getGUID(), info.getUserId(),
-                    info.getUserIpAddress(), info.getPgmId());
-
-            if(dbRet.getErrFlag().equals("Y")){
-                throw new BizException("setUserInfoMgm", dbRet.getErrMsg());
-            }
-
-
-
-            repo.beginTrans();
-
-            dbRet = repo.setUserInfo(userId, dto.userPass(), dto.userPassHp(), dto.userName1(), dto.userName2(),dto.companyCode(),dto.branchCode(),dto.deptCode(),
+            dbRet = repo.setUserInfo(dto.userId(),dto.userIdChange(), dto.userPass(), dto.userPassHp(), dto.userName1(), dto.userName2(),dto.companyCode(),dto.branchCode(),dto.deptCode(),
                     dto.langCode(),dto.email(),dto.phone(),dto.mobile(),dto.fax(),dto.terminalCode(),dto.terminalName(),dto.workYn(),dto.boardYn(),dto.inYn(),dto.boardHpYn(),dto.itYn(),
                     info.getUserLang(), Util.getGUID(), info.getUserId(), info.getUserIpAddress(), info.getPgmId());
             if (dbRet.getErrFlag().equals("Y")) {
@@ -558,6 +542,274 @@ public class UserService extends ServiceBase {
         return coloredInk || redInk;
     }
 
+    public ResponseDTO<?> getUserGroup(){
+        ClsUserInfo info = UserContext.get();
+        UserRepo repo = userRepo.getObject();
+
+        return execute(repo,()->{
+            DbDto dbRet = null;
+
+            ResponseDTO<byte[]> ret = fileClientService.fileRead("/IMG/TEMPLATE/USER_GROUP_TEMPLATE.xlsx");
+
+            if(ret.getErrFlag().equals("Y")){
+                throw new BizException("getUserGroup",ret.getErrMsg());
+            }
+
+            dbRet = repo.getUserL010_003(info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
+            if(dbRet.getErrFlag().equals("Y")){
+                throw new BizException("getUserGroup",dbRet.getErrMsg());
+            }
+
+            ResponseDTO<List<Map<String, Object>>> hrpat = clientService.get(ClientName.SYS,uriBuilder -> uriBuilder
+                    .path("/sys/getBaseOds")
+                    .queryParam("classCode", "HRPAT")
+                    .queryParam("codeName", "")
+                    .build(),new ParameterizedTypeReference<ResponseDTO<List<Map<String, Object>>>>() {});
+            if(hrpat.getErrFlag().equals("Y")){
+                throw new BizException("setUserGroup", hrpat.getErrMsg());
+            }
+
+            List<Map<String, Object>> hrpatDt = hrpat.getData();
+
+            ResponseDTO<List<Map<String, Object>>> postn = clientService.get(ClientName.SYS,uriBuilder -> uriBuilder
+                    .path("/sys/getBaseOds")
+                    .queryParam("classCode", "POSTN")
+                    .queryParam("codeName", "")
+                    .build(),new ParameterizedTypeReference<ResponseDTO<List<Map<String, Object>>>>() {});
+            if(postn.getErrFlag().equals("Y")){
+                throw new BizException("setUserGroup", postn.getErrMsg());
+            }
+
+            List<Map<String, Object>> postnDt = postn.getData();
+
+            ResponseDTO<List<InfraUser.TeamGroupDTO>> dto = InfraUser.changeGroup(dbRet,hrpatDt,postnDt);
+            if(dto.getErrFlag().equals("Y")){
+                throw new BizException("setUserGroup", dto.getErrMsg());
+            }
+
+            try(
+                    Workbook srcWorkbook = WorkbookFactory.create(new ByteArrayInputStream(ret.getData()));
+                    ByteArrayOutputStream bos = new ByteArrayOutputStream()
+            ){
+                Sheet sheet1 = srcWorkbook.getSheet("SHEET1");
+                Sheet sheet2 = srcWorkbook.getSheet("SHEET2");
+
+                int startIdx = 6;
+                int endIdx = 6;
+                int sheet2Idx = 6;
+                for(InfraUser.TeamGroupDTO row : dto.getData()){
+                    Row rowC = sheet1.getRow(startIdx);
+                    Cell cell = rowC.getCell(0,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                    cell.setCellValue(row.getTeamCode());
+                    cell = rowC.getCell(1,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                    cell.setCellValue(row.getTeamName());
+                    for(int i = 0;i<row.getUserArray().size();i++){
+                        InfraUser.TeamUserGroupDTO groupRow = row.getUserArray().get(i);
+                        if(i != 0){
+                            copyRowStyle_push(sheet1,7,endIdx,9);
+                            rowC = sheet1.getRow(endIdx);
+                        }
+                        cell = rowC.getCell(2,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                        cell.setCellValue(groupRow.getTeminalCode());
+                        cell = rowC.getCell(3,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                        cell.setCellValue(groupRow.getUserName());
+                        cell = rowC.getCell(4,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                        cell.setCellValue(groupRow.getUserId());
+                        cell = rowC.getCell(5,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                        cell.setCellValue(groupRow.getGroupJoinDate());
+                        cell = rowC.getCell(6,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                        cell.setCellValue(groupRow.getJoinDate());
+                        cell = rowC.getCell(7,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                        cell.setCellValue(groupRow.getWorkType());
+                        cell = rowC.getCell(8,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                        cell.setCellValue(groupRow.getWorkType2());
+                        endIdx++;
+                        if(groupRow.getPositionList() != null&&!groupRow.getPositionList().isEmpty()){
+
+                            for(InfraUser.TeamUserPositionDTO positionRow : groupRow.getPositionList()){
+                                Row rowD = sheet2.getRow(sheet2Idx);
+
+                                Cell cell2 = rowD.getCell(0,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                                cell2.setCellValue(positionRow.getTeamCode());
+
+                                cell2 = rowD.getCell(1,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                                cell2.setCellValue(positionRow.getTeamName());
+
+                                cell2 = rowD.getCell(2,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                                cell2.setCellValue(positionRow.getTeminalCode());
+
+                                cell2 = rowD.getCell(3,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                                cell2.setCellValue(groupRow.getUserName());
+
+                                cell2 = rowD.getCell(4,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                                cell2.setCellValue(groupRow.getUserId());
+
+                                cell2 = rowD.getCell(5,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                                cell2.setCellValue(positionRow.getPosition());
+                                sheet2Idx++;
+                            }
+
+
+
+                        }
+                    }
+
+                    if(startIdx != endIdx-1){
+                        sheet1.addMergedRegion(
+                                new CellRangeAddress(startIdx, endIdx-1, 0, 0)
+                        );
+                        sheet1.addMergedRegion(
+                                new CellRangeAddress(startIdx, endIdx-1, 1, 1)
+                        );
+                    }
+
+
+                    startIdx = endIdx;
+                }
+
+                srcWorkbook.write(bos);
+
+                ret = ResponseDTO.<byte[]>builder().errFlag("N").errMsg("재직자목록 다운완료").data(bos.toByteArray()).build();
+            }catch (IOException ex){
+                throw new BizException("getUserGroup",ex.getMessage());
+            }
+
+            return ret;
+        });
+    }
+
+    public ResponseDTO<?> setUserGroup(InfraUser.UserGroupDTO dto){
+        ClsUserInfo info = UserContext.get();
+        UserRepo repo = userRepo.getObject();
+
+        return execute(repo,()->{
+            DbDto dbRet = null;
+
+            ResponseDTO<List<Map<String, Object>>> hrpat = clientService.get(ClientName.SYS,uriBuilder -> uriBuilder
+                    .path("/sys/getBaseOds")
+                    .queryParam("classCode", "HRPAT")
+                    .queryParam("codeName", "")
+                    .build(),new ParameterizedTypeReference<ResponseDTO<List<Map<String, Object>>>>() {});
+            if(hrpat.getErrFlag().equals("Y")){
+                throw new BizException("setUserGroup", hrpat.getErrMsg());
+            }
+
+            List<Map<String, Object>> hrpatDt = hrpat.getData();
+
+            ResponseDTO<List<Map<String, Object>>> trmcd = clientService.get(ClientName.SYS,uriBuilder -> uriBuilder
+                    .path("/sys/getBaseOds")
+                    .queryParam("classCode", "TRMCD")
+                    .queryParam("codeName", "")
+                    .build(),new ParameterizedTypeReference<ResponseDTO<List<Map<String, Object>>>>() {});
+            if(trmcd.getErrFlag().equals("Y")){
+                throw new BizException("setUserGroup", trmcd.getErrMsg());
+            }
+
+            List<Map<String, Object>> trmcdDt = trmcd.getData();
+
+            for(InfraUser.TeamGroupDTO row : dto.getTeamGroup()) {
+                Map<String,Object> findHrpat = hrpatDt.stream()
+                        .filter(v->v.get("CODE_NAME").equals(row.getTeamName()))
+                        .findFirst().orElse(null);
+
+                if(findHrpat == null){
+                    throw new BizException("setUserGroup", row.getTeamName()+" 공통코드에 동일한 팀명이 없습니다.");
+                }
+                for(InfraUser.TeamUserGroupDTO userRow: row.getUserArray()){
+                    Map<String,Object> findTrmcd = trmcdDt.stream()
+                            .filter(v->v.get("CODE_CODE").equals(userRow.getTeminalCode()))
+                            .findFirst().orElse(null);
+                    if(findTrmcd == null){
+                        throw new BizException("setUserGroup", userRow.getTeminalCode()+" 공통코드에 동일한 터미널이 없습니다.");
+                    }
+
+                    dbRet = repo.callSql("SELECT USER_SID FROM TCM_USER_MASTER WHERE USABLE_FLAG = 'Y' AND USER_ID = '"+userRow.getUserId()+"'");
+
+                    if(dbRet.getErrFlag().equals("Y")){
+                        throw new BizException("setUserGroup", dbRet.getErrMsg());
+                    }
+
+                    BigDecimal userSid = null;
+                    if(dbRet.getResult().get(0).isEmpty()){
+
+                        dbRet = repo.setUserInfo("",userRow.getUserId(),"aact","aact",userRow.getUserName(),userRow.getUserName(),"AACT","AACTINC"
+                        ,Util.getStrChk(findHrpat.get("VALUE3_CHAR")),"KOR","","","","",Util.getStrChk(findTrmcd.get("CODE_CODE"))
+                        , Util.getStrChk(findTrmcd.get("CODE_NAME")),"N","N","N","N","N"
+                                ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
+                        if(dbRet.getErrFlag().equals("Y")){
+                            throw new BizException("setUserGroup", dbRet.getErrMsg());
+                        }
+
+                        userSid = Util.getDecimal(dbRet.getRetObj().get("O_USER_SID"));
+
+                    }else{
+                        userSid = Util.getDecimal(dbRet.getResult().get(0).get(0).get("USER_SID").getObj());
+
+                    }
+
+                    dbRet = repo.getUserRel(userSid,"Y",info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
+
+                    if(dbRet.getErrFlag().equals("Y")){
+                        throw new BizException("setUserGroup", dbRet.getErrMsg());
+                    }
+
+                    List<Map<String,DbTypeDTO>> relDt = dbRet.getResult().get(0);
+
+                    Map<String,DbTypeDTO> hrwdtSelect = relDt.stream()
+                            .filter(v->v.get("CLASS_CODE").getObj().equals("HRWDT")&&v.get("CODE_CODE").getObj().equals("A"))
+                            .findFirst().orElse(null);
+                    if(hrwdtSelect==null){
+                        dbRet = repo.setUserRel(userSid,"HRWDT","A",
+                                "0000",userRow.getJoinDate(),"","",""
+                                ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
+                        if(dbRet.getErrFlag().equals("Y")){
+                            throw new BizException("setUserGroup", dbRet.getErrMsg());
+                        }
+                    }
+
+                    if(!userRow.getGroupJoinDate().isEmpty()){
+                        Map<String,DbTypeDTO> hrwdtSelectC = relDt.stream()
+                                .filter(v->v.get("CLASS_CODE").getObj().equals("HRWDT")&&v.get("CODE_CODE").getObj().equals("C"))
+                                .findFirst().orElse(null);
+                        if(hrwdtSelectC==null){
+                            dbRet = repo.setUserRel(userSid,"HRWDT","C",
+                                    "0000",userRow.getGroupJoinDate(),"","",""
+                                    ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
+                            if(dbRet.getErrFlag().equals("Y")){
+                                throw new BizException("setUserGroup", dbRet.getErrMsg());
+                            }
+                        }
+                    }
+                    Map<String,DbTypeDTO> hrpatSelect = relDt.stream()
+                            .filter(v->v.get("CLASS_CODE").getObj().equals("HRPAT"))
+                            .findFirst().orElse(null);
+                    if(hrpatSelect==null){
+                        dbRet = repo.setUserRel(userSid,"HRPAT",Util.getStrChk(findHrpat.get("CODE_CODE")),
+                                "0000",userRow.getJoinDate(),"","",""
+                                ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
+                        if(dbRet.getErrFlag().equals("Y")){
+                            throw new BizException("setUserGroup", dbRet.getErrMsg());
+                        }
+                    }
+
+                    Map<String,DbTypeDTO> trmcdSelect = relDt.stream()
+                            .filter(v->v.get("CLASS_CODE").getObj().equals("TRMCD"))
+                            .findFirst().orElse(null);
+                    if(trmcdSelect==null){
+                        dbRet = repo.setUserRel(userSid,"TRMCD",Util.getStrChk(findTrmcd.get("CODE_CODE")),
+                                "0000","","","",""
+                                ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
+                        if(dbRet.getErrFlag().equals("Y")){
+                            throw new BizException("setUserGroup", dbRet.getErrMsg());
+                        }
+                    }
+                }
+            }
+
+            return okOrThrow("setUserRel", dbRet);
+        });
+    }
+
     public ResponseDTO<?> setUserRel(List<InfraUser.UserRelDTO> dtos) {
 
         ClsUserInfo info = UserContext.get();
@@ -622,5 +874,87 @@ public class UserService extends ServiceBase {
             }
 
             return okOrThrow("delUserRel", dbRet);});
+    }
+
+    private void copyRowStyle_push(Sheet sheet, int srcRowIdx, int destRowIdx,int copyCellIdx) {
+
+        Row srcRow = sheet.getRow(srcRowIdx);
+        if (srcRow == null) return;
+
+        Workbook wb = sheet.getWorkbook();
+
+        // ✅ shiftRows 전에 원본 병합 영역 미리 저장
+        List<CellRangeAddress> srcMergedRegions = new ArrayList<>();
+
+        for (int i = 0; i < sheet.getNumMergedRegions(); i++) {
+            CellRangeAddress region = sheet.getMergedRegion(i);
+
+            if (region.getFirstRow() == srcRowIdx
+                    && region.getLastRow() == srcRowIdx) {
+                srcMergedRegions.add(region.copy());
+            }
+        }
+
+        // 기존 행들 아래로 밀기
+        if (sheet.getLastRowNum() >= destRowIdx) {
+            sheet.shiftRows(
+                    destRowIdx,
+                    sheet.getLastRowNum(),
+                    1,
+                    true,
+                    false
+            );
+        }
+
+        Row destRow = sheet.createRow(destRowIdx);
+
+        // 행 높이 복사
+        destRow.setHeight(srcRow.getHeight());
+
+        // ✅ A~M까지 강제 복사
+        // A=0, M=12
+        for (int i = 0; i <= copyCellIdx; i++) {
+
+            Cell srcCell = srcRow.getCell(i, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+            Cell destCell = destRow.getCell(i, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+
+            CellStyle newStyle = wb.createCellStyle();
+            newStyle.cloneStyleFrom(srcCell.getCellStyle());
+
+            destCell.setCellStyle(newStyle);
+        }
+
+        // ✅ 병합 영역 복사
+        for (CellRangeAddress region : srcMergedRegions) {
+
+            CellRangeAddress newRegion = new CellRangeAddress(
+                    destRowIdx,
+                    destRowIdx,
+                    region.getFirstColumn(),
+                    region.getLastColumn()
+            );
+
+            if (!isMergedRegionExists(sheet, newRegion)) {
+                sheet.addMergedRegion(newRegion);
+            }
+        }
+    }
+
+    private boolean isMergedRegionExists(
+            Sheet sheet,
+            CellRangeAddress newRegion
+    ) {
+
+        for (int i = 0; i < sheet.getNumMergedRegions(); i++) {
+
+            CellRangeAddress existing =
+                    sheet.getMergedRegion(i);
+
+            if (existing.intersects(newRegion)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

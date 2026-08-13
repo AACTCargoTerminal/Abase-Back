@@ -121,4 +121,18 @@ public class UserController {
 
         return userService.delUserRel(dtos.get("DEL"));
     }
+
+    @PostMapping(value = "/setUserGroup")
+    public ResponseDTO<?> setUserGroup(@RequestBody InfraUser.UserGroupDTO dto) {
+
+        return userService.setUserGroup(dto);
+    }
+
+    //getUserGroup
+
+    @GetMapping(value = "/getUserGroup")
+    public ResponseDTO<?> getUserGroup() {
+
+        return userService.getUserGroup();
+    }
 }
