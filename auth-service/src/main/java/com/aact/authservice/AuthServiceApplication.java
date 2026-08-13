@@ -8,7 +8,8 @@ import org.springframework.context.annotation.ComponentScan;
 @ComponentScan(basePackages = {
         "com.aact.authservice",
         "com.aact.web",
-        "com.aact.commonDb.dbsource"
+        "com.aact.commonDb.dbsource",
+        "com.aact.commonClient"
 })
 public class AuthServiceApplication {
     public static void main(String[] args) {

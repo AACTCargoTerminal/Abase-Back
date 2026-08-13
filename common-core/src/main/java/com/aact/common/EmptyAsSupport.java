@@ -28,6 +28,7 @@ public final class EmptyAsSupport {
     @Retention(RetentionPolicy.RUNTIME)
     public @interface EmptyAs {
         String value(); // 문자열로 받고, 필드 타입에 맞게 변환
+        String label() default "";
     }
 
     /**
@@ -38,13 +39,15 @@ public final class EmptyAsSupport {
 
         private JavaType targetType; // 현재 필드 타입
         private String replacementText; // 어노테이션 값
+        private String label;
 
         public EmptyAsDeserializer() {
         }
 
-        private EmptyAsDeserializer(JavaType targetType, String replacementText) {
+        private EmptyAsDeserializer(JavaType targetType, String replacementText,String label) {
             this.targetType = targetType;
             this.replacementText = replacementText;
+            this.label = label;
         }
 
         @Override
@@ -62,7 +65,7 @@ public final class EmptyAsSupport {
             if (ann == null)
                 return this;
 
-            return new EmptyAsDeserializer(property.getType(), ann.value());
+            return new EmptyAsDeserializer(property.getType(), ann.value(),ann.label());
         }
 
         @Override
@@ -73,7 +76,12 @@ public final class EmptyAsSupport {
             boolean isEmpty = (raw == null || raw.trim().isEmpty());
 
             if ("*".equals(replacementText) && isEmpty) {
-                throw new IOException("해당값은 필수 값입니다.");
+
+                if (label == null || label.isBlank()) {
+                    throw new IOException("해당값은 필수 값입니다.");
+                }
+
+                throw new IOException(label+"은(는) 필수 값입니다.");
             }
 
             String toParse = isEmpty ? replacementText : raw.trim();

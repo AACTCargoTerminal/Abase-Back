@@ -30,11 +30,17 @@ public class ClientService extends ServiceBase {
                 throw new SysException("get",clientName+"서버 등록 안됨.");
             }
             testServer(cli,clientName);
+            String pgmid = "";
+            String sesId = "";
+            if(info!=null){
+                pgmid = info.getPgmId();
+                sesId = info.getSesId();
+            }
 
             return cli.getWebClient()
                     .get()
                     .uri(uriFunction)
-                    .header("PGMID",info.getPgmId()).cookie("WMSSESSION",info.getSesId())
+                    .header("PGMID",pgmid).cookie("WMSSESSION",sesId)
                     .retrieve()
                     .bodyToMono(typeRef)
                     .block(Duration.ofMillis(cli.getResponseTimeout()));
@@ -83,11 +89,17 @@ public class ClientService extends ServiceBase {
 
             testServer(cli, clientName);
             ClsUserInfo info = UserContext.get();
+            String pgmid = "";
+            String sesId = "";
+            if(info!=null){
+                pgmid = info.getPgmId();
+                sesId = info.getSesId();
+            }
             return cli.getWebClient()
                     .post()
                     .uri(uriFunction)
                     .contentType(MediaType.MULTIPART_FORM_DATA)
-                    .header("PGMID",info.getPgmId()).cookie("WMSSESSION",info.getSesId())
+                    .header("PGMID",pgmid).cookie("WMSSESSION",sesId)
                     .body(BodyInserters.fromMultipartData(builder.build()))
                     .retrieve()
                     .bodyToMono(typeRef)
@@ -97,11 +109,18 @@ public class ClientService extends ServiceBase {
 
     public void testServer(ResourceClient cli, ClientName clientName) {
         try {
+            String pgmid = "";
+            String sesId = "";
+
             ClsUserInfo info = UserContext.get();
+            if(info!=null){
+                pgmid = info.getPgmId();
+                sesId = info.getSesId();
+            }
             cli.getWebClient()
                     .get()
                     .uri(cli.getTestPath())
-                    .header("PGMID",info.getPgmId()).cookie("WMSSESSION",info.getSesId())
+                    .header("PGMID",pgmid).cookie("WMSSESSION",sesId)
                     .retrieve()
                     .toBodilessEntity()
                     .block(Duration.ofMillis(cli.getResponseTimeout()));

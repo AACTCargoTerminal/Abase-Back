@@ -110,7 +110,7 @@ public class HttpFilter extends OncePerRequestFilter {
                     }
 
                 }
-            } else if (!validURI(req.getRequestURI()) && !validIp(req.getRemoteAddr())) {
+            } else if (!validURI(req) && !validIp(req)) {
                 log.info("접속 URI = [{}]", req.getRequestURI());
                 log.info("접속 IP = [{}]", req.getRemoteAddr());
                 res.setStatus(HttpServletResponse.SC_FORBIDDEN);
@@ -131,7 +131,7 @@ public class HttpFilter extends OncePerRequestFilter {
 
     }
 
-    private boolean validIp(String ip) {
+    private boolean validIp(HttpServletRequest req) {
         boolean ret = false;
         try {
             String url = env.getProperty("cli.valid.ip");
@@ -140,10 +140,15 @@ public class HttpFilter extends OncePerRequestFilter {
                 return false;
             }
 
-            return Arrays.stream(url.split(";"))
+            ret = Arrays.stream(url.split(";"))
                     .map(String::trim)
                     .filter(s -> !s.isEmpty())
-                    .anyMatch(s -> s.equals(ip));
+                    .anyMatch(s -> s.equals(req.getRemoteAddr()));
+
+            if(ret){
+                ClsUserInfo info = ClsUserInfo.builder().pgmId("PGMID").userId("DAEMON").userIpAddress("DAEMON").userLang("KOR").build();
+                UserContext.set(info);
+            }
 
         } catch (Exception e) {
             // TODO: handle exception
@@ -152,7 +157,7 @@ public class HttpFilter extends OncePerRequestFilter {
         return ret;
     }
 
-    private boolean validURI(String uri) {
+    private boolean validURI(HttpServletRequest req) {
         boolean ret = false;
         try {
             String url = env.getProperty("cli.valid.url");
@@ -161,10 +166,15 @@ public class HttpFilter extends OncePerRequestFilter {
                 return false;
             }
 
-            return Arrays.stream(url.split(";"))
+            ret = Arrays.stream(url.split(";"))
                     .map(String::trim)
                     .filter(s -> !s.isEmpty())
-                    .anyMatch(s -> s.equals(uri));
+                    .anyMatch(s -> s.equals(req.getRequestURI()));
+
+            if(ret){
+                ClsUserInfo info = ClsUserInfo.builder().pgmId("PGMID").userId("DAEMON").userIpAddress("DAEMON").userLang("KOR").build();
+                UserContext.set(info);
+            }
 
         } catch (Exception e) {
             // TODO: handle exception
