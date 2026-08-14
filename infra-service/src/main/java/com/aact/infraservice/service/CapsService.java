@@ -63,7 +63,7 @@ public class CapsService extends ServiceBase {
             endDate = now.minusHours(2).format(formatter);
             dbRet = capsMapper.findDateToId(id, endDate,date+time);
         }else{
-            endDate = now.plusMinutes(30).format(formatter);
+            endDate = now.plusHours(1).format(formatter);
             dbRet = capsMapper.findDateToId(id,date+time, endDate);
         }
 
