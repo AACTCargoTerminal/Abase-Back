@@ -4,6 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication(exclude = {
         DataSourceAutoConfiguration.class
@@ -14,6 +15,7 @@ import org.springframework.context.annotation.ComponentScan;
         "com.aact.web",
         "com.aact.commonClient"
 })
+@EnableScheduling
 public class InfraServiceApplication {
     public static void main(String[] args) {
         SpringApplication.run(InfraServiceApplication.class, args);
