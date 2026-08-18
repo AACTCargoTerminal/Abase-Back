@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -685,6 +686,17 @@ public class UserService extends ServiceBase {
         return execute(repo,()->{
             DbDto dbRet = null;
 
+            ResponseDTO<List<Map<String, Object>>> postn = clientService.get(ClientName.SYS,uriBuilder -> uriBuilder
+                    .path("/sys/getBaseOds")
+                    .queryParam("classCode", "POSTN")
+                    .queryParam("codeName", "")
+                    .build(),new ParameterizedTypeReference<ResponseDTO<List<Map<String, Object>>>>() {});
+            if(postn.getErrFlag().equals("Y")){
+                throw new BizException("setUserGroup", postn.getErrMsg());
+            }
+
+            List<Map<String, Object>> postnDt = postn.getData();
+
             ResponseDTO<List<Map<String, Object>>> hrpat = clientService.get(ClientName.SYS,uriBuilder -> uriBuilder
                     .path("/sys/getBaseOds")
                     .queryParam("classCode", "HRPAT")
@@ -723,7 +735,7 @@ public class UserService extends ServiceBase {
                         throw new BizException("setUserGroup", userRow.getTeminalCode()+" 공통코드에 동일한 터미널이 없습니다.");
                     }
 
-                    dbRet = repo.callSql("SELECT USER_SID FROM TCM_USER_MASTER WHERE USABLE_FLAG = 'Y' AND USER_ID = '"+userRow.getUserId()+"'");
+                    dbRet = repo.callSql("SELECT USER_SID FROM TCM_USER_MASTER WHERE USER_ID = '"+userRow.getUserId()+"'");
 
                     if(dbRet.getErrFlag().equals("Y")){
                         throw new BizException("setUserGroup", dbRet.getErrMsg());
@@ -780,9 +792,15 @@ public class UserService extends ServiceBase {
                             }
                         }
                     }
-                    Map<String,DbTypeDTO> hrpatSelect = relDt.stream()
-                            .filter(v->v.get("CLASS_CODE").getObj().equals("HRPAT"))
-                            .findFirst().orElse(null);
+                    Map<String, DbTypeDTO> hrpatSelect = relDt.stream()
+                            .filter(v -> "HRPAT".equals(
+                                    Util.getStrChk(v.get("CLASS_CODE").getObj())
+                            ))
+                            .filter(v -> !Util.getStrChk(v.get("VALUE1").getObj()).isEmpty())
+                            .max(Comparator.comparing(
+                                    v -> Util.getStrChk(v.get("VALUE1").getObj())
+                            ))
+                            .orElse(null);
                     if(hrpatSelect==null){
                         dbRet = repo.setUserRel(userSid,"HRPAT",Util.getStrChk(findHrpat.get("CODE_CODE")),
                                 "0000",userRow.getJoinDate(),"","",""
@@ -801,6 +819,28 @@ public class UserService extends ServiceBase {
                                 ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
                         if(dbRet.getErrFlag().equals("Y")){
                             throw new BizException("setUserGroup", dbRet.getErrMsg());
+                        }
+                    }
+
+                    if(userRow.getPositionList() != null && !userRow.getPositionList().isEmpty()){
+                        for(InfraUser.TeamUserPositionDTO positionRow : userRow.getPositionList()){
+                            Map<String,Object> postnSelect = postnDt.stream()
+                                    .filter(v->v.get("CODE_NAME").equals(positionRow.getPosition())).findFirst().orElse(null);
+                            if(postnSelect == null){
+                                throw new BizException("setUserGroup", positionRow.getPosition()+"팀명과 일치하는 것은 없습니다.");
+                            }
+                            Map<String,DbTypeDTO> hrtauSelect = relDt.stream()
+                                    .filter(v->v.get("CLASS_CODE").getObj().equals("HRTAU") &&
+                                            v.get("CODE_CODE").equals(positionRow.getTeamCode()))
+                                    .findFirst().orElse(null);
+                            if(hrtauSelect == null){
+                                dbRet = repo.setUserRel(userSid,"HRTAU",positionRow.getTeamCode(),
+                                        "0000",positionRow.getTeminalCode(),Util.getStrChk(postnSelect.get("CODE_CODE")),"",""
+                                        ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
+                                if(dbRet.getErrFlag().equals("Y")){
+                                    throw new BizException("setUserGroup", dbRet.getErrMsg());
+                                }
+                            }
                         }
                     }
                 }

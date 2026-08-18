@@ -758,6 +758,211 @@ public class WorkService extends ServiceBase {
         });
     }
 
+    public ResponseDTO<?> setScheduleAutoJob(String dateStr){
+        WorkRepo repo = workRepoProvider.getObject();
+        return execute(repo,()->{
+            DbDto dbRet = null;
+
+            String sql = "";
+            sql = "SELECT * FROM TCM_CODE_MASTER WHERE CLASS_CODE = 'HRPAT' AND USABLE_FLAG = 'Y' AND VALUE3_NUMBER = 1";
+            dbRet = repo.callSql(sql);
+
+            if(dbRet.getErrFlag().equals("Y")){
+                throw new BizException("setScheduleAutoJob",dbRet.getErrMsg());
+            }
+
+            List<Map<String,Object>> hrpat = ResponseDTO.from(dbRet).getData().get(0);
+
+            sql = "SELECT CODE_CODE,VALUE2_CHAR, VALUE3_CHAR FROM TCM_CODE_MASTER WHERE CLASS_CODE = 'OPCOD' AND USABLE_FLAG = 'Y' AND NVL(VALUE1_CHAR,'N') = 'Y' " +
+                    "AND ( (VALUE2_CHAR = '09' AND VALUE3_CHAR = '18') " +
+                    "OR NVL(VALUE4_CHAR,'N') = 'Y' " +
+                    ")";
+            dbRet = repo.callSql(sql);
+
+            if(dbRet.getErrFlag().equals("Y")){
+                throw new BizException("setScheduleAutoJob",dbRet.getErrMsg());
+            }
+
+            List<Map<String,Object>> opcod = ResponseDTO.from(dbRet).getData().get(0);
+
+
+            DateTimeFormatter formatter2 = DateTimeFormatter.ofPattern("yyyyMMdd");
+            LocalDate now = LocalDate.parse(dateStr, formatter2);
+            DateTimeFormatter formatter =
+                    DateTimeFormatter.ofPattern("yyyyMM");
+            String date = now.plusMonths(1).format(formatter);
+
+            sql = "SELECT CALENDAR_DATE, HOLIDAY_CODE FROM TCM_CALENDAR_MASTER WHERE USABLE_FLAG = 'Y' AND YYYYMM = '"+date+"' ORDER BY CALENDAR_TIME";
+
+            dbRet = repo.callSql(sql);
+
+            if(dbRet.getErrFlag().equals("Y")){
+                throw new BizException("setScheduleAutoJob",dbRet.getErrMsg());
+            }
+
+            List<Map<String,Object>> cal = ResponseDTO.from(dbRet).getData().get(0);
+
+            List<Map<String,String>> groupArray = new ArrayList<>();
+
+            sql = "SELECT A.USER_SID, A.CODE_CODE TEAM_CODE, IUR.CODE_CODE TERMINAL_CODE, TUM.USER_ID " +
+                    "FROM ( SELECT USER_SID, CODE_CODE " +
+                    "FROM ( SELECT USER_SID, CODE_CODE " +
+                    ", ROW_NUMBER() OVER ( PARTITION BY USER_SID, CODE_CODE ORDER BY VALUE1 DESC ) RN " +
+                    "FROM TCM_INTRA_USER_RELATION " +
+                    "WHERE CLASS_CODE = 'HRPAT' " +
+                    "AND NVL(VALUE1,'00010101') <= '[$1]' " +
+                    "AND USABLE_FLAG = 'Y' " +
+                    ") WHERE RN = 1 AND CODE_CODE = '[$2]' " +
+                    ") A " +
+                    "JOIN TCM_INTRA_USER_RELATION IUR " +
+                    "ON IUR.USER_SID = A.USER_SID " +
+                    "AND IUR.CLASS_CODE = 'TRMCD' " +
+                    "AND IUR.USABLE_FLAG = 'Y' " +
+                    "JOIN TCM_USER_MASTER TUM " +
+                    "ON TUM.USER_SID = A.USER_SID AND TUM.USABLE_FLAG = 'Y'";
+
+            for(Map<String,Object> calRow : cal){
+                String calDate = Util.getStrChk(calRow.get("CALENDAR_DATE"));
+                String holiCode = Util.getStrChk(calRow.get("HOLIDAY_CODE"));
+                String yyyy = calDate.substring(0,4);
+                String mon = calDate.substring(4,6);
+                String day = Util.getInteger(calDate.substring(6,8)).toString();
+
+                for(Map<String,Object> hrpatRow : hrpat){
+                    String hrpatCode = Util.getStrChk(hrpatRow.get("CODE_CODE"));
+                    String workTypeCode = "";
+                    if(holiCode.isEmpty()){
+                        workTypeCode = opcod.stream()
+                                .filter(v ->
+                                        !Util.getStrChk(v.get("VALUE2_CHAR")).isEmpty()
+                                                && !Util.getStrChk(v.get("VALUE3_CHAR")).isEmpty()
+                                )
+                                .findFirst()
+                                .map(v -> Util.getStrChk(v.get("CODE_CODE")))
+                                .orElse("");
+                    }else{
+                        workTypeCode = opcod.stream()
+                                .filter(v ->
+                                        Util.getStrChk(v.get("VALUE2_CHAR")).isEmpty()
+                                                && Util.getStrChk(v.get("VALUE3_CHAR")).isEmpty()
+                                )
+                                .findFirst()
+                                .map(v -> Util.getStrChk(v.get("CODE_CODE")))
+                                .orElse("");
+                    }
+
+                    if(workTypeCode.isEmpty()){
+                        throw new BizException("setScheduleAutoJob","09시에 해당하는 근무코드나, 휴일에 해당하는 근무코드가 없습니다.");
+                    }
+                    String sql2 = sql
+                            .replace("[$1]", calDate)
+                            .replace("[$2]", hrpatCode);
+
+                    dbRet = repo.callSql(sql2);
+
+                    if(dbRet.getErrFlag().equals("Y")){
+                        throw new BizException("setScheduleAutoJob",dbRet.getErrMsg());
+                    }
+
+                    List<Map<String,DbTypeDTO>> userTmp = dbRet.getResult().get(0);
+
+                    if(userTmp.isEmpty()){
+                        continue;
+                    }
+
+                    for(Map<String,DbTypeDTO> userRow : userTmp){
+
+
+
+                        BigDecimal userSid = Util.getDecimal(userRow.get("USER_SID").getObj());
+                        String userId = Util.getStrChk(userRow.get("USER_ID").getObj());
+                        String teamCode = Util.getStrChk(userRow.get("TEAM_CODE").getObj());
+                        String terminalCode = Util.getStrChk(userRow.get("TERMINAL_CODE").getObj());
+
+                        if(day.equals("1")){
+                            dbRet = repo.setWorkM010_021(yyyy,mon,"00",userSid,new BigDecimal("-1"),"Y","KOR",Util.getGUID(),"DAEMON","::","DAEMON");
+
+                            if(dbRet.getErrFlag().equals("Y")){
+                                throw new BizException("setScheduleAutoJob",dbRet.getErrMsg());
+                            }
+
+
+                        }
+
+                        dbRet = repo.setWorkM010_021(yyyy,mon,day,userSid,new BigDecimal("-1"),"Y","KOR",Util.getGUID(),"DAEMON","::","DAEMON");
+
+                        if(dbRet.getErrFlag().equals("Y")){
+                            throw new BizException("setScheduleAutoJob",dbRet.getErrMsg());
+                        }
+                        dbRet = repo.setWorkM010_040(yyyy,mon,userId,day,BigDecimal.ZERO,workTypeCode,
+                                BigDecimal.ZERO,"",terminalCode,teamCode,"KOR",Util.getGUID(),"DAEMON","::","DAEMON");
+                        if(dbRet.getErrFlag().equals("Y")){
+                            throw new BizException("setScheduleAutoJob",dbRet.getErrMsg());
+                        }
+
+                        Map<String,String> groupTmp = groupArray.stream()
+                                .filter(v->v.get("TERMINAL_CODE").equals(terminalCode)&&v.get("TEAM_CODE").equals(teamCode))
+                                .findFirst().orElse(null);
+                        if(groupTmp == null){
+                            groupTmp = new HashMap<>();
+                            groupTmp.put("TERMINAL_CODE",terminalCode);
+                            groupTmp.put("TEAM_CODE",teamCode);
+                            groupArray.add(groupTmp);
+                        }
+                    }
+
+
+
+                }
+            }
+
+            sql = "SELECT TUM.USER_ID " +
+                    "FROM TCM_INTRA_USER_RELATION IUR " +
+                    "JOIN TCM_USER_MASTER TUM " +
+                    "ON TUM.USER_SID = IUR.USER_SID " +
+                    "AND TUM.USABLE_FLAG = 'Y' " +
+                    "JOIN TCM_CODE_MASTER TCM " +
+                    "ON TCM.CLASS_CODE = 'HRMTR' " +
+                    "AND TCM.USABLE_FLAG = 'Y' " +
+                    "AND TCM.CODE_CODE = IUR.VALUE1 " +
+                    "AND ( " +
+                    "          (TCM.VALUE1_CHAR IS NULL " +
+                    "           AND TCM.CODE_CODE = '[$1]') " +
+                    "       OR " +
+                    "          (TCM.VALUE1_CHAR IS NOT NULL " +
+                    "           AND INSTR(TCM.VALUE1_CHAR, '[$1]') > 0) " +
+                    "       ) " +
+                    "WHERE IUR.CLASS_CODE = 'HRTAU' " +
+                    "AND NVL(IUR.VALUE2,'*') = '10' " +
+                    "AND IUR.CODE_CODE = '[$2]'";
+
+            for(Map<String,String> groupRow : groupArray){
+
+                String sql2 = sql.replace("[$1]",groupRow.get("TERMINAL_CODE")).replace("[$2]",groupRow.get("TEAM_CODE"));
+                dbRet = repo.callSql(sql2);
+
+                if(dbRet.getErrFlag().equals("Y")){
+                    throw new BizException("setScheduleAutoJob",dbRet.getErrMsg());
+                }
+
+                if(dbRet.getResult().get(0).isEmpty()){
+                    throw new BizException("setScheduleAutoJob",groupRow.get("TEAM_CODE")+" 팀의 팀장은 없습니다.");
+                }
+
+                String teamId = Util.getStrChk(dbRet.getResult().get(0).get(0).get("USER_ID").getObj());
+
+                String yyyy = date.substring(0,4);
+                String mon = date.substring(4,6);
+                dbRet = repo.setWorkM010_017(yyyy,mon,groupRow.get("TEAM_CODE"),groupRow.get("TERMINAL_CODE"),"KOR",Util.getGUID(),teamId,"::","DAEMON");
+                if(dbRet.getErrFlag().equals("Y")){
+                    throw new BizException("setScheduleAutoJob",dbRet.getErrMsg());
+                }
+            }
+
+            return okOrThrow("setScheduleAutoJob", dbRet);
+        });
+    }
+
     public ResponseDTO<?> getExTimeWork(){
         WorkRepo repo = workRepoProvider.getObject();
         return execute(repo,()->{
@@ -2560,69 +2765,5 @@ public class WorkService extends ServiceBase {
         }
 
         return false;
-    }
-
-    WorkTimeResult calcHourDiff(String startDate, String startTime,
-                                String endDate, String endTime) {
-        DateTimeFormatter formatter =
-                DateTimeFormatter.ofPattern("yyyyMMddHHmm");
-
-        LocalDateTime start = LocalDateTime.parse(startDate + startTime, formatter);
-        LocalDateTime end = LocalDateTime.parse(endDate + endTime, formatter);
-
-        long diffMinutes = Duration.between(start, end).toMinutes();
-
-        if (diffMinutes < 0) {
-            throw new BizException("calcHourDiff", "종료 시간이 시작 시간보다 빠릅니다.");
-        }
-
-        if (diffMinutes % 30 != 0) {
-            throw new BizException("calcHourDiff", "시간 차이는 30분 단위여야 합니다.");
-        }
-        long days = ChronoUnit.DAYS.between(start.toLocalDate(), end.toLocalDate());
-
-        double totalHours = diffMinutes / 60.0;
-
-        // 🔥 야간 시간 계산
-        long nightMinutes = 0;
-
-        LocalDateTime cursor = start;
-
-        while (cursor.isBefore(end)) {
-
-            LocalDateTime next = cursor.plusMinutes(30);
-
-            if (next.isAfter(end)) {
-                next = end;
-            }
-
-            int hour = cursor.getHour();
-
-            // 야간 시간 조건 (22~24 or 0~6)
-            if (hour >= 22 || hour <= 6) {
-                nightMinutes += Duration.between(cursor, next).toMinutes();
-            }
-
-            cursor = next;
-        }
-
-        double nightHours = nightMinutes / 60.0;
-
-        double deduction = Math.floor(totalHours / 4.5) * 0.5;
-        totalHours = totalHours - deduction;
-
-        if (nightHours > 8) {
-            throw new BizException("calcHourDiff", "야간근무 계산 에러");
-        } else if (nightHours >= 4.5 && nightHours < 8) {
-            nightHours = nightHours - 0.5;
-        } else if (nightHours == 8) {
-            nightHours = nightHours - 1;
-        }
-
-
-        return new WorkTimeResult(totalHours, nightHours, days);
-    }
-
-    record WorkTimeResult(double totalHours, double nightHours, long days) {
     }
 }
