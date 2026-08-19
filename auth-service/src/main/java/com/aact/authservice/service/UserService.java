@@ -546,137 +546,147 @@ public class UserService extends ServiceBase {
     public ResponseDTO<?> getUserGroup(){
         ClsUserInfo info = UserContext.get();
         UserRepo repo = userRepo.getObject();
+        DbDto dbRet = null;
 
-        return execute(repo,()->{
-            DbDto dbRet = null;
+        dbRet = execute(repo, () -> {
 
-            ResponseDTO<byte[]> ret = fileClientService.fileRead("/IMG/TEMPLATE/USER_GROUP_TEMPLATE.xlsx");
+            DbDto db = repo.getUserL010_003(
+                    info.getUserLang(),
+                    Util.getGUID(),
+                    info.getUserId(),
+                    info.getUserIpAddress(),
+                    info.getPgmId()
+            );
 
-            if(ret.getErrFlag().equals("Y")){
-                throw new BizException("getUserGroup",ret.getErrMsg());
+            if ("Y".equals(db.getErrFlag())) {
+                throw new BizException("getUserGroup", db.getErrMsg());
             }
 
-            dbRet = repo.getUserL010_003(info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
-            if(dbRet.getErrFlag().equals("Y")){
-                throw new BizException("getUserGroup",dbRet.getErrMsg());
-            }
+            return db;
+        });
+        ResponseDTO<byte[]> ret =
+                fileClientService.fileRead("/IMG/TEMPLATE/USER_GROUP_TEMPLATE.xlsx");
+        if(ret.getErrFlag().equals("Y")){
+            throw new BizException("getUserGroup",ret.getErrMsg());
+        }
 
-            ResponseDTO<List<Map<String, Object>>> hrpat = clientService.get(ClientName.SYS,uriBuilder -> uriBuilder
-                    .path("/sys/getBaseOds")
-                    .queryParam("classCode", "HRPAT")
-                    .queryParam("codeName", "")
-                    .build(),new ParameterizedTypeReference<ResponseDTO<List<Map<String, Object>>>>() {});
-            if(hrpat.getErrFlag().equals("Y")){
-                throw new BizException("setUserGroup", hrpat.getErrMsg());
-            }
+        ResponseDTO<List<Map<String, Object>>> hrpat = clientService.get(ClientName.SYS,uriBuilder -> uriBuilder
+                .path("/sys/getBaseOds")
+                .queryParam("classCode", "HRPAT")
+                .queryParam("codeName", "")
+                .build(),new ParameterizedTypeReference<ResponseDTO<List<Map<String, Object>>>>() {});
+        if(hrpat.getErrFlag().equals("Y")){
+            throw new BizException("setUserGroup", hrpat.getErrMsg());
+        }
 
-            List<Map<String, Object>> hrpatDt = hrpat.getData();
+        List<Map<String, Object>> hrpatDt = hrpat.getData();
 
-            ResponseDTO<List<Map<String, Object>>> postn = clientService.get(ClientName.SYS,uriBuilder -> uriBuilder
-                    .path("/sys/getBaseOds")
-                    .queryParam("classCode", "POSTN")
-                    .queryParam("codeName", "")
-                    .build(),new ParameterizedTypeReference<ResponseDTO<List<Map<String, Object>>>>() {});
-            if(postn.getErrFlag().equals("Y")){
-                throw new BizException("setUserGroup", postn.getErrMsg());
-            }
+        ResponseDTO<List<Map<String, Object>>> postn = clientService.get(ClientName.SYS,uriBuilder -> uriBuilder
+                .path("/sys/getBaseOds")
+                .queryParam("classCode", "POSTN")
+                .queryParam("codeName", "")
+                .build(),new ParameterizedTypeReference<ResponseDTO<List<Map<String, Object>>>>() {});
+        if(postn.getErrFlag().equals("Y")){
+            throw new BizException("setUserGroup", postn.getErrMsg());
+        }
 
-            List<Map<String, Object>> postnDt = postn.getData();
+        List<Map<String, Object>> postnDt = postn.getData();
 
-            ResponseDTO<List<InfraUser.TeamGroupDTO>> dto = InfraUser.changeGroup(dbRet,hrpatDt,postnDt);
-            if(dto.getErrFlag().equals("Y")){
-                throw new BizException("setUserGroup", dto.getErrMsg());
-            }
-
-            try(
-                    Workbook srcWorkbook = WorkbookFactory.create(new ByteArrayInputStream(ret.getData()));
-                    ByteArrayOutputStream bos = new ByteArrayOutputStream()
-            ){
-                Sheet sheet1 = srcWorkbook.getSheet("SHEET1");
-                Sheet sheet2 = srcWorkbook.getSheet("SHEET2");
-
-                int startIdx = 6;
-                int endIdx = 6;
-                int sheet2Idx = 6;
-                for(InfraUser.TeamGroupDTO row : dto.getData()){
-                    Row rowC = sheet1.getRow(startIdx);
-                    Cell cell = rowC.getCell(0,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                    cell.setCellValue(row.getTeamCode());
-                    cell = rowC.getCell(1,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                    cell.setCellValue(row.getTeamName());
-                    for(int i = 0;i<row.getUserArray().size();i++){
-                        InfraUser.TeamUserGroupDTO groupRow = row.getUserArray().get(i);
-                        if(i != 0){
-                            copyRowStyle_push(sheet1,7,endIdx,9);
-                            rowC = sheet1.getRow(endIdx);
-                        }
-                        cell = rowC.getCell(2,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                        cell.setCellValue(groupRow.getTeminalCode());
-                        cell = rowC.getCell(3,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                        cell.setCellValue(groupRow.getUserName());
-                        cell = rowC.getCell(4,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                        cell.setCellValue(groupRow.getUserId());
-                        cell = rowC.getCell(5,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                        cell.setCellValue(groupRow.getGroupJoinDate());
-                        cell = rowC.getCell(6,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                        cell.setCellValue(groupRow.getJoinDate());
-                        cell = rowC.getCell(7,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                        cell.setCellValue(groupRow.getWorkType());
-                        cell = rowC.getCell(8,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                        cell.setCellValue(groupRow.getWorkType2());
-                        endIdx++;
-                        if(groupRow.getPositionList() != null&&!groupRow.getPositionList().isEmpty()){
-
-                            for(InfraUser.TeamUserPositionDTO positionRow : groupRow.getPositionList()){
-                                Row rowD = sheet2.getRow(sheet2Idx);
-
-                                Cell cell2 = rowD.getCell(0,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                                cell2.setCellValue(positionRow.getTeamCode());
-
-                                cell2 = rowD.getCell(1,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                                cell2.setCellValue(positionRow.getTeamName());
-
-                                cell2 = rowD.getCell(2,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                                cell2.setCellValue(positionRow.getTeminalCode());
-
-                                cell2 = rowD.getCell(3,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                                cell2.setCellValue(groupRow.getUserName());
-
-                                cell2 = rowD.getCell(4,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                                cell2.setCellValue(groupRow.getUserId());
-
-                                cell2 = rowD.getCell(5,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                                cell2.setCellValue(positionRow.getPosition());
-                                sheet2Idx++;
-                            }
+        ResponseDTO<List<InfraUser.TeamGroupDTO>> dto = InfraUser.changeGroup(dbRet,hrpatDt,postnDt);
+        if(dto.getErrFlag().equals("Y")){
+            throw new BizException("setUserGroup", dto.getErrMsg());
+        }
 
 
 
-                        }
+        try(
+                Workbook srcWorkbook = WorkbookFactory.create(new ByteArrayInputStream(ret.getData()));
+                ByteArrayOutputStream bos = new ByteArrayOutputStream()
+        ){
+            Sheet sheet1 = srcWorkbook.getSheet("SHEET1");
+            Sheet sheet2 = srcWorkbook.getSheet("SHEET2");
+
+            int startIdx = 6;
+            int endIdx = 6;
+            int sheet2Idx = 6;
+            for(InfraUser.TeamGroupDTO row : dto.getData()){
+                Row rowC = sheet1.getRow(startIdx);
+                Cell cell = rowC.getCell(0,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                cell.setCellValue(row.getTeamCode());
+                cell = rowC.getCell(1,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                cell.setCellValue(row.getTeamName());
+                for(int i = 0;i<row.getUserArray().size();i++){
+                    InfraUser.TeamUserGroupDTO groupRow = row.getUserArray().get(i);
+                    if(i != 0){
+                        copyRowStyle_push(sheet1,7,endIdx,9);
+                        rowC = sheet1.getRow(endIdx);
                     }
+                    cell = rowC.getCell(2,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                    cell.setCellValue(groupRow.getTeminalCode());
+                    cell = rowC.getCell(3,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                    cell.setCellValue(groupRow.getUserName());
+                    cell = rowC.getCell(4,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                    cell.setCellValue(groupRow.getUserId());
+                    cell = rowC.getCell(5,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                    cell.setCellValue(groupRow.getGroupJoinDate());
+                    cell = rowC.getCell(6,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                    cell.setCellValue(groupRow.getJoinDate());
+                    cell = rowC.getCell(7,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                    cell.setCellValue(groupRow.getWorkType());
+                    cell = rowC.getCell(8,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                    cell.setCellValue(groupRow.getWorkType2());
+                    endIdx++;
+                    if(groupRow.getPositionList() != null&&!groupRow.getPositionList().isEmpty()){
 
-                    if(startIdx != endIdx-1){
-                        sheet1.addMergedRegion(
-                                new CellRangeAddress(startIdx, endIdx-1, 0, 0)
-                        );
-                        sheet1.addMergedRegion(
-                                new CellRangeAddress(startIdx, endIdx-1, 1, 1)
-                        );
+                        for(InfraUser.TeamUserPositionDTO positionRow : groupRow.getPositionList()){
+                            Row rowD = sheet2.getRow(sheet2Idx);
+
+                            Cell cell2 = rowD.getCell(0,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell2.setCellValue(positionRow.getTeamCode());
+
+                            cell2 = rowD.getCell(1,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell2.setCellValue(positionRow.getTeamName());
+
+                            cell2 = rowD.getCell(2,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell2.setCellValue(positionRow.getTeminalCode());
+
+                            cell2 = rowD.getCell(3,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell2.setCellValue(groupRow.getUserName());
+
+                            cell2 = rowD.getCell(4,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell2.setCellValue(groupRow.getUserId());
+
+                            cell2 = rowD.getCell(5,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell2.setCellValue(positionRow.getPosition());
+                            sheet2Idx++;
+                        }
+
+
+
                     }
-
-
-                    startIdx = endIdx;
                 }
 
-                srcWorkbook.write(bos);
+                if(startIdx != endIdx-1){
+                    sheet1.addMergedRegion(
+                            new CellRangeAddress(startIdx, endIdx-1, 0, 0)
+                    );
+                    sheet1.addMergedRegion(
+                            new CellRangeAddress(startIdx, endIdx-1, 1, 1)
+                    );
+                }
 
-                ret = ResponseDTO.<byte[]>builder().errFlag("N").errMsg("재직자목록 다운완료").data(bos.toByteArray()).build();
-            }catch (IOException ex){
-                throw new BizException("getUserGroup",ex.getMessage());
+
+                startIdx = endIdx;
             }
 
-            return ret;
-        });
+            srcWorkbook.write(bos);
+
+            ret = ResponseDTO.<byte[]>builder().errFlag("N").errMsg("재직자목록 다운완료").data(bos.toByteArray()).build();
+        }catch (IOException ex){
+            throw new BizException("getUserGroup",ex.getMessage());
+        }
+
+        return ret;
     }
 
     public ResponseDTO<?> setUserGroup(InfraUser.UserGroupDTO dto){
