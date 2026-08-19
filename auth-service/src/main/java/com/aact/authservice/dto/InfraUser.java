@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class InfraUser {
 
@@ -165,15 +166,24 @@ public class InfraUser {
                 throw new Exception("HR 설정된 근무자가 없습니다.");
             }
 
+            Map<BigDecimal, Map<String, DbTypeDTO>> userMap =
+                    dt.stream()
+                            .collect(Collectors.toMap(
+                                    v -> Util.getDecimal(v.get("USER_SID").getObj()),
+                                    v -> v,
+                                    (a, b) -> a
+                            ));
+
             List<Map<String,DbTypeDTO>> hrpatDt2 = dt2.stream().filter(v->v.get("CLASS_CODE").getObj().equals("HRPAT")).toList();
 
             for(Map<String,DbTypeDTO> row : hrpatDt2){
-                Map<String,DbTypeDTO> tmpDt = dt.stream().filter(v->v.get("USER_SID").getObj().equals(row.get("USER_SID").getObj())).findFirst().orElse(null);
+                BigDecimal userSid =
+                        Util.getDecimal(row.get("USER_SID").getObj());
 
+                Map<String, DbTypeDTO> tmpDt = userMap.get(userSid);
                 if(tmpDt==null){
                     continue;
                 }
-                BigDecimal userSid = Util.getDecimal(tmpDt.get("USER_SID").getObj());
                 String userId = Util.getStrChk(tmpDt.get("USER_ID").getObj());
 
                 Map<String,Object> hrpatSelect = hrpat.stream().filter(v->v.get("CODE_CODE").equals(row.get("CODE_CODE").getObj())).findFirst().orElse(null);
