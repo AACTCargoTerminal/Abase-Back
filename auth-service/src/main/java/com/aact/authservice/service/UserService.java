@@ -22,6 +22,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StopWatch;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
@@ -547,7 +548,6 @@ public class UserService extends ServiceBase {
         ClsUserInfo info = UserContext.get();
         UserRepo repo = userRepo.getObject();
         DbDto dbRet = null;
-
         dbRet = execute(repo, () -> {
 
             DbDto db = repo.getUserL010_003(
@@ -591,13 +591,10 @@ public class UserService extends ServiceBase {
         }
 
         List<Map<String, Object>> postnDt = postn.getData();
-
         ResponseDTO<List<InfraUser.TeamGroupDTO>> dto = InfraUser.changeGroup(dbRet,hrpatDt,postnDt);
         if(dto.getErrFlag().equals("Y")){
             throw new BizException("setUserGroup", dto.getErrMsg());
         }
-
-
 
         try(
                 Workbook srcWorkbook = WorkbookFactory.create(new ByteArrayInputStream(ret.getData()));
@@ -606,77 +603,245 @@ public class UserService extends ServiceBase {
             Sheet sheet1 = srcWorkbook.getSheet("SHEET1");
             Sheet sheet2 = srcWorkbook.getSheet("SHEET2");
 
-            int startIdx = 6;
-            int endIdx = 6;
-            int sheet2Idx = 6;
-            for(InfraUser.TeamGroupDTO row : dto.getData()){
-                Row rowC = sheet1.getRow(startIdx);
-                Cell cell = rowC.getCell(0,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                cell.setCellValue(row.getTeamCode());
-                cell = rowC.getCell(1,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                cell.setCellValue(row.getTeamName());
-                for(int i = 0;i<row.getUserArray().size();i++){
-                    InfraUser.TeamUserGroupDTO groupRow = row.getUserArray().get(i);
-                    if(i != 0){
-                        copyRowStyle_push(sheet1,7,endIdx,9);
-                        rowC = sheet1.getRow(endIdx);
+            // =========================
+            // 1. 필요한 행 수 먼저 계산
+            // =========================
+            int totalUserCount = dto.getData().stream()
+                    .mapToInt(v -> v.getUserArray().size())
+                    .sum();
+
+            int totalPositionCount = dto.getData().stream()
+                    .flatMap(v -> v.getUserArray().stream())
+                    .filter(v -> v.getPositionList() != null)
+                    .mapToInt(v -> v.getPositionList().size())
+                    .sum();
+
+            // 템플릿 기준 행
+            int sheet1TemplateIdx = 6;
+            int sheet2TemplateIdx = 6;
+
+            Row sheet1TemplateRow = sheet1.getRow(sheet1TemplateIdx);
+            Row sheet2TemplateRow = sheet2.getRow(sheet2TemplateIdx);
+
+            // =========================
+            // SHEET2용 중간행 스타일 생성
+            // =========================
+            CellStyle[] sheet2Styles = new CellStyle[6];
+
+            for (int i = 0; i < 6; i++) {
+
+                Cell sourceCell = sheet2TemplateRow.getCell(
+                        i,
+                        Row.MissingCellPolicy.CREATE_NULL_AS_BLANK
+                );
+
+                CellStyle style = srcWorkbook.createCellStyle();
+                style.cloneStyleFrom(sourceCell.getCellStyle());
+
+                // 중간 가로선 제거
+                style.setBorderTop(BorderStyle.NONE);
+                style.setBorderBottom(BorderStyle.NONE);
+
+                sheet2Styles[i] = style;
+            }
+
+            // =========================
+            // 2. 기존 아래쪽 영역 한 번만 밀기
+            // =========================
+            int sheet1AddCount = Math.max(0, totalUserCount - 1);
+
+            if (sheet1AddCount > 0 && sheet1.getLastRowNum() > sheet1TemplateIdx) {
+                sheet1.shiftRows(
+                        sheet1TemplateIdx + 1,
+                        sheet1.getLastRowNum(),
+                        sheet1AddCount,
+                        true,
+                        false
+                );
+            }
+
+            int sheet2AddCount = Math.max(0, totalPositionCount - 1);
+
+            if (sheet2AddCount > 0 && sheet2.getLastRowNum() > sheet2TemplateIdx) {
+                sheet2.shiftRows(
+                        sheet2TemplateIdx + 1,
+                        sheet2.getLastRowNum(),
+                        sheet2AddCount,
+                        true,
+                        false
+                );
+            }
+
+
+            // =========================
+            // 3. SHEET1 생성
+            // =========================
+            int sheet1Idx = 6;
+
+            for (InfraUser.TeamGroupDTO teamRow : dto.getData()) {
+
+                int teamStartIdx = sheet1Idx;
+
+                for (InfraUser.TeamUserGroupDTO groupRow : teamRow.getUserArray()) {
+
+                    Row rowC;
+
+                    if (sheet1Idx == sheet1TemplateIdx) {
+                        rowC = sheet1TemplateRow;
+                    } else {
+                        rowC = sheet1.createRow(sheet1Idx);
+                        copyRowStyleFast(
+                                sheet1TemplateRow,
+                                rowC,
+                                9
+                        );
                     }
-                    cell = rowC.getCell(2,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                    cell.setCellValue(groupRow.getTeminalCode());
-                    cell = rowC.getCell(3,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                    cell.setCellValue(groupRow.getUserName());
-                    cell = rowC.getCell(4,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                    cell.setCellValue(groupRow.getUserId());
-                    cell = rowC.getCell(5,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                    cell.setCellValue(groupRow.getGroupJoinDate());
-                    cell = rowC.getCell(6,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                    cell.setCellValue(groupRow.getJoinDate());
-                    cell = rowC.getCell(7,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                    cell.setCellValue(groupRow.getWorkType());
-                    cell = rowC.getCell(8,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                    cell.setCellValue(groupRow.getWorkType2());
-                    endIdx++;
-                    if(groupRow.getPositionList() != null&&!groupRow.getPositionList().isEmpty()){
 
-                        for(InfraUser.TeamUserPositionDTO positionRow : groupRow.getPositionList()){
-                            Row rowD = sheet2.getRow(sheet2Idx);
+                    setCellValue(rowC, 0, teamRow.getTeamCode());
+                    setCellValue(rowC, 1, teamRow.getTeamName());
+                    setCellValue(rowC, 2, groupRow.getTeminalCode());
+                    setCellValue(rowC, 3, groupRow.getUserName());
+                    setCellValue(rowC, 4, groupRow.getUserId());
+                    setCellValue(rowC, 5, groupRow.getGroupJoinDate());
+                    setCellValue(rowC, 6, groupRow.getJoinDate());
+                    setCellValue(rowC, 7, groupRow.getWorkType());
+                    setCellValue(rowC, 8, groupRow.getWorkType2());
 
-                            Cell cell2 = rowD.getCell(0,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                            cell2.setCellValue(positionRow.getTeamCode());
+                    sheet1Idx++;
+                }
 
-                            cell2 = rowD.getCell(1,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                            cell2.setCellValue(positionRow.getTeamName());
+                // 팀 단위 병합
+                if (sheet1Idx - teamStartIdx > 1) {
 
-                            cell2 = rowD.getCell(2,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                            cell2.setCellValue(positionRow.getTeminalCode());
+                    sheet1.addMergedRegion(
+                            new CellRangeAddress(
+                                    teamStartIdx,
+                                    sheet1Idx - 1,
+                                    0,
+                                    0
+                            )
+                    );
 
-                            cell2 = rowD.getCell(3,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                            cell2.setCellValue(groupRow.getUserName());
+                    sheet1.addMergedRegion(
+                            new CellRangeAddress(
+                                    teamStartIdx,
+                                    sheet1Idx - 1,
+                                    1,
+                                    1
+                            )
+                    );
+                }
+            }
 
-                            cell2 = rowD.getCell(4,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                            cell2.setCellValue(groupRow.getUserId());
+            // =========================
+            // 4. SHEET2 생성
+            // =========================
+            int sheet2Idx = 6;
 
-                            cell2 = rowD.getCell(5,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                            cell2.setCellValue(positionRow.getPosition());
-                            sheet2Idx++;
+            for (InfraUser.TeamGroupDTO teamRow : dto.getData()) {
+
+                for (InfraUser.TeamUserGroupDTO groupRow
+                        : teamRow.getUserArray()) {
+
+                    if (groupRow.getPositionList() == null
+                            || groupRow.getPositionList().isEmpty()) {
+                        continue;
+                    }
+
+                    for (InfraUser.TeamUserPositionDTO positionRow
+                            : groupRow.getPositionList()) {
+
+                        Row rowD;
+
+                        if (sheet2Idx == sheet2TemplateIdx) {
+
+                            rowD = sheet2TemplateRow;
+
+                            // 첫 데이터 행도 SHEET2 전용 스타일 적용
+                            for (int i = 0; i < 6; i++) {
+
+                                Cell cell = rowD.getCell(
+                                        i,
+                                        Row.MissingCellPolicy.CREATE_NULL_AS_BLANK
+                                );
+
+                                cell.setCellStyle(sheet2Styles[i]);
+                            }
+
+                        } else {
+
+                            rowD = sheet2.createRow(sheet2Idx);
+                            rowD.setHeight(sheet2TemplateRow.getHeight());
+
+                            for (int i = 0; i < 6; i++) {
+
+                                Cell cell = rowD.createCell(i);
+                                cell.setCellStyle(sheet2Styles[i]);
+                            }
                         }
 
+                        setCellValue(
+                                rowD,
+                                0,
+                                positionRow.getTeamCode()
+                        );
 
+                        setCellValue(
+                                rowD,
+                                1,
+                                positionRow.getTeamName()
+                        );
 
+                        setCellValue(
+                                rowD,
+                                2,
+                                positionRow.getTeminalCode()
+                        );
+
+                        setCellValue(
+                                rowD,
+                                3,
+                                groupRow.getUserName()
+                        );
+
+                        setCellValue(
+                                rowD,
+                                4,
+                                groupRow.getUserId()
+                        );
+
+                        setCellValue(
+                                rowD,
+                                5,
+                                positionRow.getPosition()
+                        );
+
+                        sheet2Idx++;
                     }
                 }
+            }
 
-                if(startIdx != endIdx-1){
-                    sheet1.addMergedRegion(
-                            new CellRangeAddress(startIdx, endIdx-1, 0, 0)
+            // =========================
+            // SHEET2 마지막 데이터 행에만 하단 테두리 적용
+            // =========================
+            if (sheet2Idx > sheet2TemplateIdx) {
+
+                Row lastRow = sheet2.getRow(sheet2Idx - 1);
+
+                for (int i = 0; i < 6; i++) {
+
+                    Cell cell = lastRow.getCell(
+                            i,
+                            Row.MissingCellPolicy.CREATE_NULL_AS_BLANK
                     );
-                    sheet1.addMergedRegion(
-                            new CellRangeAddress(startIdx, endIdx-1, 1, 1)
-                    );
+
+                    CellStyle lastStyle = srcWorkbook.createCellStyle();
+                    lastStyle.cloneStyleFrom(cell.getCellStyle());
+
+                    lastStyle.setBorderBottom(BorderStyle.MEDIUM);
+
+                    cell.setCellStyle(lastStyle);
                 }
-
-
-                startIdx = endIdx;
             }
 
             srcWorkbook.write(bos);
@@ -685,7 +850,6 @@ public class UserService extends ServiceBase {
         }catch (IOException ex){
             throw new BizException("getUserGroup",ex.getMessage());
         }
-
         return ret;
     }
 
@@ -926,85 +1090,36 @@ public class UserService extends ServiceBase {
             return okOrThrow("delUserRel", dbRet);});
     }
 
-    private void copyRowStyle_push(Sheet sheet, int srcRowIdx, int destRowIdx,int copyCellIdx) {
+    private void setCellValue(Row row, int index, String value) {
 
-        Row srcRow = sheet.getRow(srcRowIdx);
-        if (srcRow == null) return;
+        Cell cell = row.getCell(
+                index,
+                Row.MissingCellPolicy.CREATE_NULL_AS_BLANK
+        );
 
-        Workbook wb = sheet.getWorkbook();
-
-        // ✅ shiftRows 전에 원본 병합 영역 미리 저장
-        List<CellRangeAddress> srcMergedRegions = new ArrayList<>();
-
-        for (int i = 0; i < sheet.getNumMergedRegions(); i++) {
-            CellRangeAddress region = sheet.getMergedRegion(i);
-
-            if (region.getFirstRow() == srcRowIdx
-                    && region.getLastRow() == srcRowIdx) {
-                srcMergedRegions.add(region.copy());
-            }
-        }
-
-        // 기존 행들 아래로 밀기
-        if (sheet.getLastRowNum() >= destRowIdx) {
-            sheet.shiftRows(
-                    destRowIdx,
-                    sheet.getLastRowNum(),
-                    1,
-                    true,
-                    false
-            );
-        }
-
-        Row destRow = sheet.createRow(destRowIdx);
-
-        // 행 높이 복사
-        destRow.setHeight(srcRow.getHeight());
-
-        // ✅ A~M까지 강제 복사
-        // A=0, M=12
-        for (int i = 0; i <= copyCellIdx; i++) {
-
-            Cell srcCell = srcRow.getCell(i, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-            Cell destCell = destRow.getCell(i, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-
-            CellStyle newStyle = wb.createCellStyle();
-            newStyle.cloneStyleFrom(srcCell.getCellStyle());
-
-            destCell.setCellStyle(newStyle);
-        }
-
-        // ✅ 병합 영역 복사
-        for (CellRangeAddress region : srcMergedRegions) {
-
-            CellRangeAddress newRegion = new CellRangeAddress(
-                    destRowIdx,
-                    destRowIdx,
-                    region.getFirstColumn(),
-                    region.getLastColumn()
-            );
-
-            if (!isMergedRegionExists(sheet, newRegion)) {
-                sheet.addMergedRegion(newRegion);
-            }
-        }
+        cell.setCellValue(value == null ? "" : value);
     }
 
-    private boolean isMergedRegionExists(
-            Sheet sheet,
-            CellRangeAddress newRegion
+    private void copyRowStyleFast(
+            Row sourceRow,
+            Row targetRow,
+            int cellCount
     ) {
 
-        for (int i = 0; i < sheet.getNumMergedRegions(); i++) {
+        targetRow.setHeight(sourceRow.getHeight());
 
-            CellRangeAddress existing =
-                    sheet.getMergedRegion(i);
+        for (int i = 0; i < cellCount; i++) {
 
-            if (existing.intersects(newRegion)) {
-                return true;
-            }
+            Cell sourceCell = sourceRow.getCell(
+                    i,
+                    Row.MissingCellPolicy.CREATE_NULL_AS_BLANK
+            );
+
+            Cell targetCell = targetRow.createCell(i);
+
+            targetCell.setCellStyle(
+                    sourceCell.getCellStyle()
+            );
         }
-
-        return false;
     }
 }
