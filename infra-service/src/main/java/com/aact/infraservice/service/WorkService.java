@@ -1664,64 +1664,193 @@ public class WorkService extends ServiceBase {
                         );
                     }
 
-
-
-
-
                     if(dto.getRowList()==null||dto.getRowList().isEmpty()){
                         throw new BizException("getWorkTime", "데이터가 없습니다.");
                     }
-                    int selectIdx = 6;
-                    for(int i = 0;i<dto.getRowList().size();i++){
-                        if(i!=0){
-                            copyRowStyle_push(copySheet, 6, selectIdx,12);
-                        }
-                        row = copySheet.getRow(selectIdx);
-                        cell = row.getCell(0);
-                        cell.setCellValue(i+1);
-                        cell = row.getCell(1);
-                        LocalDate tmpDate = LocalDate.parse(dto.getRowList().get(i).getDate(), inputFormat);
-                        cell.setCellValue(tmpDate.format(outputFormat2));
-                        cell = row.getCell(2);
-                        cell.setCellValue(dto.getRowList().get(i).getUserName());
-                        cell = row.getCell(3);
-                        cell.setCellValue(dto.getRowList().get(i).getWorkTypeName());
-                        cell = row.getCell(4);
-                        cell.setCellValue(Util.formatTime_HHmm(dto.getRowList().get(i).getReqStartTime())+" ~ "+Util.formatTime_HHmm(dto.getRowList().get(i).getReqEndTime()));
-                        cell = row.getCell(5);
-                        cell.setCellValue(dto.getRowList().get(i).getAddHour());
-                        cell = row.getCell(6);
-                        cell.setCellValue(dto.getRowList().get(i).getNightHour());
-                        cell = row.getCell(7);
-                        cell.setCellValue(dto.getRowList().get(i).getHoliHour());
-                        cell = row.getCell(8);
-                        cell.setCellValue(dto.getRowList().get(i).getHoliAddHour());
-                        cell = row.getCell(10);
-                        cell.setCellValue(dto.getRowList().get(i).getRemark());
 
-                        selectIdx++;
+                    //엑셀 만들기
+                    int selectIdx = 6;
+
+                    int dataCount = dto.getRowList().size();
+
+                    if (dataCount > 1) {
+                        copySheet.shiftRows(
+                                selectIdx + 1,
+                                copySheet.getLastRowNum(),
+                                dataCount - 1,
+                                true,
+                                false
+                        );
                     }
-                    row = copySheet.getRow(selectIdx);
-                    cell= row.getCell(5);
+
+
+                    for(int i = 0;i<dto.getRowList().size();i++){
+                        int rowIdx = selectIdx + i;
+                        if(i != 0){
+                            row = copySheet.createRow(rowIdx);
+                            copyRowStyleFast(copySheet,selectIdx, rowIdx);
+
+                            if(upCount==2){
+                                // 휴일연장 H:I
+                                copySheet.addMergedRegion(
+                                        new CellRangeAddress(
+                                                rowIdx,
+                                                rowIdx,
+                                                8,
+                                                9
+                                        )
+                                );
+
+                                // 근무사유 J:K
+                                copySheet.addMergedRegion(
+                                        new CellRangeAddress(
+                                                rowIdx,
+                                                rowIdx,
+                                                10,
+                                                12
+                                        )
+                                );
+                            }else{
+                                // 휴일연장 H:I
+                                copySheet.addMergedRegion(
+                                        new CellRangeAddress(
+                                                rowIdx,
+                                                rowIdx,
+                                                8,
+                                                10
+                                        )
+                                );
+
+                                // 근무사유 J:K
+                                copySheet.addMergedRegion(
+                                        new CellRangeAddress(
+                                                rowIdx,
+                                                rowIdx,
+                                                11,
+                                                13
+                                        )
+                                );
+                            }
+                        }else{
+                            row = copySheet.getRow(rowIdx);
+                        }
+
+                        cell = row.getCell(
+                                0,
+                                Row.MissingCellPolicy.CREATE_NULL_AS_BLANK
+                        );
+                        cell.setCellValue(i + 1);
+
+                        cell = row.getCell(
+                                1,
+                                Row.MissingCellPolicy.CREATE_NULL_AS_BLANK
+                        );
+
+                        LocalDate tmpDate = LocalDate.parse(
+                                dto.getRowList().get(i).getDate(),
+                                inputFormat
+                        );
+
+                        cell.setCellValue(
+                                tmpDate.format(outputFormat2)
+                        );
+
+                        cell = row.getCell(
+                                2,
+                                Row.MissingCellPolicy.CREATE_NULL_AS_BLANK
+                        );
+                        cell.setCellValue(
+                                dto.getRowList().get(i).getUserName()
+                        );
+
+                        cell = row.getCell(
+                                3,
+                                Row.MissingCellPolicy.CREATE_NULL_AS_BLANK
+                        );
+                        cell.setCellValue(
+                                dto.getRowList().get(i).getWorkTypeName()
+                        );
+
+                        cell = row.getCell(
+                                4,
+                                Row.MissingCellPolicy.CREATE_NULL_AS_BLANK
+                        );
+                        cell.setCellValue(
+                                Util.formatTime_HHmm(
+                                        dto.getRowList().get(i).getReqStartTime()
+                                )
+                                        + " ~ "
+                                        + Util.formatTime_HHmm(
+                                        dto.getRowList().get(i).getReqEndTime()
+                                )
+                        );
+
+                        cell = row.getCell(
+                                5,
+                                Row.MissingCellPolicy.CREATE_NULL_AS_BLANK
+                        );
+                        cell.setCellValue(
+                                dto.getRowList().get(i).getAddHour()
+                        );
+
+                        cell = row.getCell(
+                                6,
+                                Row.MissingCellPolicy.CREATE_NULL_AS_BLANK
+                        );
+                        cell.setCellValue(
+                                dto.getRowList().get(i).getNightHour()
+                        );
+
+                        cell = row.getCell(
+                                7,
+                                Row.MissingCellPolicy.CREATE_NULL_AS_BLANK
+                        );
+                        cell.setCellValue(
+                                dto.getRowList().get(i).getHoliHour()
+                        );
+
+                        // 휴일연장 병합영역의 첫 번째 셀
+                        cell = row.getCell(
+                                8,
+                                Row.MissingCellPolicy.CREATE_NULL_AS_BLANK
+                        );
+                        cell.setCellValue(
+                                dto.getRowList().get(i).getHoliAddHour()
+                        );
+
+                        // 근무사유는 병합영역 첫 번째 셀에 입력해야 함
+                        int remarkCellIdx = upCount == 2 ? 10 : 11;
+
+                        cell = row.getCell(
+                                remarkCellIdx,
+                                Row.MissingCellPolicy.CREATE_NULL_AS_BLANK
+                        );
+                        cell.setCellValue(
+                                dto.getRowList().get(i).getRemark()
+                        );
+
+                    }
+
+                    row = copySheet.getRow(selectIdx+dataCount);
+                    cell= row.getCell(5,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     cell.setCellValue(dto.getSumAddHour());
-                    cell= row.getCell(6);
+                    cell= row.getCell(6,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     cell.setCellValue(dto.getSumNightHour());
-                    cell= row.getCell(7);
+                    cell= row.getCell(7,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     cell.setCellValue(dto.getSumHoliHour());
 
                     CellStyle rightStyle = srcWorkbook.createCellStyle();
                     rightStyle.setAlignment(HorizontalAlignment.RIGHT);
                     rightStyle.setVerticalAlignment(VerticalAlignment.CENTER);
-
                     //팀장 셋팅
-                    row = copySheet.getRow(selectIdx + 2);
-                    cell = row.getCell(8);
+                    row = copySheet.getRow(selectIdx+dataCount + 2);
+                    cell = row.getCell(8,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     cell.setCellValue("팀 장 :");
 
-                    cell = row.getCell(10);
+                    cell = row.getCell(10,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     cell.setCellValue(dto.getApproveName());
 
-                    cell = row.getCell(11);
+                    cell = row.getCell(11,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     cell.setCellValue("(인)");
                     cell.setCellStyle(rightStyle);
 
@@ -1740,9 +1869,9 @@ public class WorkService extends ServiceBase {
 
                         // K열 위쪽에 이미지 배치
                         anchor.setCol1(11); // K
-                        anchor.setRow1(selectIdx+2);  // 9행
+                        anchor.setRow1(selectIdx+dataCount+2);  // 9행
                         anchor.setCol2(12); // L
-                        anchor.setRow2(selectIdx+3); // 11행
+                        anchor.setRow2(selectIdx+dataCount+3); // 11행
 
                         anchor.setDx1(Units.toEMU(10));
                         anchor.setDy1(Units.toEMU(2));
@@ -1753,7 +1882,7 @@ public class WorkService extends ServiceBase {
                     }
 
                     for(int i = 1;i<=downCount;i++){
-                        row = copySheet.getRow(selectIdx + 2+i);
+                        row = copySheet.getRow(selectIdx+dataCount + 2+i);
                         cell = row.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                         cell.setCellValue(Util.getStrChk(downLine.get("VALUE"+(i+1)+"_CHAR"))+" :");
 
@@ -1969,65 +2098,121 @@ public class WorkService extends ServiceBase {
                         double totalCreNightHour = 0;
                         double totalCreHoliHour = 0;
 
-                        int start = 12;
-                        int lastIdx = 0;
+                        int start = 11;
+
+                        int dataCount = dto.getRowList().size();
+
+                        if (dataCount > 1) {
+                            copySheet.shiftRows(
+                                    start + 1,
+                                    copySheet.getLastRowNum(),
+                                    dataCount - 1,
+                                    true,
+                                    false
+                            );
+                        }
+
                         for(int i = 0;i<dto.getRowList().size();i++){
+                            int rowIdx = start + i;
                             if(i!=0){
-                                copyRowStyle_push(copySheet, 11, start,15);
+                                row = copySheet.createRow(rowIdx);
+                                copyRowStyleFast(copySheet, start, rowIdx);
+
+                                if(lineLength==3){
+                                    // 휴일
+                                    copySheet.addMergedRegion(
+                                            new CellRangeAddress(
+                                                    rowIdx,
+                                                    rowIdx,
+                                                    9,
+                                                    10
+                                            )
+                                    );
+
+                                    // 증감사유
+                                    copySheet.addMergedRegion(
+                                            new CellRangeAddress(
+                                                    rowIdx,
+                                                    rowIdx,
+                                                    11,
+                                                    14
+                                            )
+                                    );
+                                }else{
+                                    // 휴일
+                                    copySheet.addMergedRegion(
+                                            new CellRangeAddress(
+                                                    rowIdx,
+                                                    rowIdx,
+                                                    9,
+                                                    11
+                                            )
+                                    );
+
+                                    // 증감사유
+                                    copySheet.addMergedRegion(
+                                            new CellRangeAddress(
+                                                    rowIdx,
+                                                    rowIdx,
+                                                    12,
+                                                    15
+                                            )
+                                    );
+                                }
+                            }else{
+                                row = copySheet.getRow(rowIdx);
                             }
-                            row = copySheet.getRow(11+i);
-                            lastIdx = 11+i;
-                            cell = row.getCell(0);
+                            cell = row.getCell(0, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                             cell.setCellValue(dto.getRowList().get(i).getDeptName());
-                            cell = row.getCell(1);
+                            cell = row.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                             cell.setCellValue(dto.getRowList().get(i).getBeforeAddHour());
                             totalBeforeAddHour += dto.getRowList().get(i).getBeforeAddHour();
-                            cell = row.getCell(2);
+                            cell = row.getCell(2, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                             cell.setCellValue(dto.getRowList().get(i).getBeforeNightHour());
                             totalBeforeNightHour += dto.getRowList().get(i).getBeforeNightHour();
-                            cell = row.getCell(3);
+                            cell = row.getCell(3, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                             cell.setCellValue(dto.getRowList().get(i).getBeforeHoliHour());
                             totalBeforeHoliHour += dto.getRowList().get(i).getBeforeHoliHour();
-                            cell = row.getCell(4);
+                            cell = row.getCell(4, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                             cell.setCellValue(dto.getRowList().get(i).getNowAddHour());
                             totalNowAddHour += dto.getRowList().get(i).getNowAddHour();
-                            cell = row.getCell(5);
+                            cell = row.getCell(5, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                             cell.setCellValue(dto.getRowList().get(i).getNowNightHour());
                             totalNowNightHour += dto.getRowList().get(i).getNowNightHour();
-                            cell = row.getCell(6);
+                            cell = row.getCell(6, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                             cell.setCellValue(dto.getRowList().get(i).getNowHoliHour());
                             totalNowHoliHour += dto.getRowList().get(i).getNowHoliHour();
-                            cell = row.getCell(7);
+                            cell = row.getCell(7, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                             cell.setCellValue(dto.getRowList().get(i).getNowAddHour()-dto.getRowList().get(i).getBeforeAddHour());
                             totalCreAddHour += dto.getRowList().get(i).getNowAddHour()-dto.getRowList().get(i).getBeforeAddHour();
-                            cell = row.getCell(8);
+                            cell = row.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                             cell.setCellValue(dto.getRowList().get(i).getNowNightHour()-dto.getRowList().get(i).getBeforeNightHour());
                             totalCreNightHour += dto.getRowList().get(i).getNowNightHour()-dto.getRowList().get(i).getBeforeNightHour();
-                            cell = row.getCell(9);
+                            cell = row.getCell(9, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                             cell.setCellValue(dto.getRowList().get(i).getNowHoliHour()-dto.getRowList().get(i).getBeforeHoliHour());
                             totalCreHoliHour += dto.getRowList().get(i).getNowHoliHour()-dto.getRowList().get(i).getBeforeHoliHour();
                         }
 
-                        row = copySheet.getRow(lastIdx+1);
-                        cell = row.getCell(1);
+                        row = copySheet.getRow(start+dataCount);
+                        cell = row.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                         cell.setCellValue(totalBeforeAddHour);
-                        cell = row.getCell(2);
+                        cell = row.getCell(2, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                         cell.setCellValue(totalBeforeNightHour);
-                        cell = row.getCell(3);
+                        cell = row.getCell(3, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                         cell.setCellValue(totalBeforeHoliHour);
 
-                        cell = row.getCell(4);
+                        cell = row.getCell(4, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                         cell.setCellValue(totalNowAddHour);
-                        cell = row.getCell(5);
+                        cell = row.getCell(5, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                         cell.setCellValue(totalNowNightHour);
-                        cell = row.getCell(6);
+                        cell = row.getCell(6, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                         cell.setCellValue(totalNowHoliHour);
 
-                        cell = row.getCell(7);
+                        cell = row.getCell(7, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                         cell.setCellValue(totalCreAddHour);
-                        cell = row.getCell(8);
+                        cell = row.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                         cell.setCellValue(totalCreNightHour);
-                        cell = row.getCell(9);
+                        cell = row.getCell(9, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                         cell.setCellValue(totalCreHoliHour);
                     }
                 }
@@ -2045,101 +2230,141 @@ public class WorkService extends ServiceBase {
                     Row row = copySheet.getRow(0);
                     Cell cell = row.getCell(0);
                     cell.setCellValue(dto.getMon()+"월 시간 외 근로시간 개인별 세부내역 ("+dto.getTeamName()+"_"+dto.getTerminalCode()+")");
-                    int pushIdx = 6;
-                    int partStartIdx = pushIdx;
-                    for(ExcelDTO.DetailRowDTO dtoRow:dto.getRowList()){
 
-                        int nameStartIdx = pushIdx;
-                        for(ExcelDTO.DetailCellDTO cellRow:dtoRow.getCellList()){
-                            copyRowStyle_push(copySheet, 4, pushIdx,10);
-                            pushIdx++;
-                            int selectIdx = pushIdx-1;
-                            row = copySheet.getRow(selectIdx);
-                            if(partStartIdx == selectIdx){
-                                cell = row.getCell(0);
-                                cell.setCellValue(dto.getTeamName());
+                    int rowSize = dto.getRowList().size();
+
+                    int cellSize = dto.getRowList().stream()
+                            .mapToInt(v -> v.getCellList() == null ? 0 : v.getCellList().size())
+                            .sum();
+
+                    int selectIdx = 4;
+                    int sumIdx = rowSize+cellSize +3;
+
+                    if(rowSize+cellSize > 2){
+                        copySheet.shiftRows(
+                                selectIdx + 1,
+                                copySheet.getLastRowNum(),
+                                rowSize+cellSize - 2,
+                                true,
+                                false
+                        );
+                    }
+
+                    row = copySheet.getRow(selectIdx);
+
+                    cell = row.getCell(0, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                    cell.setCellValue(dto.getTeamName());
+                    int sumRowIdx = selectIdx;
+                    for(int i = 0;i<dto.getRowList().size();i++){
+
+                        ExcelDTO.DetailRowDTO rowList = dto.getRowList().get(i);
+
+                        for(int j = 0;j<rowList.getCellList().size();j++){
+
+                            int rowIdx = sumRowIdx;
+                            if(sumRowIdx==selectIdx){
+                                row = copySheet.getRow(rowIdx);
+                            }else{
+                                row = copySheet.createRow(rowIdx);
+                                copyRowStyleFast(copySheet,selectIdx, rowIdx);
                             }
-                            if(nameStartIdx==selectIdx){
-                                cell = row.getCell(1);
-                                cell.setCellValue(dtoRow.getUserName());
+
+                            if(j==0){
+                                cell = row.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                                cell.setCellValue(rowList.getUserName());
+                                copySheet.addMergedRegion(
+                                        new CellRangeAddress(
+                                                sumRowIdx,
+                                                sumRowIdx+rowList.getCellList().size()-1,
+                                                1, // B열
+                                                1
+                                        )
+                                );
                             }
+
+                            ExcelDTO.DetailCellDTO cellRow = rowList.getCellList().get(j);
 
                             String day = String.format("%02d", Integer.parseInt(cellRow.getDay()));
-                            cell = row.getCell(2);
+                            cell = row.getCell(2, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                             cell.setCellValue(dto.getYyyy()+"-"+dto.getMon()+"-"+day+" "+cellRow.getWeekDay());
                             if(cellRow.getSchStart().isEmpty()&&cellRow.getSchEnd().isEmpty()){
-                                cell = row.getCell(3);
+                                cell = row.getCell(3, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                                 cell.setCellValue(cellRow.getWorkTypeName());
                                 copySheet.addMergedRegion(
                                         new CellRangeAddress(
-                                                selectIdx,
-                                                selectIdx,
+                                                rowIdx,
+                                                rowIdx,
                                                 3, // B열
                                                 4
                                         )
                                 );
                             }else{
-                                cell = row.getCell(3);
+                                cell = row.getCell(3, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                                 cell.setCellValue(Util.formatTime_HHmm(cellRow.getSchStart()));
-                                cell = row.getCell(4);
+                                cell = row.getCell(4, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                                 cell.setCellValue(Util.formatTime_HHmm(cellRow.getSchEnd()));
                             }
 
-                            cell = row.getCell(5);
+                            cell = row.getCell(5, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                             cell.setCellValue(Util.formatTime_HHmm(cellRow.getCapsStart()));
-                            cell = row.getCell(6);
+                            cell = row.getCell(6, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                             cell.setCellValue(Util.formatTime_HHmm(cellRow.getCapsEnd()));
-                            cell = row.getCell(7);
+                            cell = row.getCell(7, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                             cell.setCellValue(cellRow.getAddHour());
-                            cell = row.getCell(8);
+                            cell = row.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                             cell.setCellValue(cellRow.getNightHour());
-                            cell = row.getCell(9);
+                            cell = row.getCell(9, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                             cell.setCellValue(cellRow.getHoliHour());
-                            cell = row.getCell(10);
+                            cell = row.getCell(10, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                             cell.setCellValue(cellRow.getHoliAddHour());
 
+                            sumRowIdx++;
                         }
-                        if(nameStartIdx!=pushIdx-1){
+
+                        if(i==dto.getRowList().size()-1){
+                            row = copySheet.getRow(sumRowIdx);
+                        }else{
+                            row = copySheet.createRow(sumRowIdx);
+                            copyRowStyleFast(copySheet,sumIdx, sumRowIdx);
                             copySheet.addMergedRegion(
                                     new CellRangeAddress(
-                                            nameStartIdx,  // 시작행 (0부터)
-                                            pushIdx-1,  // 종료행
-                                            1,  // 시작열 (A)
-                                            1   // 종료열 (A)
+                                            sumRowIdx,
+                                            sumRowIdx,
+                                            1, // B열
+                                            6
                                     )
                             );
                         }
 
 
-                        //소계처리
-                        copyRowStyle_push(copySheet, 5, pushIdx,10);
-                        pushIdx++;
-                        int rowSelectIdx = pushIdx-1;
-                        row = copySheet.getRow(rowSelectIdx);
-                        cell = row.getCell(1);
-                        cell.setCellValue(dtoRow.getUserName()+" 소계");
-                        cell = row.getCell(7);
-                        cell.setCellValue(dtoRow.getSumAddHour());
-                        cell = row.getCell(8);
-                        cell.setCellValue(dtoRow.getSumNightHour());
-                        cell = row.getCell(9);
-                        cell.setCellValue(dtoRow.getSumHoliHour());
-                        cell = row.getCell(10);
-                        cell.setCellValue(dtoRow.getSumHoliAddHour());
-                    }
 
-                    if(partStartIdx!=pushIdx-1){
-                        copySheet.addMergedRegion(
-                                new CellRangeAddress(
-                                        partStartIdx,  // 시작행 (0부터)
-                                        pushIdx-1,  // 종료행
-                                        0,  // 시작열 (A)
-                                        0   // 종료열 (A)
-                                )
+                        cell = row.getCell(
+                                1,
+                                Row.MissingCellPolicy.CREATE_NULL_AS_BLANK
                         );
+                        cell.setCellValue("소계");
+                        cell = row.getCell(7, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                        cell.setCellValue(rowList.getSumAddHour());
+                        cell = row.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                        cell.setCellValue(rowList.getSumNightHour());
+                        cell = row.getCell(9, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                        cell.setCellValue(rowList.getSumHoliHour());
+                        cell = row.getCell(10, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                        cell.setCellValue(rowList.getSumHoliAddHour());
+                        sumRowIdx++;
+
                     }
 
-                    row = copySheet.getRow(pushIdx);
+                    copySheet.addMergedRegion(
+                            new CellRangeAddress(
+                                    selectIdx,
+                                    rowSize+cellSize +3,
+                                    0,
+                                    0
+                            )
+                    );
+
+                    row = copySheet.getRow(sumRowIdx);
                     cell = row.getCell(0);
                     cell.setCellValue(dto.getTeamName()+" 합계");
                     cell = row.getCell(7);
@@ -2151,13 +2376,7 @@ public class WorkService extends ServiceBase {
                     cell = row.getCell(10);
                     cell.setCellValue(dto.getSumHoliAddHour());
 
-                    copySheet.shiftRows(
-                            6,
-                            copySheet.getLastRowNum(),
-                            -2
-                    );
                 }
-
                 boolean activeSet = false;
 
                 for (int i = 0; i < srcWorkbook.getNumberOfSheets(); i++) {
@@ -2765,5 +2984,44 @@ public class WorkService extends ServiceBase {
         }
 
         return false;
+    }
+
+
+    private void copyRowStyleFast(
+            Sheet sheet,
+            int srcRowIdx,
+            int destRowIdx
+    ) {
+        Row srcRow = sheet.getRow(srcRowIdx);
+        if (srcRow == null) return;
+
+        Row destRow = sheet.getRow(destRowIdx);
+
+        if (destRow == null) {
+            destRow = sheet.createRow(destRowIdx);
+        }
+
+        destRow.setHeight(srcRow.getHeight());
+
+        for (int i = srcRow.getFirstCellNum();
+             i < srcRow.getLastCellNum();
+             i++) {
+
+            Cell srcCell = srcRow.getCell(i);
+
+            if (srcCell == null) {
+                continue;
+            }
+
+            Cell destCell = destRow.getCell(i);
+
+            if (destCell == null) {
+                destCell = destRow.createCell(i);
+            }
+
+            destCell.setCellStyle(
+                    srcCell.getCellStyle()
+            );
+        }
     }
 }
