@@ -59,6 +59,10 @@ public class MultiWebClientConfig {
         WebClient webClient = WebClient.builder()
                 .baseUrl(url)
                 .clientConnector(new ReactorClientHttpConnector(client))
+                .codecs(configurer ->
+                        configurer.defaultCodecs()
+                                .maxInMemorySize(100 * 1024 * 1024)
+                )
                 .build();
 
         try {

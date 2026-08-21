@@ -180,14 +180,14 @@ public class UserService extends ServiceBase {
 
     }
 
-    public ResponseDTO<?> getUserInfo(String userId) {
+    public ResponseDTO<?> getUserM010_003(String userId) {
         ClsUserInfo info = UserContext.get();
         UserRepo repo = userRepo.getObject();
         return execute(repo,()->{
-            DbDto dbRet = repo.getUserInfo(userId, info.getUserLang(), Util.getGUID(), info.getUserId(),
+            DbDto dbRet = repo.getUserM010_003(userId, info.getUserLang(), Util.getGUID(), info.getUserId(),
                     info.getUserIpAddress(), info.getPgmId());
 
-            return okOrThrow("getUserInfo", dbRet);
+            return okOrThrow("getUserM010_003", dbRet);
         });
 
     }
@@ -284,12 +284,121 @@ public class UserService extends ServiceBase {
         return execute(repo,()->{
             DbDto dbRet = null;
 
-            dbRet = repo.setUserInfo(dto.userId(),dto.userIdChange(), dto.userPass(), dto.userPassHp(), dto.userName1(), dto.userName2(),dto.companyCode(),dto.branchCode(),dto.deptCode(),
-                    dto.langCode(),dto.email(),dto.phone(),dto.mobile(),dto.fax(),dto.terminalCode(),dto.terminalName(),dto.workYn(),dto.boardYn(),dto.inYn(),dto.boardHpYn(),dto.itYn(),
-                    info.getUserLang(), Util.getGUID(), info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-            if (dbRet.getErrFlag().equals("Y")) {
+
+            ResponseDTO<List<Map<String, Object>>> hrpat = clientService.get(ClientName.SYS,uriBuilder -> uriBuilder
+                    .path("/sys/getBaseOds")
+                    .queryParam("classCode", "HRPAT")
+                    .queryParam("codeName", "")
+                    .build(),new ParameterizedTypeReference<ResponseDTO<List<Map<String, Object>>>>() {});
+            if(hrpat.getErrFlag().equals("Y")){
+                throw new BizException("setUserInfoMgm", hrpat.getErrMsg());
+            }
+
+            String companyCode = "AACT";
+            String branchCode = "AACTINC";
+            String deptCode = hrpat.getData().stream().filter(v->v.get("CODE_CODE").equals(dto.teamCode()))
+                    .findFirst().map(v->Util.getStrChk(v.get("VALUE3_CHAR"))).orElse("");
+            String langCode = "KOR";
+            String email = "";
+            String phone = "";
+            String mobile = "";
+            String fax = "";
+            String workYn = "N";
+            String boardYn = "N";
+            String inYn = "N";
+            String boardHpYn = "N";
+            String itYn = "N";
+
+            if(deptCode.isEmpty()){
+                throw new BizException("setUserInfoMgm", "HR 부서와 SAMS 부서의 일처하는 부서가 없습니다.");
+            }
+
+            if(dto.userSid().compareTo(BigDecimal.ZERO)==0){
+                dbRet = repo.setUserInfo("",dto.userId(), dto.userPass(), dto.userPassHp(), dto.userName1(),
+                        dto.userName2(),companyCode,branchCode,deptCode,
+                        langCode,email,phone,mobile,fax,dto.terminalCode(),dto.terminalName(),
+                        workYn,boardYn,inYn,boardHpYn,itYn,
+                        info.getUserLang(), Util.getGUID(), info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+                if (dbRet.getErrFlag().equals("Y")) {
+                    throw new BizException("setUserInfoMgm", dbRet.getErrMsg());
+                }
+            }else{
+                dbRet = repo.getUserInfo(info.getUserId(), info.getUserLang(), Util.getGUID(), info.getUserId(),
+                        info.getUserIpAddress(), info.getPgmId());
+                if (dbRet.getErrFlag().equals("Y")) {
+                    throw new BizException("setUserInfoMgm", dbRet.getErrMsg());
+                }
+
+                if(!dbRet.getResult().get(0).isEmpty()){
+                    companyCode = Util.getStrChk(dbRet.getResult().get(0).get(0).get("COMPANY_CODE"));
+                    branchCode = Util.getStrChk(dbRet.getResult().get(0).get(0).get("BRANCH_CODE"));
+                    langCode =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("DEFAULT_LANGUAGE_CODE"));
+                    email =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("EMAIL_ADDRESS"));
+                    phone =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("PHONE_NO"));
+                    mobile =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("MOBILE_NO"));
+                    fax =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("FAX_NO"));
+                    workYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_WORKTIMELINE_YN"));
+                    boardYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_BOARD_WRITE_YN"));
+                    inYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_IN_CANCEL_YN"));
+                    boardHpYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_BOARDHP_WRITE_YN"));
+                    itYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_IT_BOARD_YN"));
+                }
+
+                dbRet = repo.setUserInfo(dto.userId(),dto.userIdChange(), dto.userPass(), dto.userPassHp(), dto.userName1(),
+                        dto.userName2(),companyCode,branchCode,deptCode,
+                        langCode,email,phone,mobile,fax,dto.terminalCode(),dto.terminalName(),
+                        workYn,boardYn,inYn,boardHpYn,itYn,
+                        info.getUserLang(), Util.getGUID(), info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+                if (dbRet.getErrFlag().equals("Y")) {
+                    throw new BizException("setUserInfoMgm", dbRet.getErrMsg());
+                }
+            }
+
+
+
+            BigDecimal userSid = Util.getDecimal(dbRet.getRetObj().get("O_USER_SID"));
+
+            if(userSid.compareTo(BigDecimal.ZERO)==0){
+                throw new BizException("setUserInfoMgm", "유저 정보 저장실패 HR 설정 불가능");
+            }
+
+            dbRet = repo.setUserRel(userSid,"HRWDT","A",
+                    "0000",dto.joinDay(),"","",""
+                    ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
+            if(dbRet.getErrFlag().equals("Y")){
                 throw new BizException("setUserInfoMgm", dbRet.getErrMsg());
             }
+            if(!dto.groupJoinDay().isEmpty()){
+                dbRet = repo.setUserRel(userSid,"HRWDT","C",
+                        "0000",dto.groupJoinDay(),"","",""
+                        ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
+                if(dbRet.getErrFlag().equals("Y")){
+                    throw new BizException("setUserInfoMgm", dbRet.getErrMsg());
+                }
+            }
+
+            dbRet = repo.setUserRel(userSid,"HRPAT",dto.teamCode(),
+                    "0000",dto.teamDate(),"","",""
+                    ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
+            if(dbRet.getErrFlag().equals("Y")){
+                throw new BizException("setUserInfoMgm", dbRet.getErrMsg());
+            }
+
+            dbRet = repo.setUserRel(userSid,"TRMCD",dto.terminalCode(),
+                    "0000","","","",""
+                    ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
+            if(dbRet.getErrFlag().equals("Y")){
+                throw new BizException("setUserInfoMgm", dbRet.getErrMsg());
+            }
+
+            dbRet = repo.setUserRel(userSid,"TRMCD",dto.terminalCode(),
+                    "0000","","","",""
+                    ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
+            if(dbRet.getErrFlag().equals("Y")){
+                throw new BizException("setUserInfoMgm", dbRet.getErrMsg());
+            }
+
+
 
             return okOrThrow("setUserInfoMgm", dbRet);
         });

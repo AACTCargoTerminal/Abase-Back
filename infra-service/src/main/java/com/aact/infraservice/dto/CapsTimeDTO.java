@@ -4,6 +4,9 @@ import com.aact.common.EmptyAsSupport;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
@@ -46,5 +49,33 @@ public class CapsTimeDTO {
             @JsonProperty("SEQ") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") BigDecimal seq,
             @JsonProperty("USER_SID") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") BigDecimal userSid,
             @JsonProperty("LOG_SEQ") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") BigDecimal logSeq) {
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class CapsUserTimeDTO {
+
+        @JsonProperty("date")
+        @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+        @EmptyAsSupport.EmptyAs("*")
+        private String date;
+
+        @JsonProperty("time")
+        @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+        @EmptyAsSupport.EmptyAs("*")
+        private String time;
+
+        @JsonProperty("id")
+        @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+        @EmptyAsSupport.EmptyAs("*")
+        private String id;
+
+        @JsonProperty("mode")
+        @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+        @EmptyAsSupport.EmptyAs("*")
+        private String mode;
+
     }
 }

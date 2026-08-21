@@ -68,4 +68,14 @@
         ORDER BY E.e_date, E.e_time
     </select>
 
+    <select id="findIdToDate" resultType="com.aact.infraservice.dto.CapsTimeDTO$CapsUserTimeDTO">
+        SELECT tu.idno AS id, tt.e_date AS date,tt.e_time AS time,tt.e_mode AS mode
+        FROM tenter tt
+        JOIN tuser tu
+        ON   tt.e_id = tu.id
+        where tu.idno = #{id}
+        AND tt.e_date BETWEEN #{startDate} and #{endDate}
+        ORDER BY e_date, e_time
+    </select>
+
 </mapper>

@@ -27,4 +27,9 @@ public class CapsController {
                                           @RequestParam("start") String start, @RequestParam("end") String end) {
         return capsService.findEnterToUser(id, modes, start, end);
     }
+
+    @GetMapping(value = "/findIdToDate")
+    public ResponseDTO<?> findIdToDate(@RequestParam("id") String id, @RequestParam("start") String start, @RequestParam("end") String end) {
+        return capsService.findIdToDate(id, start, end);
+    }
 }

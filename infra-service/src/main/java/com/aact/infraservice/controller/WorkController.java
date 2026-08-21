@@ -194,6 +194,11 @@ public class WorkController {
         return workService.setWorkM010_039(dtos.get("OT"));
     }
 
+    @PostMapping(value = "/setWorkM010_043")
+    public ResponseDTO<?> setWorkM010_043(@RequestBody WorkDTO.HrCapsSaveDTO dto) {
+        return workService.setWorkM010_043(dto);
+    }
+
     @GetMapping(value = "/setScheduleAutoJob")
     public ResponseDTO<?> setScheduleAutoJob(@RequestParam("dateStr")String dateStr) {
         return workService.setScheduleAutoJob(dateStr);

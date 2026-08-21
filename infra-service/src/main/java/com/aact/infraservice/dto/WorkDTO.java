@@ -4,6 +4,9 @@ import com.aact.common.EmptyAsSupport;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
@@ -121,6 +124,49 @@ public class WorkDTO {
             @JsonProperty("seq") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") BigDecimal seq,
             @JsonProperty("userSid") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") BigDecimal userSid,
             @JsonProperty("imgType") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String imgType) {
+
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class HrCapsSaveDTO {
+
+        @JsonProperty("year")
+        @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+        @EmptyAsSupport.EmptyAs("*")
+        private String year;
+
+        @JsonProperty("mon")
+        @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+        @EmptyAsSupport.EmptyAs("*")
+        private String mon;
+
+        @JsonProperty("day")
+        @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+        @EmptyAsSupport.EmptyAs("*")
+        private String day;
+
+        @JsonProperty("userSid")
+        @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+        @EmptyAsSupport.EmptyAs("*")
+        private BigDecimal userSid;
+
+        @JsonProperty("seq")
+        @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+        @EmptyAsSupport.EmptyAs("*")
+        private BigDecimal seq;
+
+        @JsonProperty("startTime")
+        @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+        @EmptyAsSupport.EmptyAs("*")
+        private String startTime;
+
+        @JsonProperty("endTime")
+        @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+        @EmptyAsSupport.EmptyAs("*")
+        private String endTime;
 
     }
 

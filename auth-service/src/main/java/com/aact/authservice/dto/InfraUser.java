@@ -18,27 +18,19 @@ public class InfraUser {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record SaveUserDTO(
-            @JsonProperty("USER_ID") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String userId,
-            @JsonProperty("USER_ID_CHANGE") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String userIdChange,
-            @JsonProperty("USER_PASSWORD") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String userPass,
-            @JsonProperty("USER_PASSWORD_HP") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String userPassHp,
+            @JsonProperty("USER_SID") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "사용자") BigDecimal userSid,
+            @JsonProperty("USER_ID") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "ID") String userId,
+            @JsonProperty("USER_ID_CHANGE") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "") String userIdChange,
+            @JsonProperty("USER_PASSWORD") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "암호") String userPass,
+            @JsonProperty("USER_PASSWORD_HP") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String userPassHp,
             @JsonProperty("USER_NAME1") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String userName1,
             @JsonProperty("USER_NAME2") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String userName2,
-            @JsonProperty("COMPANY_CODE") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String companyCode,
-            @JsonProperty("BRANCH_CODE") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String branchCode,
-            @JsonProperty("DEPARTMENT_CODE") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String deptCode,
-            @JsonProperty("TERMINAL_CODE_WORK") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String terminalCode,
-            @JsonProperty("TERMINAL_NAME_WORK") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String terminalName,
-            @JsonProperty("DEFAULT_LANGUAGE_CODE") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("KOR") String langCode,
-            @JsonProperty("EMAIL_ADDRESS") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String email,
-            @JsonProperty("PHONE_NO") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String phone,
-            @JsonProperty("MOBILE_NO") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String mobile,
-            @JsonProperty("FAX_NO") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String fax,
-            @JsonProperty("AUTH_WORKTIMELINE_YN") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("N") String workYn,
-            @JsonProperty("AUTH_BOARD_WRITE_YN") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("N") String boardYn,
-            @JsonProperty("AUTH_IN_CANCEL_YN") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("N") String inYn,
-            @JsonProperty("AUTH_BOARDHP_WRITE_YN") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("N") String boardHpYn,
-            @JsonProperty("AUTH_IT_BOARD_YN") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("N") String itYn) {
+            @JsonProperty("TEAM_CODE") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "부서") String teamCode,
+            @JsonProperty("TEAM_DATE") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "부서적용일") String teamDate,
+            @JsonProperty("JOIN_DAY") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "입사일") String joinDay,
+            @JsonProperty("GROUP_JOIN_DAY") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String groupJoinDay,
+            @JsonProperty("TERMINAL_CODE") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "터미널") String terminalCode,
+            @JsonProperty("TERMINAL_NAME") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String terminalName) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
