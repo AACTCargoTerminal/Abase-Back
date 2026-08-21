@@ -1,6 +1,7 @@
 package com.aact.infraservice.repo;
 
 import com.aact.infraservice.dto.CapsEnterDTO;
+import com.aact.infraservice.dto.CapsTimeDTO;
 import com.aact.infraservice.dto.CapsUserDTO;
 import org.apache.ibatis.annotations.Param;
 
@@ -15,4 +16,6 @@ public interface CapsMapper {
                                        @Param("start") String start, @Param("end") String end);
 
     List<CapsEnterDTO> findDateToId(@Param("id") String id, @Param("startDate") String startDate, @Param("endDate") String endDate);
+
+    List<CapsTimeDTO.CapsUserTimeDTO> findIdToDate(@Param("id") String id, @Param("startDate") String startDate, @Param("endDate") String endDate);
 }

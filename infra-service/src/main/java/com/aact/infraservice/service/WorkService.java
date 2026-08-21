@@ -758,6 +758,18 @@ public class WorkService extends ServiceBase {
         });
     }
 
+    public ResponseDTO<?> setWorkM010_043(WorkDTO.HrCapsSaveDTO dto){
+        ClsUserInfo info = UserContext.get();
+        WorkRepo repo = workRepoProvider.getObject();
+        return execute(repo, () -> {
+            DbDto dbRet = null;
+            dbRet = repo.setWorkM010_043(dto.getYear(),dto.getMon(),dto.getUserSid(),dto.getDay(),dto.getSeq(),dto.getStartTime(),dto.getEndTime()
+                    ,info.getUserLang(), Util.getGUID(),
+                    info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+            return okOrThrow("setWorkM010_043", dbRet);
+        });
+    }
+
     public ResponseDTO<?> setScheduleAutoJob(String dateStr){
         WorkRepo repo = workRepoProvider.getObject();
         return execute(repo,()->{
@@ -2900,70 +2912,6 @@ public class WorkService extends ServiceBase {
                 if (!isMergedRegionExists(sheet, newRegion)) {
                     sheet.addMergedRegion(newRegion);
                 }
-            }
-        }
-    }
-
-    private void copyRowStyle_push(Sheet sheet, int srcRowIdx, int destRowIdx,int copyCellIdx) {
-
-        Row srcRow = sheet.getRow(srcRowIdx);
-        if (srcRow == null) return;
-
-        Workbook wb = sheet.getWorkbook();
-
-        // ✅ shiftRows 전에 원본 병합 영역 미리 저장
-        List<CellRangeAddress> srcMergedRegions = new ArrayList<>();
-
-        for (int i = 0; i < sheet.getNumMergedRegions(); i++) {
-            CellRangeAddress region = sheet.getMergedRegion(i);
-
-            if (region.getFirstRow() == srcRowIdx
-                    && region.getLastRow() == srcRowIdx) {
-                srcMergedRegions.add(region.copy());
-            }
-        }
-
-        // 기존 행들 아래로 밀기
-        if (sheet.getLastRowNum() >= destRowIdx) {
-            sheet.shiftRows(
-                    destRowIdx,
-                    sheet.getLastRowNum(),
-                    1,
-                    true,
-                    false
-            );
-        }
-
-        Row destRow = sheet.createRow(destRowIdx);
-
-        // 행 높이 복사
-        destRow.setHeight(srcRow.getHeight());
-
-        // ✅ A~M까지 강제 복사
-        // A=0, M=12
-        for (int i = 0; i <= copyCellIdx; i++) {
-
-            Cell srcCell = srcRow.getCell(i, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-            Cell destCell = destRow.getCell(i, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-
-            CellStyle newStyle = wb.createCellStyle();
-            newStyle.cloneStyleFrom(srcCell.getCellStyle());
-
-            destCell.setCellStyle(newStyle);
-        }
-
-        // ✅ 병합 영역 복사
-        for (CellRangeAddress region : srcMergedRegions) {
-
-            CellRangeAddress newRegion = new CellRangeAddress(
-                    destRowIdx,
-                    destRowIdx,
-                    region.getFirstColumn(),
-                    region.getLastColumn()
-            );
-
-            if (!isMergedRegionExists(sheet, newRegion)) {
-                sheet.addMergedRegion(newRegion);
             }
         }
     }

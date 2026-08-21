@@ -78,10 +78,10 @@ public final class EmptyAsSupport {
             if ("*".equals(replacementText) && isEmpty) {
 
                 if (label == null || label.isBlank()) {
-                    throw new IOException("해당값은 필수 값입니다.");
+                    throw new BizException("JSON","해당값은 필수 값입니다.");
                 }
 
-                throw new IOException(label+"은(는) 필수 값입니다.");
+                throw new BizException("JSON",label+"은(는) 필수 값입니다.");
             }
 
             String toParse = isEmpty ? replacementText : raw.trim();

@@ -91,9 +91,9 @@ public class UserController {
     }
 
     @GetMapping(value = "/getUserInfo2")
-    public ResponseDTO<?> getUserInfo2(@RequestParam("userId") String userId) {
-
-        return userService.getUserInfo(userId);
+    public ResponseDTO<?> getUserInfo2(@RequestParam("userId") String userId)
+    {
+        return userService.getUserM010_003(userId);
     }
 
     @GetMapping(value = "/getUserRel")

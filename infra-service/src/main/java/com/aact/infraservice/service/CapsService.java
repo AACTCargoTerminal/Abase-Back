@@ -27,6 +27,19 @@ import java.util.stream.Stream;
 public class CapsService extends ServiceBase {
     private final CapsMapper capsMapper;
 
+    //findIdToDate
+
+    public ResponseDTO<?> findIdToDate(String id, String start, String end) {
+
+        List<CapsTimeDTO.CapsUserTimeDTO> dbRet = capsMapper.findIdToDate(id,start,end);
+
+        ResponseDTO<List<CapsTimeDTO.CapsUserTimeDTO>> ret = ResponseDTO.<List<CapsTimeDTO.CapsUserTimeDTO>>builder().errFlag("N").errMsg("조회완료")
+                .data(dbRet).build();
+
+        return okOrThrow("findIdToDate", ret);
+
+    }
+
     public ResponseDTO<?> findUsersWithGroup(String start, String end, String name, String id, String[] modes) {
 
         List<CapsUserDTO> dbRet = capsMapper.findUsersWithGroup(start, end, name, id, modes);
