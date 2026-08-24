@@ -330,18 +330,18 @@ public class UserService extends ServiceBase {
                 }
 
                 if(!dbRet.getResult().get(0).isEmpty()){
-                    companyCode = Util.getStrChk(dbRet.getResult().get(0).get(0).get("COMPANY_CODE"));
-                    branchCode = Util.getStrChk(dbRet.getResult().get(0).get(0).get("BRANCH_CODE"));
-                    langCode =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("DEFAULT_LANGUAGE_CODE"));
-                    email =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("EMAIL_ADDRESS"));
-                    phone =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("PHONE_NO"));
-                    mobile =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("MOBILE_NO"));
-                    fax =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("FAX_NO"));
-                    workYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_WORKTIMELINE_YN"));
-                    boardYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_BOARD_WRITE_YN"));
-                    inYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_IN_CANCEL_YN"));
-                    boardHpYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_BOARDHP_WRITE_YN"));
-                    itYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_IT_BOARD_YN"));
+                    companyCode = Util.getStrChk(dbRet.getResult().get(0).get(0).get("COMPANY_CODE").getObj());
+                    branchCode = Util.getStrChk(dbRet.getResult().get(0).get(0).get("BRANCH_CODE").getObj());
+                    langCode =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("DEFAULT_LANGUAGE_CODE").getObj());
+                    email =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("EMAIL_ADDRESS").getObj());
+                    phone =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("PHONE_NO").getObj());
+                    mobile =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("MOBILE_NO").getObj());
+                    fax =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("FAX_NO").getObj());
+                    workYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_WORKTIMELINE_YN").getObj());
+                    boardYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_BOARD_WRITE_YN").getObj());
+                    inYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_IN_CANCEL_YN").getObj());
+                    boardHpYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_BOARDHP_WRITE_YN").getObj());
+                    itYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_IT_BOARD_YN").getObj());
                 }
 
                 dbRet = repo.setUserInfo(dto.userId(),dto.userIdChange(), dto.userPass(), dto.userPassHp(), dto.userName1(),
