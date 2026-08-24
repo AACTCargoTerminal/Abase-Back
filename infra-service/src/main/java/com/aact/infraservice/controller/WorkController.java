@@ -203,5 +203,9 @@ public class WorkController {
     public ResponseDTO<?> setScheduleAutoJob(@RequestParam("dateStr")String dateStr) {
         return workService.setScheduleAutoJob(dateStr);
     }
-
+    //getManual
+    @GetMapping(value = "/getManual")
+    public ResponseDTO<?> getManual(@RequestParam("fileName")String fileName) {
+        return workService.getManual(fileName);
+    }
 }

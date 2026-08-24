@@ -975,6 +975,17 @@ public class WorkService extends ServiceBase {
         });
     }
 
+    public ResponseDTO<?> getManual(String fileName){
+        WorkRepo repo = workRepoProvider.getObject();
+        return execute(repo,()->{
+            ResponseDTO<byte[]> ret = fileClientService.fileRead("/IMG/MANUAL/"+fileName);
+            if(ret.getErrFlag().equals("Y")){
+                throw new BizException("getExTimeWork",ret.getErrMsg());
+            }
+            return ret;
+        });
+    }
+
     public ResponseDTO<?> getExTimeWork(){
         WorkRepo repo = workRepoProvider.getObject();
         return execute(repo,()->{
