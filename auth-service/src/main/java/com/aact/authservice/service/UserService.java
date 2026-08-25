@@ -1038,11 +1038,62 @@ public class UserService extends ServiceBase {
                         userSid = Util.getDecimal(dbRet.getRetObj().get("O_USER_SID"));
 
                     }else{
-                        userSid = Util.getDecimal(dbRet.getResult().get(0).get(0).get("USER_SID").getObj());
+
+                        String companyCode = "AACT";
+                        String branchCode = "AACTINC";
+                        String deptCode = hrpat.getData().stream().filter(v->v.get("CODE_CODE").equals(userRow.getTeminalCode()))
+                                .findFirst().map(v->Util.getStrChk(v.get("VALUE3_CHAR"))).orElse("");
+                        String langCode = "KOR";
+                        String email = "";
+                        String phone = "";
+                        String mobile = "";
+                        String fax = "";
+                        String workYn = "N";
+                        String boardYn = "N";
+                        String inYn = "N";
+                        String boardHpYn = "N";
+                        String itYn = "N";
+
+                        dbRet = repo.getUserInfo(info.getUserId(), info.getUserLang(), Util.getGUID(), info.getUserId(),
+                                info.getUserIpAddress(), info.getPgmId());
+                        if (dbRet.getErrFlag().equals("Y")) {
+                            throw new BizException("setUserInfoMgm", dbRet.getErrMsg());
+                        }
+
+                        if(!dbRet.getResult().get(0).isEmpty()){
+                            companyCode = Util.getStrChk(dbRet.getResult().get(0).get(0).get("COMPANY_CODE").getObj());
+                            branchCode = Util.getStrChk(dbRet.getResult().get(0).get(0).get("BRANCH_CODE").getObj());
+                            langCode =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("DEFAULT_LANGUAGE_CODE").getObj());
+                            email =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("EMAIL_ADDRESS").getObj());
+                            phone =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("PHONE_NO").getObj());
+                            mobile =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("MOBILE_NO").getObj());
+                            fax =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("FAX_NO").getObj());
+                            workYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_WORKTIMELINE_YN").getObj());
+                            boardYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_BOARD_WRITE_YN").getObj());
+                            inYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_IN_CANCEL_YN").getObj());
+                            boardHpYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_BOARDHP_WRITE_YN").getObj());
+                            itYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_IT_BOARD_YN").getObj());
+                        }
+
+                        dbRet = repo.setUserInfo(userRow.getUserId(),"", Util.getStrChk(dbRet.getResult().get(0).get(0).get("USER_PASSWORD").getObj())
+                                , Util.getStrChk(dbRet.getResult().get(0).get(0).get("USER_PASSWORD_HP").getObj())
+                                , Util.getStrChk(dbRet.getResult().get(0).get(0).get("USER_NAME1").getObj()),
+                                Util.getStrChk(dbRet.getResult().get(0).get(0).get("USER_NAME2").getObj())
+                                ,companyCode,branchCode,deptCode,
+                                langCode,email,phone,mobile,fax, Util.getStrChk(dbRet.getResult().get(0).get(0).get("TERMINAL_CODE_WORK").getObj()),
+                                Util.getStrChk(dbRet.getResult().get(0).get(0).get("TERMINAL_NAME_WORK").getObj()),
+                                workYn,boardYn,inYn,boardHpYn,itYn,
+                                info.getUserLang(), Util.getGUID(), info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+                        if (dbRet.getErrFlag().equals("Y")) {
+                            throw new BizException("setUserInfoMgm", dbRet.getErrMsg());
+                        }
+
+                        userSid = Util.getDecimal(dbRet.getRetObj().get("O_USER_SID"));
 
                     }
 
                     dbRet = repo.getUserRel(userSid,"Y",info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
+
 
                     if(dbRet.getErrFlag().equals("Y")){
                         throw new BizException("setUserGroup", dbRet.getErrMsg());
@@ -1099,6 +1150,30 @@ public class UserService extends ServiceBase {
                     if(trmcdSelect==null){
                         dbRet = repo.setUserRel(userSid,"TRMCD",Util.getStrChk(findTrmcd.get("CODE_CODE")),
                                 "0000","","","",""
+                                ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
+                        if(dbRet.getErrFlag().equals("Y")){
+                            throw new BizException("setUserGroup", dbRet.getErrMsg());
+                        }
+                    }
+
+                    Map<String,DbTypeDTO> hrwktSelect = relDt.stream()
+                            .filter(v->v.get("CLASS_CODE").getObj().equals("HRWKT")&&v.get("CODE_CODE").getObj().equals("A"))
+                            .findFirst().orElse(null);
+                    if(hrwktSelect==null&&userRow.getWorkType().equals("Y")){
+                        dbRet = repo.setUserRel(userSid,"HRWKT","A",
+                                "0000",userRow.getJoinDate(),"","",""
+                                ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
+                        if(dbRet.getErrFlag().equals("Y")){
+                            throw new BizException("setUserGroup", dbRet.getErrMsg());
+                        }
+                    }
+
+                    Map<String,DbTypeDTO> hrwktSelect2 = relDt.stream()
+                            .filter(v->v.get("CLASS_CODE").getObj().equals("HRWKT")&&v.get("CODE_CODE").getObj().equals("C"))
+                            .findFirst().orElse(null);
+                    if(hrwktSelect2==null&&userRow.getWorkType2().equals("Y")){
+                        dbRet = repo.setUserRel(userSid,"HRWKT","C",
+                                "0000",userRow.getJoinDate(),"","",""
                                 ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
                         if(dbRet.getErrFlag().equals("Y")){
                             throw new BizException("setUserGroup", dbRet.getErrMsg());
