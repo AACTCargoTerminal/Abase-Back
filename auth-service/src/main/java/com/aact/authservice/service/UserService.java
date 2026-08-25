@@ -323,7 +323,7 @@ public class UserService extends ServiceBase {
                     throw new BizException("setUserInfoMgm", dbRet.getErrMsg());
                 }
             }else{
-                dbRet = repo.getUserInfo(info.getUserId(), info.getUserLang(), Util.getGUID(), info.getUserId(),
+                dbRet = repo.getUserInfo(dto.userId(), info.getUserLang(), Util.getGUID(), info.getUserId(),
                         info.getUserIpAddress(), info.getPgmId());
                 if (dbRet.getErrFlag().equals("Y")) {
                     throw new BizException("setUserInfoMgm", dbRet.getErrMsg());

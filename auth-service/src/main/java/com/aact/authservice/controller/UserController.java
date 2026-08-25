@@ -56,7 +56,7 @@ public class UserController {
     }
 
     @PostMapping(value = "/setUserInfo")
-    public ResponseDTO<?> setUserInfo(HttpServletRequest req,@ModelAttribute SetUserDTO dto) {
+    public ResponseDTO<?> setUserInfo(HttpServletRequest req,@RequestBody SetUserDTO dto) {
         return userService.setUserInfo(req,dto);
     }
     @PostMapping(value = "/setUserInfoMgm")
