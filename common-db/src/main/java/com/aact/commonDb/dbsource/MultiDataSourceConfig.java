@@ -99,7 +99,7 @@ public class MultiDataSourceConfig {
             ds.setIdleTimeout(600000);
             ds.setMaxLifetime(1800000);
             ds.setKeepaliveTime(300000);
-            ds.setConnectionTimeout(30000);
+            ds.setConnectionTimeout(5000);
             ds.setValidationTimeout(5000);
             ds.setLeakDetectionThreshold(60000);
         }else{
