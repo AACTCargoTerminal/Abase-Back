@@ -294,6 +294,8 @@ public class UserService extends ServiceBase {
                 throw new BizException("setUserInfoMgm", hrpat.getErrMsg());
             }
 
+            String teminalCode = "";
+            String teminalName = "";
             String companyCode = "AACT";
             String branchCode = "AACTINC";
             String deptCode = hrpat.getData().stream().filter(v->v.get("CODE_CODE").equals(dto.teamCode()))
@@ -330,6 +332,8 @@ public class UserService extends ServiceBase {
                 }
 
                 if(!dbRet.getResult().get(0).isEmpty()){
+                    teminalCode =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("TERMINAL_CODE_WORK").getObj(),dto.terminalCode());
+                    teminalName =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("TERMINAL_NAME_WORK").getObj(),dto.terminalName());
                     companyCode = Util.getStrChk(dbRet.getResult().get(0).get(0).get("COMPANY_CODE").getObj());
                     branchCode = Util.getStrChk(dbRet.getResult().get(0).get(0).get("BRANCH_CODE").getObj());
                     langCode =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("DEFAULT_LANGUAGE_CODE").getObj());
@@ -346,7 +350,7 @@ public class UserService extends ServiceBase {
 
                 dbRet = repo.setUserInfo(dto.userId(),dto.userIdChange(), dto.userPass(), dto.userPassHp(), dto.userName1(),
                         dto.userName2(),companyCode,branchCode,deptCode,
-                        langCode,email,phone,mobile,fax,dto.terminalCode(),dto.terminalName(),
+                        langCode,email,phone,mobile,fax,teminalCode,teminalName,
                         workYn,boardYn,inYn,boardHpYn,itYn,
                         info.getUserLang(), Util.getGUID(), info.getUserId(), info.getUserIpAddress(), info.getPgmId());
                 if (dbRet.getErrFlag().equals("Y")) {
