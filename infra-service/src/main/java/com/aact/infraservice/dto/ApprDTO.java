@@ -1,7 +1,8 @@
 package com.aact.infraservice.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.aact.common.EmptyAsSupport;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,41 +16,99 @@ import java.util.List;
 @AllArgsConstructor
 public class ApprDTO {
 
-    // 기안번호
+    @JsonProperty("apprId")
+    @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+    @EmptyAsSupport.EmptyAs(value = "*", label = "기안번호")
     private BigDecimal apprId;
-    // 제목
+
+    @JsonProperty("title")
+    @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+    @EmptyAsSupport.EmptyAs(value = "*", label = "제목")
     private String title;
-    // 요청부서
+
+    @JsonProperty("reqDeptCode")
+    @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+    @EmptyAsSupport.EmptyAs(value = "*", label = "요청부서")
     private String reqDeptCode;
-    // 현재 상태 - DB 저장값
+
+    @JsonProperty("statusSid")
+    @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+    @EmptyAsSupport.EmptyAs(value = "*", label = "상태값")
     private BigDecimal statusSid;
-    // 현재 상태 - 공통코드에서 조회
+
+    @JsonProperty("statusCode")
+    @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+    @EmptyAsSupport.EmptyAs(value = "*", label = "상태코드")
     private String statusCode;
-    // 현재 상태 사유
+
+    @JsonProperty("statusReason")
+    @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+    @EmptyAsSupport.EmptyAs(value = "*", label = "상태사유")
     private String statusReason;
-    // 현재 결재자 - DB 저장값
+
+    @JsonProperty("currentApprSid")
+    @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+    @EmptyAsSupport.EmptyAs(value = "*", label = "현재결재자값")
     private BigDecimal currentApprSid;
-    // 현재 결재자 - USER_MASTER에서 조회
-    private String currentApprId;
-    // 작성자 - DB 저장값
+
+    @JsonProperty("writerSid")
+    @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+    @EmptyAsSupport.EmptyAs(value = "*", label = "작성자값")
     private BigDecimal writerSid;
-    // 작성자 - USER_MASTER에서 조회
+
+    @JsonProperty("writerId")
+    @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+    @EmptyAsSupport.EmptyAs(value = "*", label = "작성자")
     private String writerId;
-    private LocalDateTime createDt;
-    private LocalDateTime completeDt;
-    // 반려
+
+    @JsonProperty("createDt")
+    @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+    @EmptyAsSupport.EmptyAs(value = "*", label = "생성일")
+    private String createDt;
+
+    @JsonProperty("completeDt")
+    @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+    @EmptyAsSupport.EmptyAs(value = "*", label = "완료일")
+    private String completeDt;
+
+    @JsonProperty("rejectReason")
+    @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+    @EmptyAsSupport.EmptyAs(value = "*", label = "반려사유")
     private String rejectReason;
-    // 반려처리자 - DB 저장값
+
+    @JsonProperty("rejectBySid")
+    @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+    @EmptyAsSupport.EmptyAs(value = "*", label = "반려처리자값")
     private BigDecimal rejectBySid;
-    // 반려처리자 - USER_MASTER에서 조회
+
+    @JsonProperty("rejectById")
+    @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+    @EmptyAsSupport.EmptyAs(value = "*", label = "반려처리자")
     private String rejectById;
+
+    @JsonProperty("rejectDt")
+    @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+    @EmptyAsSupport.EmptyAs(value = "*", label = "반려일")
     private LocalDateTime rejectDt;
+
+    @JsonProperty("updateDt")
+    @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+    @EmptyAsSupport.EmptyAs(value = "*", label = "수정일")
     private LocalDateTime updateDt;
-    // 표시 여부
+
+    @JsonProperty("usableFlag")
+    @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+    @EmptyAsSupport.EmptyAs(value = "*", label = "사용여부")
     private String usableFlag;
-    // 로그인 사용자 기준 참조부서 여부
+
+    @JsonProperty("viewByRefDeptYn")
+    @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+    @EmptyAsSupport.EmptyAs(value = "*", label = "참조부서여부")
     private String viewByRefDeptYn;
-    // 참조부서
+
+    @JsonProperty("refDeptCodes")
+    @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+    @EmptyAsSupport.EmptyAs(value = "*", label = "참조부서")
     private List<String> refDeptCodes;
 
 }

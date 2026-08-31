@@ -19,100 +19,67 @@ public class ApprService extends ServiceBase {
 
     private final ObjectProvider<ApprRepo> apprRepoProvider;
 
-    // 기안 목록 조회
-    public ResponseDTO<?> getList(ApprDTO apprDTO) {
+    public ResponseDTO<?> getApprM010_001(ApprDTO apprDTO) {
         ClsUserInfo info = UserContext.get();
         ApprRepo repo = apprRepoProvider.getObject();
 
-        return execute(repo, () -> {
-            DbDto dbRet = repo.getList(apprDTO.getTitle(), apprDTO.getReqDeptCode(), apprDTO.getStatusSid(),
-                    info.getUserLang(), Util.getGUID(), info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+        DbDto dbRet = repo.getApprM010_001(apprDTO.getTitle(), apprDTO.getReqDeptCode(), apprDTO.getStatusSid(),
+                info.getUserLang(), Util.getGUID(), info.getUserId(), info.getUserIpAddress(), info.getPgmId());
 
-            return okOrThrow("getList", dbRet);
-        });
+        return okOrThrow("getApprM010_001", dbRet);
     }
 
-    // 기안 상세 조회
-    public ResponseDTO<?> getDetail(BigDecimal apprId) {
+    public ResponseDTO<?> getApprM010_002(BigDecimal apprId) {
         ClsUserInfo info = UserContext.get();
         ApprRepo repo = apprRepoProvider.getObject();
 
-        return execute(repo, () -> {
-            DbDto dbRet = repo.getDetail(apprId, info.getUserLang(), Util.getGUID(),
-                    info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+        DbDto dbRet = repo.getApprM010_002(apprId, info.getUserLang(), Util.getGUID(),
+                info.getUserId(), info.getUserIpAddress(), info.getPgmId());
 
-            return okOrThrow("getDetail", dbRet);
-        });
+        return okOrThrow("getApprM010_002", dbRet);
     }
 
-    // 기안 참조부서 조회
-    public ResponseDTO<?> getRefList(BigDecimal apprId) {
+    public ResponseDTO<?> getApprM010_003(BigDecimal apprId) {
         ClsUserInfo info = UserContext.get();
         ApprRepo repo = apprRepoProvider.getObject();
 
-        return execute(repo, () -> {
-            DbDto dbRet = repo.getRefList(apprId, info.getUserLang(), Util.getGUID(),
-                    info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+        DbDto dbRet = repo.getApprM010_003(apprId, info.getUserLang(), Util.getGUID(),
+                info.getUserId(), info.getUserIpAddress(), info.getPgmId());
 
-            return okOrThrow("getRefList", dbRet);
-        });
+        return okOrThrow("getApprM010_003", dbRet);
     }
 
-
-    // 기안 등록 / 수정
-    public ResponseDTO<?> save(ApprDTO apprDTO) {
+    public ResponseDTO<?> setApprM010_010(ApprDTO apprDTO) {
         ClsUserInfo info = UserContext.get();
-
         ApprRepo repo = apprRepoProvider.getObject();
-        checkAdminDept(repo, info);
 
         return execute(repo, () -> {
             String guid = Util.getGUID();
             String refDeptCodes = apprDTO.getRefDeptCodes() == null ? "" : String.join(",", apprDTO.getRefDeptCodes());
-
-            DbDto dbRet = repo.save(apprDTO.getApprId(), apprDTO.getTitle(), apprDTO.getReqDeptCode(), refDeptCodes, apprDTO.getStatusSid(), apprDTO.getStatusReason(), apprDTO.getCurrentApprSid(), apprDTO.getWriterSid(), apprDTO.getRejectReason(), apprDTO.getRejectBySid(), info.getUserLang(), guid, info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-
-            return okOrThrow("save", dbRet);
+            DbDto dbRet = repo.setApprM010_010(apprDTO.getApprId(), apprDTO.getTitle(), apprDTO.getReqDeptCode(), refDeptCodes, apprDTO.getStatusSid(), apprDTO.getStatusReason(), apprDTO.getCurrentApprSid(), apprDTO.getWriterSid(), apprDTO.getRejectReason(), apprDTO.getRejectBySid(), info.getUserLang(), guid, info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+            return okOrThrow("setApprM010_010", dbRet);
         });
     }
 
-    public ResponseDTO<?> delete(BigDecimal apprId) {
+    public ResponseDTO<?> setApprM010_020(BigDecimal apprId) {
         ClsUserInfo info = UserContext.get();
-        String guid = Util.getGUID();
-
         ApprRepo repo = apprRepoProvider.getObject();
-        checkAdminDept(repo, info);
 
-        DbDto dbRet = repo.delete(apprId, info.getUserLang(), guid, info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-
-        return okOrThrow("disable", dbRet);
+        return execute(repo, () -> {
+            String guid = Util.getGUID();
+            DbDto dbRet = repo.setApprM010_020(apprId, info.getUserLang(), guid, info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+            return okOrThrow("setApprM010_020", dbRet);
+        });
     }
 
-    public ResponseDTO<?> deleteRef(BigDecimal apprId, String deptCode) {
+    public ResponseDTO<?> setApprM010_021(BigDecimal apprId, String deptCode) {
         ClsUserInfo info = UserContext.get();
-        String guid = Util.getGUID();
-
         ApprRepo repo = apprRepoProvider.getObject();
-        checkAdminDept(repo, info);
 
-        DbDto dbRet = repo.deleteRef(apprId, deptCode, info.getUserLang(), guid, info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-
-        return okOrThrow("deleteRef", dbRet);
-    }
-
-    // 접근 권한 확인
-    private void checkAdminDept(ApprRepo repo, ClsUserInfo info) {
-        DbDto dbRet = repo.getAdminDept(info.getUserId());
-
-        if ("Y".equalsIgnoreCase(dbRet.getErrFlag())) {
-            throw new BizException("checkAdminDept", dbRet.getErrMsg());
-        }
-
-        ResponseDTO<Map<Integer, List<Map<String, Object>>>> ret = ResponseDTO.from(dbRet);
-        BigDecimal adminCount = Util.getDecimal(ret.getData().get(0).get(0).get("ADMIN_COUNT"));
-
-        if (adminCount.compareTo(BigDecimal.ZERO) == 0) {
-            throw new BizException("checkAdminDept", "처리 권한이 없습니다.");
-        }
+        return execute(repo, () -> {
+            String guid = Util.getGUID();
+            DbDto dbRet = repo.setApprM010_021(apprId, deptCode, info.getUserLang(), guid, info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+            return okOrThrow("setApprM010_021", dbRet);
+        });
     }
 }
