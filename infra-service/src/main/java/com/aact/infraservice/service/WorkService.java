@@ -524,8 +524,23 @@ public class WorkService extends ServiceBase {
             DbDto dbRet = null;
 
             for(CapsTimeDTO.SearchGroupDTO row : dtos){
+
+                String sql = "SELECT USER_SID FROM TCM_USER_MASTER WHERE USABLE_FLAG = 'Y' AND USER_ID = '"+row.userId()+"'";
+
+                dbRet = repo.callSql(sql);
+
+                if(dbRet.getErrFlag().equals("Y")){
+                    throw new BizException("setWorkM010_039", dbRet.getErrMsg());
+                }
+
+                if(dbRet.getResult().get(0).isEmpty()){
+                    throw new BizException("setWorkM010_039", row.userId()+" 사번이 없습니다.");
+                }
+
+                BigDecimal userSid = Util.getDecimal(dbRet.getResult().get(0).get(0).get("USER_SID").getObj());
+
                 if(row.addDay().compareTo(BigDecimal.ONE) > 0){
-                    throw new BizException("setWorkM010_019", "날짜를 점검해주세요.");
+                    throw new BizException("setWorkM010_039", "날짜를 점검해주세요.");
                 }
 
                 String yyyy = row.reqStartDate().substring(0, 4);
@@ -543,7 +558,7 @@ public class WorkService extends ServiceBase {
                     throw new BizException("findDateToId", endSet.getErrMsg());
                 }
 
-                dbRet = repo.setWorkM010_039(yyyy, mon, day, row.userId(), startSet.getData().orgTime(), endSet.getData().orgTime(), row.reqStartTime(), row.reqEndTime(),
+                dbRet = repo.setWorkM010_019(yyyy, mon, day, userSid, BigDecimal.ZERO,startSet.getData().orgTime(), endSet.getData().orgTime(), row.reqStartTime(), row.reqEndTime(),
                         row.addDay(),  row.remark(), info.getUserLang(), Util.getGUID(),
                         info.getUserId(), info.getUserIpAddress(), info.getPgmId());
                 if (dbRet.getErrFlag().equals("Y")) {
