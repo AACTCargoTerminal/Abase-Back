@@ -520,7 +520,6 @@ public class WorkService extends ServiceBase {
 
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
-        StopWatch sw = new StopWatch();
 
         return execute(repo, () -> {
             DbDto dbRet = null;
@@ -549,33 +548,24 @@ public class WorkService extends ServiceBase {
                 String mon = row.reqStartDate().substring(4, 6);
                 String day = String.valueOf(Integer.parseInt(row.reqStartDate().substring(6, 8)));
 
-                sw.start(row.userId()+" : 시작시간 CAPS");
                 ResponseDTO<CapsTimeDTO.CapsRangeResult> startSet = capsService.findDateToId(CapsGetType.START,row.userId(),row.reqStartDate(),row.reqStartTime());
                 if(startSet.getErrFlag().equals("Y")){
                     throw new BizException("findDateToId", startSet.getErrMsg());
                 }
-                sw.stop();
-                sw.start(row.userId()+" : 종료시간 CAPS");
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
                 LocalDate endDate = LocalDate.parse(row.reqStartDate(),formatter).plusDays(row.addDay().longValue());
                 ResponseDTO<CapsTimeDTO.CapsRangeResult> endSet = capsService.findDateToId(CapsGetType.END,row.userId(),endDate.format(formatter),row.reqEndTime());
                 if(endSet.getErrFlag().equals("Y")){
                     throw new BizException("findDateToId", endSet.getErrMsg());
                 }
-                sw.stop();
-                sw.start(row.userId()+" : DB 셋팅");
                 dbRet = repo.setWorkM010_019(yyyy, mon, day, userSid, BigDecimal.ZERO,startSet.getData().orgTime(), endSet.getData().orgTime(), row.reqStartTime(), row.reqEndTime(),
                         row.addDay(),  row.remark(), info.getUserLang(), Util.getGUID(),
                         info.getUserId(), info.getUserIpAddress(), info.getPgmId());
                 if (dbRet.getErrFlag().equals("Y")) {
                     throw new BizException("setWorkM010_039", dbRet.getErrMsg());
                 }
-                sw.stop();
 
             }
-
-            dbRet.setErrFlag("Y");
-            dbRet.setErrMsg(sw.prettyPrint());
             return okOrThrow("setWorkM010_039", dbRet);
         });
 
