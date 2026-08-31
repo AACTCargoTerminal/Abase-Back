@@ -74,10 +74,10 @@ public class CapsService extends ServiceBase {
         //캡스 조회 제한
         if(getType==CapsGetType.START){
             endDate = now.minusHours(2).format(formatter);
-            dbRet = capsMapper.findDateToId(id, endDate,date+time);
+            dbRet = capsMapper.findDateToId(id, endDate.substring(0,8),endDate.substring(8, 12)+"00",date,time+"00");
         }else{
             endDate = now.plusHours(1).format(formatter);
-            dbRet = capsMapper.findDateToId(id,date+time, endDate);
+            dbRet = capsMapper.findDateToId(id,date,time+"00", endDate.substring(0,8),endDate.substring(8, 12)+"00");
         }
 
         if (dbRet.isEmpty()) {
