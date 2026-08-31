@@ -18,43 +18,43 @@ public class ApprController {
 
     // 기안 목록 조회
     @GetMapping
-    public ResponseDTO<?> getList(@RequestParam(required = false) String title, @RequestParam(required = false) String reqDeptCode, @RequestParam(required = false) BigDecimal statusSid) {
+    public ResponseDTO<?> getApprM010_001(@RequestParam(required = false) String title, @RequestParam(required = false) String reqDeptCode, @RequestParam(required = false) BigDecimal statusSid) {
         ApprDTO apprDTO = new ApprDTO();
 
         apprDTO.setTitle(title);
         apprDTO.setReqDeptCode(reqDeptCode);
         apprDTO.setStatusSid(statusSid);
 
-        return apprService.getList(apprDTO);
+        return apprService.getApprM010_001(apprDTO);
     }
 
     // 기안 상세 조회
     @GetMapping("/detail")
-    public ResponseDTO<?> getDetail(@RequestParam BigDecimal apprId) {
-        return apprService.getDetail(apprId);
+    public ResponseDTO<?> getApprM010_002(@RequestParam BigDecimal apprId) {
+        return apprService.getApprM010_002(apprId);
     }
 
     // 기안 참조부서 조회
     @GetMapping("/ref-dept")
-    public ResponseDTO<?> getRefList(@RequestParam BigDecimal apprId) {
-        return apprService.getRefList(apprId);
+    public ResponseDTO<?> getApprM010_003(@RequestParam BigDecimal apprId) {
+        return apprService.getApprM010_003(apprId);
     }
 
     // 기안 등록
     @PostMapping
-    public ResponseDTO<?> save(@RequestBody ApprDTO apprDTO) {
-        return apprService.save(apprDTO);
+    public ResponseDTO<?> setApprM010_010(@RequestBody ApprDTO apprDTO) {
+        return apprService.setApprM010_010(apprDTO);
     }
 
     // 기안 비활성화
-    @DeleteMapping("")
-    public ResponseDTO<?> delete(@RequestParam BigDecimal apprId) {
-        return apprService.delete(apprId);
+    @DeleteMapping
+    public ResponseDTO<?> setApprM010_020(@RequestParam BigDecimal apprId) {
+        return apprService.setApprM010_020(apprId);
     }
 
     // 참조부서 비활성화
     @DeleteMapping("/ref-dept")
-    public ResponseDTO<?> deleteRef(@RequestParam BigDecimal apprId, @RequestParam String deptCode) {
-        return apprService.deleteRef(apprId, deptCode);
+    public ResponseDTO<?> setApprM010_021(@RequestParam BigDecimal apprId, @RequestParam String deptCode) {
+        return apprService.setApprM010_021(apprId, deptCode);
     }
 }

@@ -24,10 +24,7 @@ public class ApprRepo extends BizBase {
         connect();
     }
 
-    /**
-     * 기안 목록 조회
-     */
-    public DbDto getList(String title, String reqDeptCode, BigDecimal statusSid, String langCode, String guid, String userId, String ipAddr, String pgmId) {
+    public DbDto getApprM010_001(String title, String reqDeptCode, BigDecimal statusSid, String langCode, String guid, String userId, String ipAddr, String pgmId) {
 
         List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
 
@@ -49,11 +46,7 @@ public class ApprRepo extends BizBase {
         return callProc("USR_APPR_M010.PHM_APPR_M010_001", input);
     }
 
-
-    /**
-     * 기안 상세 조회
-     */
-    public DbDto getDetail(BigDecimal apprId, String langCode, String guid, String userId, String ipAddr, String pgmId) {
+    public DbDto getApprM010_002(BigDecimal apprId, String langCode, String guid, String userId, String ipAddr, String pgmId) {
 
         List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
 
@@ -73,10 +66,7 @@ public class ApprRepo extends BizBase {
         return callProc("USR_APPR_M010.PHM_APPR_M010_002", input);
     }
 
-    /**
-     * 기안 참조부서 조회
-     */
-    public DbDto getRefList(BigDecimal apprId, String langCode, String guid, String userId, String ipAddr, String pgmId) {
+    public DbDto getApprM010_003(BigDecimal apprId, String langCode, String guid, String userId, String ipAddr, String pgmId) {
 
         List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
 
@@ -96,10 +86,7 @@ public class ApprRepo extends BizBase {
         return callProc("USR_APPR_M010.PHM_APPR_M010_003", input);
     }
 
-    /**
-     * 기안 등록
-     */
-    public DbDto save(BigDecimal apprId, String title, String reqDeptCode, String refDeptCodes, BigDecimal statusSid, String statusReason, BigDecimal currentApprSid, BigDecimal writerSid, String rejectReason, BigDecimal rejectBySid, String langCode, String guid, String userId, String ipAddr, String pgmId) {
+    public DbDto setApprM010_010(BigDecimal apprId, String title, String reqDeptCode, String refDeptCodes, BigDecimal statusSid, String statusReason, BigDecimal currentApprSid, BigDecimal writerSid, String rejectReason, BigDecimal rejectBySid, String langCode, String guid, String userId, String ipAddr, String pgmId) {
 
         List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
 
@@ -128,11 +115,7 @@ public class ApprRepo extends BizBase {
         return callProc("USR_APPR_M010.PHM_APPR_M010_010", input);
     }
 
-
-    /**
-     * 기안 참조부서 등록
-     */
-    public DbDto saveRef(BigDecimal apprId, String deptCode, String langCode, String guid, String userId, String ipAddr, String pgmId) {
+    public DbDto setApprM010_011(BigDecimal apprId, String deptCode, String langCode, String guid, String userId, String ipAddr, String pgmId) {
 
         List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
 
@@ -152,7 +135,7 @@ public class ApprRepo extends BizBase {
         return callProc("USR_APPR_M010.PHM_APPR_M010_011", input);
     }
 
-    public DbDto delete(BigDecimal apprId, String langCode, String guid, String userId, String ipAddr, String pgmId) {
+    public DbDto setApprM010_020(BigDecimal apprId, String langCode, String guid, String userId, String ipAddr, String pgmId) {
         List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
 
         input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_APPR_ID", apprId));
@@ -169,7 +152,7 @@ public class ApprRepo extends BizBase {
         return callProc("USR_APPR_M010.PHM_APPR_M010_020", input);
     }
 
-    public DbDto deleteRef(BigDecimal apprId, String deptCode, String langCode, String guid, String userId, String ipAddr, String pgmId) {
+    public DbDto setApprM010_021(BigDecimal apprId, String deptCode, String langCode, String guid, String userId, String ipAddr, String pgmId) {
         List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
 
         input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_APPR_ID", apprId));
@@ -185,18 +168,5 @@ public class ApprRepo extends BizBase {
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_MESSAGE", ""));
 
         return callProc("USR_APPR_M010.PHM_APPR_M010_021", input);
-    }
-
-    // 접근 권한 확인
-    public DbDto getAdminDept(String userId) {
-        StringBuilder sql = new StringBuilder();
-
-        sql.append("SELECT  COUNT(*) ADMIN_COUNT ");
-        sql.append("FROM    TCM_CODE_MASTER C ");
-        sql.append("WHERE   C.CLASS_CODE = 'APADM' ");
-        sql.append("AND     C.USABLE_FLAG = 'Y' ");
-        sql.append("AND     C.VALUE1_CHAR = '" + userId + "' ");
-
-        return callSql(sql.toString());
     }
 }
