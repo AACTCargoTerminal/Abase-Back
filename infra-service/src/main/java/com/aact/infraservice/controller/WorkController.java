@@ -208,4 +208,13 @@ public class WorkController {
     public ResponseDTO<?> getManual(@RequestParam("fileName")String fileName) {
         return workService.getManual(fileName);
     }
+    //setCapsReSave
+    //setWorkM010_031
+    @PostMapping(value = "/setCapsReSave")
+    public ResponseDTO<?> setCapsReSave(@RequestBody Map<String, List<CapsTimeDTO.DeleteDTO>> dtos) {
+        if(dtos.get("array")==null){
+            throw new SysException("setWorkM010_031", "목록이 없습니다.");
+        }
+        return workService.setCapsReSave(dtos.get("array"));
+    }
 }

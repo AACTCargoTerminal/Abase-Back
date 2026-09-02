@@ -705,6 +705,59 @@ public class WorkService extends ServiceBase {
         });
     }
 
+    public ResponseDTO<?> setCapsReSave(List<CapsTimeDTO.DeleteDTO> dtos) {
+        ClsUserInfo info = UserContext.get();
+        WorkRepo repo = workRepoProvider.getObject();
+        return execute(repo, () -> {
+            DbDto dbRet = null;
+            for (CapsTimeDTO.DeleteDTO row : dtos) {
+
+                dbRet = repo.getWorkM010_003(row.date(), row.userSid(),row.seq(),info.getUserLang(), Util.getGUID(),
+                        info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+                if (dbRet.getErrFlag().equals("Y")) {
+                    throw new BizException("setCapsReSave", dbRet.getErrMsg());
+                }
+                String yyyy = row.date().substring(0, 4);
+                String mon = row.date().substring(4, 6);
+                String day = String.valueOf(Integer.parseInt(row.date().substring(6, 8)));
+
+                if(dbRet.getResult().get(0).isEmpty()){
+                    throw new BizException("setCapsReSave", "잘못된 사용자가 있습니다.");
+                }
+
+                Map<String,DbTypeDTO> userDto = dbRet.getResult().get(0).get(0);
+
+                String remark = Util.getStrChk(userDto.get("REMARK").getObj());
+                String userId = Util.getStrChk(userDto.get("USER_ID").getObj());
+                String createdId = Util.getStrChk(userDto.get("CREATED_USER_ID").getObj());
+                String startTime = Util.getStrChk(userDto.get("START_TIME").getObj());
+                String endTime = Util.getStrChk(userDto.get("END_TIME").getObj());
+                long addDay = Util.getInteger(userDto.get("VALUE1_NUMBER").getObj());
+
+                ResponseDTO<CapsTimeDTO.CapsRangeResult> startSet = capsService.findDateToId(CapsGetType.START,userId,row.date(),startTime);
+                if(startSet.getErrFlag().equals("Y")){
+                    throw new BizException("setCapsReSave", startSet.getErrMsg());
+                }
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+                LocalDate endDate = LocalDate.parse(row.date(), formatter)
+                        .plusDays(addDay);
+                ResponseDTO<CapsTimeDTO.CapsRangeResult> endSet = capsService.findDateToId(CapsGetType.END,userId,endDate.format(formatter),endTime);
+                if(endSet.getErrFlag().equals("Y")){
+                    throw new BizException("setCapsReSave", endSet.getErrMsg());
+                }
+
+                dbRet = repo.setWorkM010_019(yyyy, mon, day, row.userSid(), row.seq(),startSet.getData().orgTime(), endSet.getData().orgTime(), startTime,endTime,
+                        Util.getDecimal(addDay),  remark, info.getUserLang(), Util.getGUID(),
+                        createdId, info.getUserIpAddress(), info.getPgmId());
+
+                if(dbRet.getErrFlag().equals("Y")){
+                    throw new BizException("setCapsReSave", dbRet.getErrMsg());
+                }
+            }
+            return okOrThrow("setCapsReSave", dbRet);
+        });
+    }
+
     public ResponseDTO<?> setWorkM010_032(WorkDTO.ApproveDTO dto) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
