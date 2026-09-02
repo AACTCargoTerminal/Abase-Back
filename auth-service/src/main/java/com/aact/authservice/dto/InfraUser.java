@@ -91,6 +91,11 @@ public class InfraUser {
         @EmptyAsSupport.EmptyAs(value = "*",label = "사번")
         private String userId;
 
+        @JsonProperty("pass")
+        @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+        @EmptyAsSupport.EmptyAs(value = "*",label = "패스워드")
+        private String pass;
+
         @JsonProperty("groupJoinDate")
         @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
         @EmptyAsSupport.EmptyAs(value = "")
@@ -177,6 +182,7 @@ public class InfraUser {
                     continue;
                 }
                 String userId = Util.getStrChk(tmpDt.get("USER_ID").getObj());
+                String userPassword = Util.getStrChk(tmpDt.get("USER_PASSWORD").getObj());
 
                 Map<String,Object> hrpatSelect = hrpat.stream().filter(v->v.get("CODE_CODE").equals(row.get("CODE_CODE").getObj())).findFirst().orElse(null);
 
@@ -201,6 +207,7 @@ public class InfraUser {
                 if(tmpUserGroup == null){
                     tmpUserGroup = new TeamUserGroupDTO();
                     tmpUserGroup.setUserId(userId);
+                    tmpUserGroup.setPass(userPassword);
                     tmpUserGroup.setUserName(Util.getStrChk(tmpDt.get("USER_NAME").getObj()));
 
                     Map<String,DbTypeDTO> trmcdDt2 = dt2.stream()

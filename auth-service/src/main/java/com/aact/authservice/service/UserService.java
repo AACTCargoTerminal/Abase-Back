@@ -815,10 +815,11 @@ public class UserService extends ServiceBase {
                     setCellValue(rowC, 2, groupRow.getTeminalCode());
                     setCellValue(rowC, 3, groupRow.getUserName());
                     setCellValue(rowC, 4, groupRow.getUserId());
-                    setCellValue(rowC, 5, groupRow.getGroupJoinDate());
-                    setCellValue(rowC, 6, groupRow.getJoinDate());
-                    setCellValue(rowC, 7, groupRow.getWorkType());
-                    setCellValue(rowC, 8, groupRow.getWorkType2());
+                    setCellValue(rowC, 5, groupRow.getPass());
+                    setCellValue(rowC, 6, groupRow.getGroupJoinDate());
+                    setCellValue(rowC, 7, groupRow.getJoinDate());
+                    setCellValue(rowC, 8, groupRow.getWorkType());
+                    setCellValue(rowC, 9, groupRow.getWorkType2());
 
                     sheet1Idx++;
                 }
@@ -1029,9 +1030,15 @@ public class UserService extends ServiceBase {
                     }
 
                     BigDecimal userSid = null;
+                    String pass = "aact";
+
+                    if(!userRow.getPass().isEmpty()){
+                        pass = userRow.getPass();
+                    }
+
                     if(dbRet.getResult().get(0).isEmpty()){
 
-                        dbRet = repo.setUserInfo("",userRow.getUserId(),"aact","aact",userRow.getUserName(),userRow.getUserName(),"AACT","AACTINC"
+                        dbRet = repo.setUserInfo("",userRow.getUserId(),pass,pass,userRow.getUserName(),userRow.getUserName(),"AACT","AACTINC"
                         ,Util.getStrChk(findHrpat.get("VALUE3_CHAR")),"KOR","","","","",Util.getStrChk(findTrmcd.get("CODE_CODE"))
                         , Util.getStrChk(findTrmcd.get("CODE_NAME")),"N","N","N","N","N"
                                 ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
@@ -1079,7 +1086,7 @@ public class UserService extends ServiceBase {
                             itYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_IT_BOARD_YN").getObj());
                         }
 
-                        dbRet = repo.setUserInfo(userRow.getUserId(),"", Util.getStrChk(dbRet.getResult().get(0).get(0).get("USER_PASSWORD").getObj())
+                        dbRet = repo.setUserInfo(userRow.getUserId(),"", pass
                                 , Util.getStrChk(dbRet.getResult().get(0).get(0).get("USER_PASSWORD_HP").getObj())
                                 , Util.getStrChk(dbRet.getResult().get(0).get(0).get("USER_NAME1").getObj()),
                                 Util.getStrChk(dbRet.getResult().get(0).get(0).get("USER_NAME2").getObj())
