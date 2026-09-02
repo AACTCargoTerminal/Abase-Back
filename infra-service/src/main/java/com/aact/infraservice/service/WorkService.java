@@ -844,7 +844,15 @@ public class WorkService extends ServiceBase {
                     "AND IUR.CLASS_CODE = 'TRMCD' " +
                     "AND IUR.USABLE_FLAG = 'Y' " +
                     "JOIN TCM_USER_MASTER TUM " +
-                    "ON TUM.USER_SID = A.USER_SID AND TUM.USABLE_FLAG = 'Y'";
+                    "ON TUM.USER_SID = A.USER_SID AND TUM.USABLE_FLAG = 'Y' " +
+                    "WHERE NOT EXISTS ( " +
+                    "    SELECT 1 " +
+                    "    FROM TCM_INTRA_USER_RELATION WKT " +
+                    "    WHERE WKT.USER_SID = A.USER_SID " +
+                    "    AND WKT.CLASS_CODE = 'HRWKT' " +
+                    "    AND WKT.CODE_CODE = 'C' " +
+                    "    AND WKT.USABLE_FLAG = 'Y' " +
+                    ")";
 
             for(Map<String,Object> calRow : cal){
                 String calDate = Util.getStrChk(calRow.get("CALENDAR_DATE"));
@@ -958,6 +966,7 @@ public class WorkService extends ServiceBase {
                     "           AND INSTR(TCM.VALUE1_CHAR, '[$1]') > 0) " +
                     "       ) " +
                     "WHERE IUR.CLASS_CODE = 'HRTAU' " +
+                    "AND IUR.USABLE_FLAG = 'Y' "+
                     "AND NVL(IUR.VALUE2,'*') = '10' " +
                     "AND IUR.CODE_CODE = '[$2]'";
 
