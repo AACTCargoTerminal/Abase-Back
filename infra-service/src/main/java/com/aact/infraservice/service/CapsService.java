@@ -76,7 +76,7 @@ public class CapsService extends ServiceBase {
             endDate = now.minusHours(2).format(formatter);
             dbRet = capsMapper.findDateToId(id, endDate.substring(0,8),endDate.substring(8, 12)+"00",date,time+"00");
         }else{
-            endDate = now.plusHours(1).format(formatter);
+            endDate = now.plusHours(2).format(formatter);
             dbRet = capsMapper.findDateToId(id,date,time+"00", endDate.substring(0,8),endDate.substring(8, 12)+"00");
         }
 
