@@ -254,22 +254,36 @@ public class UserService extends ServiceBase {
                 passHp = dto.getPassHp();
             }
 
-            dbRet = repo.setUserInfo(info.getUserId(),"", pass, passHp, dto.getUserName2(), info.getUserName(),
-                    info.getUserCompany(), info.getUserBranch(), info.getUserDepart(), dto.getLangCode(), dto.getEmail(),
-                    dto.getPhone(), dto.getMobile(), dto.getFax(), info.getUserTerminalCodeWork(),
-                    info.getUserTerminalNameWork(), info.getUserAUTH_WORKTIMELINE_YN(), info.getUserAUTH_BOARD_WRITE_YN(),
-                    info.getUserAUTH_IN_CANCEL_YN(), info.getUserAUTH_BOARDHP_WRITE_YN(), info.getUserAUTH_IT_BOARD_YN(),
+            Map<String,DbTypeDTO> tmp = dbRet.getResult().get(0).get(0);
+
+            String companyCode = Util.getStrChk(tmp.get("COMPANY_CODE").getObj());
+            String branchCode = Util.getStrChk(tmp.get("BRANCH_CODE").getObj());
+            String departmentCode = Util.getStrChk(tmp.get("DEPARTMENT_CODE").getObj());
+            String emailAddress = Util.getStrChk(tmp.get("EMAIL_ADDRESS").getObj());
+            String phoneNo = Util.getStrChk(tmp.get("PHONE_NO").getObj());
+            String mobileNo = Util.getStrChk(tmp.get("MOBILE_NO").getObj());
+            String faxNo = Util.getStrChk(tmp.get("FAX_NO").getObj());
+            String terminalCode = Util.getStrChk(tmp.get("TERMINAL_CODE_WORK").getObj());
+            String terminalName = Util.getStrChk(tmp.get("TERMINAL_NAME_WORK").getObj());
+            String authWorktimelineYn = Util.getStrChk(tmp.get("AUTH_WORKTIMELINE_YN").getObj());
+            String authBoardWriteYn = Util.getStrChk(tmp.get("AUTH_BOARD_WRITE_YN").getObj());
+            String authInCancelYn = Util.getStrChk(tmp.get("AUTH_IN_CANCEL_YN").getObj());
+            String authBoardhpWriteYn = Util.getStrChk(tmp.get("AUTH_BOARDHP_WRITE_YN").getObj());
+            String authItBoardYn = Util.getStrChk(tmp.get("AUTH_IT_BOARD_YN").getObj());;
+
+            dbRet = repo.setUserInfo(info.getUserId(),"", pass, passHp, dto.getUserName(), dto.getUserName2(),
+                    companyCode, branchCode, departmentCode, dto.getLangCode(), emailAddress,
+                    phoneNo,mobileNo, faxNo, terminalCode,
+                    terminalName, authWorktimelineYn, authBoardWriteYn,
+                    authInCancelYn, authBoardhpWriteYn, authItBoardYn,
                     info.getUserLang(), Util.getGUID(), info.getUserId(), info.getUserIpAddress(), info.getPgmId());
             if (dbRet.getErrFlag().equals("Y")) {
                 throw new BizException("setUserInfo", dbRet.getErrMsg());
             }
 
-            info.setUserNameDefault(dto.getUserName2());
+            info.setUserNameDefault(dto.getUserName());
+            info.setUserName(dto.getUserName2());
             info.setUserLang(dto.getLangCode());
-            info.setUserEmail(dto.getEmail());
-            info.setUserPhone(dto.getPhone());
-            info.setUserMobile(dto.getMobile());
-            info.setUserFax(dto.getFax());
 
             HttpSession session = req.getSession(false);
             session.setAttribute("USER_PROFILE", info);
@@ -577,9 +591,9 @@ public class UserService extends ServiceBase {
         BufferedImage cropped = src.getSubimage(minX, minY, cropW, cropH);
         BufferedImage transparent = makeTransparentInkOnly(cropped, threshold);
 
-        if (cropW + 50 < cropH) {
-            return rotate90(transparent);
-        }
+//        if (cropW + 50 < cropH) {
+//            return rotate90(transparent);
+//        }
 
         return transparent;
     }
