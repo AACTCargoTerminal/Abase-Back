@@ -51,6 +51,16 @@ public class ApprDTO {
     @EmptyAsSupport.EmptyAs(value = "*", label = "현재결재자값")
     private BigDecimal currentApprSid;
 
+    @JsonProperty("drafterSid")
+    @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+    @EmptyAsSupport.EmptyAs(value = "*", label = "기안자값")
+    private BigDecimal drafterSid;
+
+    @JsonProperty("drafterId")
+    @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+    @EmptyAsSupport.EmptyAs(value = "*", label = "기안자")
+    private String drafterId;
+
     @JsonProperty("writerSid")
     @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
     @EmptyAsSupport.EmptyAs(value = "*", label = "작성자값")
@@ -61,19 +71,22 @@ public class ApprDTO {
     @EmptyAsSupport.EmptyAs(value = "*", label = "작성자")
     private String writerId;
 
-    @JsonProperty("createDt")
+    @JsonProperty("draftTime")
     @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
-    @EmptyAsSupport.EmptyAs(value = "*", label = "생성일")
-    private String createDt;
+    @EmptyAsSupport.EmptyAs(value = "*", label = "기안일")
+    private String draftTime;
 
-    @JsonProperty("completeDt")
+    @JsonProperty("statusChangeTime")
+    @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+    @EmptyAsSupport.EmptyAs(value = "*", label = "상태변경일")
+    private String statusChangeTime;
+
+    @JsonProperty("completeTime")
     @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
     @EmptyAsSupport.EmptyAs(value = "*", label = "완료일")
-    private String completeDt;
+    private String completeTime;
 
     @JsonProperty("rejectReason")
-    @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
-    @EmptyAsSupport.EmptyAs(value = "*", label = "반려사유")
     private String rejectReason;
 
     @JsonProperty("rejectBySid")
@@ -86,15 +99,15 @@ public class ApprDTO {
     @EmptyAsSupport.EmptyAs(value = "*", label = "반려처리자")
     private String rejectById;
 
-    @JsonProperty("rejectDt")
+    @JsonProperty("rejectTime")
     @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
     @EmptyAsSupport.EmptyAs(value = "*", label = "반려일")
-    private LocalDateTime rejectDt;
+    private LocalDateTime rejectTime;
 
-    @JsonProperty("updateDt")
+    @JsonProperty("updatedTime")
     @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
     @EmptyAsSupport.EmptyAs(value = "*", label = "수정일")
-    private LocalDateTime updateDt;
+    private LocalDateTime updatedTime;
 
     @JsonProperty("usableFlag")
     @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
@@ -107,8 +120,16 @@ public class ApprDTO {
     private String viewByRefDeptYn;
 
     @JsonProperty("refDeptCodes")
-    @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
-    @EmptyAsSupport.EmptyAs(value = "*", label = "참조부서")
     private List<String> refDeptCodes;
+
+    @JsonProperty("fromDate")
+    @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+    @EmptyAsSupport.EmptyAs(value = "*", label = "시작일")
+    private String fromDate;
+
+    @JsonProperty("toDate")
+    @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+    @EmptyAsSupport.EmptyAs(value = "*", label = "종료일")
+    private String toDate;
 
 }
