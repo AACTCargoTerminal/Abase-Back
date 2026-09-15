@@ -141,17 +141,18 @@ public class UserService extends ServiceBase {
     public ResponseDTO<?> logout(HttpServletRequest hReq){
         return execute(()->{
             HttpSession session = hReq.getSession(false);
-            ClsUserInfo info = UserContext.get();
-            String userKey = "sess:user:" + info.getUserSid().toString();
+            if(session!=null){
+                ClsUserInfo info = UserContext.get();
+                String userKey = "sess:user:" + info.getUserSid().toString();
 
-            String userSes = stringRedisTemplate.opsForValue().get(userKey);
+                String userSes = stringRedisTemplate.opsForValue().get(userKey);
 
-            if (userSes != null) {
-                stringRedisTemplate.delete(userKey);
+                if (userSes != null) {
+                    stringRedisTemplate.delete(userKey);
+                }
+
+                session.invalidate();
             }
-
-            session.invalidate();
-
             return ResponseDTO.builder().errFlag("N").errMsg("로그아웃 완료").build();
         });
     }

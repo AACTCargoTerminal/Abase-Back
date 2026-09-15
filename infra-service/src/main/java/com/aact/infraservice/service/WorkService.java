@@ -52,27 +52,27 @@ public class WorkService extends ServiceBase {
         WorkRepo repo = workRepoProvider.getObject();
 
         return execute(repo, () -> {
-            DbDto dbRet = repo.getWorkM010_002(date, deptCode, terminalCode, Util.getStrChk(approveFlag), info.getUserLang(), Util.getGUID(),
+            DbDto dbRet = repo.getWorkL010_005(date, deptCode, terminalCode, info.getUserLang(), Util.getGUID(),
                     info.getUserId(), info.getUserIpAddress(), info.getPgmId());
 
             return okOrThrow("getWorkM010_002", dbRet);
         });
     }
 
-    public ResponseDTO<?> getWorkM010_006(WorkDTO.HrSearchDTO dto) {
+    public ResponseDTO<?> getWorkL010_008(WorkDTO.HrSearchDTO dto) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
 
         return execute(repo, () -> {
-            DbDto dbRet = repo.getWorkM010_006(dto.type(),dto.reqFlag(),dto.deptCode(),dto.terminalCode(),dto.toDate(),dto.fromDate(),dto.date(),dto.userName(),
+            DbDto dbRet = repo.getWorkL010_008(dto.type(),dto.reqFlag(),dto.deptCode(),dto.terminalCode(),dto.toDate(),dto.fromDate(),dto.date(),dto.userName(),
                     dto.otFlag(),info.getUserLang(), Util.getGUID(),
                     info.getUserId(), info.getUserIpAddress(), info.getPgmId());
 
-            return okOrThrow("getWorkM010_006", dbRet);
+            return okOrThrow("getWorkL010_008", dbRet);
         });
     }
 
-    public ResponseDTO<?> getWorkM010_007(String date,BigDecimal userSid,BigDecimal seq) {
+    public ResponseDTO<?> getWorkL010_009(String date,BigDecimal userSid,BigDecimal seq) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
 
@@ -80,27 +80,27 @@ public class WorkService extends ServiceBase {
             String yyyy = date.substring(0,4);
             String mon = date.substring(4,6);
             Integer day = Integer.parseInt(date.substring(6,8));
-            DbDto dbRet = repo.getWorkM010_007(yyyy,mon,userSid,Util.getStrChk(day),seq,info.getUserLang(), Util.getGUID(),
+            DbDto dbRet = repo.getWorkL010_009(yyyy,mon,userSid,Util.getStrChk(day),seq,info.getUserLang(), Util.getGUID(),
                     info.getUserId(), info.getUserIpAddress(), info.getPgmId());
 
-            return okOrThrow("getWorkM010_007", dbRet);
+            return okOrThrow("getWorkL010_009", dbRet);
         });
     }
 
-    public ResponseDTO<?> setWorkM010_041(WorkDTO.HrReqSaveDTO dto) {
+    public ResponseDTO<?> setWorkL010_018(WorkDTO.HrReqSaveDTO dto) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
         return execute(repo, () -> {
 
             DbDto dbRet = null;
             for (WorkDTO.HrReqSaveRowDTO row : dto.reqArray()) {
-                dbRet = repo.setWorkM010_041(row.year(), row.mon(), row.userSid(), row.day(), row.seq(),info.getUserLang(), Util.getGUID(),
+                dbRet = repo.setWorkL010_018(row.year(), row.mon(), row.userSid(), row.day(), row.seq(),info.getUserLang(), Util.getGUID(),
                         info.getUserId(), info.getUserIpAddress(), info.getPgmId());
                 if (dbRet.getErrFlag().equals("Y")) {
-                    throw new BizException("setWorkM010_041", dbRet.getErrMsg());
+                    throw new BizException("setWorkL010_018", dbRet.getErrMsg());
                 }
             }
-            return okOrThrow("setWorkM010_041", dbRet);
+            return okOrThrow("setWorkL010_018", dbRet);
         });
     }
 
@@ -129,6 +129,7 @@ public class WorkService extends ServiceBase {
                 ExcelDTO.HoldImgDTO tmpRow = new ExcelDTO.HoldImgDTO();
                 tmpRow.setData(fileRet.getData());
                 tmpRow.setMime(Util.getStrChk(row.get("MIME").getObj()));
+                tmpRow.setRemark(Util.getStrChk(row.get("REMARK").getObj()));
                 tmpFile.add(tmpRow);
             }
 
@@ -234,7 +235,7 @@ public class WorkService extends ServiceBase {
                                     }
                                 }
 
-                                dbRet = repo.setWorkM010_040(yyyy, mon, row.userId(),row2.day() , new BigDecimal(i),
+                                dbRet = repo.setWorkL010_011(yyyy, mon, row.userId(),row2.day() , new BigDecimal(i),
                                         code,ot,terminal,dto.terminalCode(),dto.teamCode(),
                                         info.getUserLang(), Util.getGUID(),
                                         info.getUserId(), info.getUserIpAddress(), info.getPgmId());
@@ -244,11 +245,11 @@ public class WorkService extends ServiceBase {
                                 userSid = Util.getDecimal(dbRet.getRetObj().get("O_USER_SID"));
                             }
 
-                            if((dayIdx == row.dayArray().size()-1)&&row.closeFlag().equals("Y")){
-                                dbRet = repo.setWorkM010_014(yyyy, mon, userSid,info.getUserLang(), Util.getGUID(),
+                            if(dayIdx == row.dayArray().size()-1){
+                                dbRet = repo.setWorkL010_012(yyyy, mon, userSid,info.getUserLang(), Util.getGUID(),
                                         info.getUserId(), info.getUserIpAddress(), info.getPgmId());
                                 if (dbRet.getErrFlag().equals("Y")) {
-                                    throw new BizException("setWorkM010_014", dbRet.getErrMsg());
+                                    throw new BizException("setWorkL010_012", dbRet.getErrMsg());
                                 }
                             }
                         }
@@ -335,22 +336,22 @@ public class WorkService extends ServiceBase {
 
     }
 
-    public ResponseDTO<?> setWorkM010_017(String date,String teamCode,String terminalCode) {
+    public ResponseDTO<?> setWorkL010_013(String date,String teamCode,String terminalCode) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
 
         return execute(repo, () -> {
             if (info.getSignData() == null || info.getSignData().length == 0) {
-                throw new BizException("setWorkM010_017", "도장을 등록하여 주세요.");
+                throw new BizException("setWorkL010_013", "도장을 등록하여 주세요.");
             }
             DbDto dbRet = null;
 
-            dbRet = repo.setWorkM010_017(date.substring(0, 4), date.substring(4, 6), teamCode, terminalCode,info.getUserLang(), Util.getGUID(),
+            dbRet = repo.setWorkL010_013(date.substring(0, 4), date.substring(4, 6), teamCode, terminalCode,info.getUserLang(), Util.getGUID(),
                     info.getUserId(), info.getUserIpAddress(), info.getPgmId());
             if (dbRet.getErrFlag().equals("Y")) {
-                throw new BizException("setWorkM010_017", dbRet.getErrMsg());
+                throw new BizException("setWorkL010_013", dbRet.getErrMsg());
             }
-            return okOrThrow("setWorkM010_017", dbRet);
+            return okOrThrow("setWorkL010_013", dbRet);
         });
 
     }
@@ -393,19 +394,23 @@ public class WorkService extends ServiceBase {
                 throw new BizException("setWorkM010_018", "파일변환실패");
             }
 
-            FileMeta meta = metaRet.get(0);
-            BigDecimal fileSize = Util.getDecimal(meta.getSize());
-            if (fileSize.compareTo(BigDecimal.ZERO) == 0) {
-                throw new BizException("setWorkM010_018", "파일사이즈 문제");
+            for(int i = 0;i<metaRet.size();i++){
+                BigDecimal fileSize = Util.getDecimal(metaRet.get(i).getSize());
+                if (fileSize.compareTo(BigDecimal.ZERO) == 0) {
+                    throw new BizException("setWorkM010_018", "파일사이즈 문제");
+                }
+                FileMeta meta = metaRet.get(i);
+                BigDecimal idx = Util.getDecimal(i+1);
+                dbRet = repo.setWorkM010_018(dto.year(), dto.mon(), Util.getInteger(dto.day()).toString(), dto.userSid(), dto.seq(), idx,dto.imgType(),
+                        meta.getDir(), meta.getOriginName(), meta.getChangeName(), meta.getFullpath(),
+                        fileSize, meta.getMime(), meta.getExt(), info.getUserLang(), Util.getGUID(),
+                        info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+                if (dbRet.getErrFlag().equals("Y")) {
+                    throw new BizException("setWorkM010_018", dbRet.getErrMsg());
+                }
             }
 
-            dbRet = repo.setWorkM010_018(dto.year(), dto.mon(), Util.getInteger(dto.day()).toString(), dto.userSid(), dto.seq(), dto.imgType(),
-                    meta.getDir(), meta.getOriginName(), meta.getChangeName(), meta.getFullpath(),
-                    fileSize, meta.getMime(), meta.getExt(), info.getUserLang(), Util.getGUID(),
-                    info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-            if (dbRet.getErrFlag().equals("Y")) {
-                throw new BizException("setWorkM010_018", dbRet.getErrMsg());
-            }
+
 
             return okOrThrow("setWorkM010_018", dbRet);
         });
@@ -505,7 +510,7 @@ public class WorkService extends ServiceBase {
                 throw new BizException("setWorkM010_019", "파일사이즈 문제");
             }
 
-            dbRet = repo.setWorkM010_018(yyyy, mon, day, info.getUserSid(), dto.seq(), "TIME",
+            dbRet = repo.setWorkM010_018(yyyy, mon, day, info.getUserSid(), dto.seq(),BigDecimal.ONE, "TIME",
                     metaRet.get(0).getDir(), metaRet.get(0).getOriginName(), metaRet.get(0).getChangeName(), metaRet.get(0).getFullpath()
                     , fileSize, metaRet.get(0).getMime(), metaRet.get(0).getExt(), info.getUserLang(), Util.getGUID(),
                     info.getUserId(), info.getUserIpAddress(), info.getPgmId());
@@ -572,7 +577,7 @@ public class WorkService extends ServiceBase {
 
     }
 
-    public ResponseDTO<?> setWorkM010_036(String date,BigDecimal userSid,BigDecimal seq,String remark) {
+    public ResponseDTO<?> setWorkL010_017(String date,BigDecimal userSid,BigDecimal seq,String remark,String type) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
 
@@ -582,14 +587,14 @@ public class WorkService extends ServiceBase {
             String mon = date.substring(4, 6);
             String day = String.valueOf(Integer.parseInt(date.substring(6, 8)));
 
-            dbRet = repo.setWorkM010_036(yyyy, mon, day, userSid, seq,remark,  info.getUserLang(), Util.getGUID(),
+            dbRet = repo.setWorkL010_017(yyyy, mon, day, userSid, seq,remark, type, info.getUserLang(), Util.getGUID(),
                     info.getUserId(), info.getUserIpAddress(), info.getPgmId());
 
             if (dbRet.getErrFlag().equals("Y")) {
-                throw new BizException("setWorkM010_036", dbRet.getErrMsg());
+                throw new BizException("setWorkL010_017", dbRet.getErrMsg());
             }
 
-            return okOrThrow("setWorkM010_036", dbRet);
+            return okOrThrow("setWorkL010_017", dbRet);
         });
     }
 
@@ -634,17 +639,17 @@ public class WorkService extends ServiceBase {
 
     }
 
-    public ResponseDTO<?> getWorkM010_004(String date) {
+    public ResponseDTO<?> getWorkL010_007(String date) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
         return execute(repo, () -> {
-            DbDto dbRet = repo.getWorkM010_004(date, info.getUserLang(), Util.getGUID(),
+            DbDto dbRet = repo.getWorkL010_007(date, info.getUserLang(), Util.getGUID(),
                     info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-            return okOrThrow("getWorkM010_004", dbRet);
+            return okOrThrow("getWorkL010_007", dbRet);
         });
     }
 
-    public ResponseDTO<?> getWorkM010_005(String date, String deptCode, String terminalCode,String userName, String approveFlag) {
+    public ResponseDTO<?> getWorkL010_006(String date, String deptCode, String terminalCode,String userName, String approveFlag) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
         return execute(repo, () -> {
@@ -659,11 +664,11 @@ public class WorkService extends ServiceBase {
                 mon = date.substring(4, 6);
                 day = date.substring(6, 8);
             } else {
-                throw new BizException("getWorkM010_005", "날짜 에러");
+                throw new BizException("getWorkL010_006", "날짜 에러");
             }
-            DbDto dbRet = repo.getWorkM010_005(yyyy, mon, day, deptCode,terminalCode, userName, approveFlag, info.getUserLang(), Util.getGUID(),
+            DbDto dbRet = repo.getWorkL010_006(yyyy, mon, day, deptCode,terminalCode, userName, approveFlag, info.getUserLang(), Util.getGUID(),
                     info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-            return okOrThrow("getWorkM010_005", dbRet);
+            return okOrThrow("getWorkL010_006", dbRet);
         });
     }
 
@@ -685,23 +690,23 @@ public class WorkService extends ServiceBase {
         });
     }
 
-    public ResponseDTO<?> setWorkM010_031(List<CapsTimeDTO.DeleteDTO> dtos) {
+    public ResponseDTO<?> setWorkL010_014(List<CapsTimeDTO.DeleteDTO> dtos) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
         return execute(repo, () -> {
             if (info.getSignData() == null || info.getSignData().length == 0) {
-                throw new BizException("setWorkM010_031", "도장을 등록하여 주세요.");
+                throw new BizException("setWorkL010_014", "도장을 등록하여 주세요.");
             }
             DbDto dbRet = null;
             for (CapsTimeDTO.DeleteDTO row : dtos) {
                 String day = String.valueOf(Integer.parseInt(row.date().substring(6, 8)));
-                dbRet = repo.setWorkM010_031(row.date().substring(0, 4), row.date().substring(4, 6), day, row.userSid(), row.seq(), row.logSeq(), info.getUserLang(), Util.getGUID(),
+                dbRet = repo.setWorkL010_014(row.date().substring(0, 4), row.date().substring(4, 6), day, row.userSid(), row.seq(), info.getUserLang(), Util.getGUID(),
                         info.getUserId(), info.getUserIpAddress(), info.getPgmId());
                 if (dbRet.getErrFlag().equals("Y")) {
-                    throw new BizException("setWorkM010_031", dbRet.getErrMsg());
+                    throw new BizException("setWorkL010_014", dbRet.getErrMsg());
                 }
             }
-            return okOrThrow("setWorkM010_031", dbRet);
+            return okOrThrow("setWorkL010_014", dbRet);
         });
     }
 
@@ -758,29 +763,30 @@ public class WorkService extends ServiceBase {
         });
     }
 
-    public ResponseDTO<?> setWorkM010_032(WorkDTO.ApproveDTO dto) {
+    public ResponseDTO<?> setWorkL010_015(WorkDTO.ApproveDTO dto) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
         return execute(repo, () -> {
             if (info.getSignData() == null || info.getSignData().length == 0) {
-                throw new BizException("setWorkM010_032", "도장을 등록하여 주세요.");
+                throw new BizException("setWorkL010_015", "도장을 등록하여 주세요.");
             }
 
             DbDto dbRet = null;
             for(WorkDTO.ApproveRowDTO row : dto.userArray()){
 
-                for(String day:row.dayArray()){
-                    dbRet = repo.setWorkM010_032(dto.date().substring(0, 4), dto.date().substring(4, 6), day, row.userSid(), info.getUserLang(), Util.getGUID(),
+                for(WorkDTO.ApproveCellDTO day:row.dayArray()){
+                    dbRet = repo.setWorkL010_015(dto.date().substring(0, 4), dto.date().substring(4, 6), day.day(), row.userSid(),day.seq(),
+                            info.getUserLang(), Util.getGUID(),
                             info.getUserId(), info.getUserIpAddress(), info.getPgmId());
                     if (dbRet.getErrFlag().equals("Y")) {
-                        throw new BizException("setWorkM010_032", dbRet.getErrMsg());
+                        throw new BizException("setWorkL010_015", dbRet.getErrMsg());
                     }
                 }
 
 
 
             }
-            return okOrThrow("setWorkM010_032", dbRet);
+            return okOrThrow("setWorkL010_015", dbRet);
         });
     }
 
@@ -804,7 +810,7 @@ public class WorkService extends ServiceBase {
         });
     }
 
-    public ResponseDTO<?> setWorkM010_035(WorkDTO.HrReqSaveDTO dto) {
+    public ResponseDTO<?> setWorkL010_016(WorkDTO.HrReqSaveDTO dto) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
         return execute(repo, () -> {
@@ -812,15 +818,15 @@ public class WorkService extends ServiceBase {
             DbDto dbRet = null;
             for (WorkDTO.HrReqSaveRowDTO row : dto.reqArray()) {
 
-                dbRet = repo.setWorkM010_035(row.year(), row.mon(), row.day(), row.userSid(), row.seq(),info.getUserLang(), Util.getGUID(),
+                dbRet = repo.setWorkL010_016(row.year(), row.mon(), row.day(), row.userSid(), row.seq(),info.getUserLang(), Util.getGUID(),
                         info.getUserId(), info.getUserIpAddress(), info.getPgmId());
                 if (dbRet.getErrFlag().equals("Y")) {
-                    throw new BizException("setWorkM010_035", dbRet.getErrMsg());
+                    throw new BizException("setWorkL010_016", dbRet.getErrMsg());
                 }
 
 
             }
-            return okOrThrow("setWorkM010_035", dbRet);
+            return okOrThrow("setWorkL010_016", dbRet);
         });
     }
 
@@ -980,7 +986,7 @@ public class WorkService extends ServiceBase {
                         if(dbRet.getErrFlag().equals("Y")){
                             throw new BizException("setScheduleAutoJob",dbRet.getErrMsg());
                         }
-                        dbRet = repo.setWorkM010_040(yyyy,mon,userId,day,BigDecimal.ZERO,workTypeCode,
+                        dbRet = repo.setWorkL010_011(yyyy,mon,userId,day,BigDecimal.ZERO,workTypeCode,
                                 BigDecimal.ZERO,"",terminalCode,teamCode,"KOR",Util.getGUID(),"DAEMON","::","DAEMON");
                         if(dbRet.getErrFlag().equals("Y")){
                             throw new BizException("setScheduleAutoJob",dbRet.getErrMsg());
@@ -1040,7 +1046,7 @@ public class WorkService extends ServiceBase {
 
                 String yyyy = date.substring(0,4);
                 String mon = date.substring(4,6);
-                dbRet = repo.setWorkM010_017(yyyy,mon,groupRow.get("TEAM_CODE"),groupRow.get("TERMINAL_CODE"),"KOR",Util.getGUID(),teamId,"::","DAEMON");
+                dbRet = repo.setWorkL010_013(yyyy,mon,groupRow.get("TEAM_CODE"),groupRow.get("TERMINAL_CODE"),"KOR",Util.getGUID(),teamId,"::","DAEMON");
                 if(dbRet.getErrFlag().equals("Y")){
                     throw new BizException("setScheduleAutoJob",dbRet.getErrMsg());
                 }
@@ -1123,7 +1129,7 @@ public class WorkService extends ServiceBase {
             headers = ResponseDTO.from(dbRet).getData().get(0);
             holiday = Util.getStrChk(dbRet.getResult().get(0).stream().filter((v)->!v.get("HOLIDAY_CODE").getObj().equals("N")).count());
 
-            dbRet = repo.getWorkM010_002(date, teamCode, terminalCode, "N", info.getUserLang(), Util.getGUID(),
+            dbRet = repo.getWorkL010_005(date, teamCode, terminalCode, info.getUserLang(), Util.getGUID(),
                     info.getUserId(), info.getUserIpAddress(), info.getPgmId());
 
             if(dbRet.getErrFlag().equals("Y")){
@@ -2370,14 +2376,18 @@ public class WorkService extends ServiceBase {
                             if(j==0){
                                 cell = row.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                                 cell.setCellValue(rowList.getUserName());
-                                copySheet.addMergedRegion(
-                                        new CellRangeAddress(
-                                                sumRowIdx,
-                                                sumRowIdx+rowList.getCellList().size()-1,
-                                                1, // B열
-                                                1
-                                        )
-                                );
+                                int mergeSize = rowList.getCellList().size();
+
+                                if (mergeSize > 1) {
+                                    copySheet.addMergedRegion(
+                                            new CellRangeAddress(
+                                                    sumRowIdx,
+                                                    sumRowIdx + mergeSize - 1,
+                                                    1, // B열
+                                                    1
+                                            )
+                                    );
+                                }
                             }
 
                             ExcelDTO.DetailCellDTO cellRow = rowList.getCellList().get(j);
