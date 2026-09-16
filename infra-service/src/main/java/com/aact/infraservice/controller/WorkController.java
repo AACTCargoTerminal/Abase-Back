@@ -28,14 +28,14 @@ public class WorkController {
         return workService.getWorkM010_002(date, deptCode, terminalCode,approveFlag);
     }
 
-    @PostMapping(value = "/getWorkM010_006")
-    public ResponseDTO<?> getWorkM010_006(@RequestBody WorkDTO.HrSearchDTO dto) {
-        return workService.getWorkM010_006(dto);
+    @PostMapping(value = "/getWorkL010_008")
+    public ResponseDTO<?> getWorkL010_008(@RequestBody WorkDTO.HrSearchDTO dto) {
+        return workService.getWorkL010_008(dto);
     }
 
-    @GetMapping(value = "/getWorkM010_007")
-    public ResponseDTO<?> getWorkM010_007(@RequestParam("date")String date, @RequestParam("userSid")BigDecimal userSid,@RequestParam("seq")BigDecimal seq) {
-        return workService.getWorkM010_007(date,userSid,seq);
+    @GetMapping(value = "/getWorkL010_009")
+    public ResponseDTO<?> getWorkL010_009(@RequestParam("date")String date, @RequestParam("userSid")BigDecimal userSid,@RequestParam("seq")BigDecimal seq) {
+        return workService.getWorkL010_009(date,userSid,seq);
     }
 
     @GetMapping(value = "/getHoliDay")
@@ -48,9 +48,9 @@ public class WorkController {
         return workService.setWorkM010_014(dto);
     }
 
-    @GetMapping(value = "/setWorkM010_017")
-    public ResponseDTO<?> setWorkM010_017(@RequestParam("date")String date, @RequestParam("teamCode")String teamCode, @RequestParam("terminalCode")String terminalCode) {
-        return workService.setWorkM010_017(date,teamCode,terminalCode);
+    @GetMapping(value = "/setWorkL010_013")
+    public ResponseDTO<?> setWorkL010_013(@RequestParam("date")String date, @RequestParam("teamCode")String teamCode, @RequestParam("terminalCode")String terminalCode) {
+        return workService.setWorkL010_013(date,teamCode,terminalCode);
     }
     @PostMapping(value = "/setWorkM010_018", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseDTO<?> setWorkM010_018(@Validated @ModelAttribute WorkDTO.HrFileSaveDTO dto) {
@@ -66,19 +66,19 @@ public class WorkController {
         return workService.getWorkM010_003(date,userSid,seq);
     }
 
-    @GetMapping(value = "/getWorkM010_004")
-    public ResponseDTO<?> getWorkM010_004(@RequestParam("date") String date) {
-        return workService.getWorkM010_004(date);
+    @GetMapping(value = "/getWorkL010_007")
+    public ResponseDTO<?> getWorkL010_007(@RequestParam("date") String date) {
+        return workService.getWorkL010_007(date);
     }
 
     //getWorkM010_005
-    @GetMapping(value = "/getWorkM010_005")
-    public ResponseDTO<?> getWorkM010_005(@RequestParam("date") String date,
+    @GetMapping(value = "/getWorkL010_006")
+    public ResponseDTO<?> getWorkL010_006(@RequestParam("date") String date,
                                           @RequestParam("deptCode") String deptCode,
                                           @RequestParam("terminalCode") String terminalCode,
                                           @RequestParam("username") String username,
                                           @RequestParam("approveFlag") String approveFlag) {
-        return workService.getWorkM010_005(date, deptCode, terminalCode,username, approveFlag);
+        return workService.getWorkL010_006(date, deptCode, terminalCode,username, approveFlag);
     }
 
     @PostMapping(value = "/setWorkM010_022")
@@ -90,18 +90,18 @@ public class WorkController {
     }
 
     //setWorkM010_031
-    @PostMapping(value = "/setWorkM010_031")
+    @PostMapping(value = "/setWorkL010_014")
     public ResponseDTO<?> setWorkM010_031(@RequestBody Map<String, List<CapsTimeDTO.DeleteDTO>> dtos) {
         if(dtos.get("array")==null){
-            throw new SysException("setWorkM010_031", "목록이 없습니다.");
+            throw new SysException("setWorkL010_014", "목록이 없습니다.");
         }
-        return workService.setWorkM010_031(dtos.get("array"));
+        return workService.setWorkL010_014(dtos.get("array"));
     }
 
     //setWorkM010_032
-    @PostMapping(value = "/setWorkM010_032")
-    public ResponseDTO<?> setWorkM010_032(@RequestBody WorkDTO.ApproveDTO dto) {
-        return workService.setWorkM010_032(dto);
+    @PostMapping(value = "/setWorkL010_015")
+    public ResponseDTO<?> setWorkL010_015(@RequestBody WorkDTO.ApproveDTO dto) {
+        return workService.setWorkL010_015(dto);
     }
 
     @PostMapping(value = "/setWorkM010_034")
@@ -109,14 +109,14 @@ public class WorkController {
         return workService.setWorkM010_034(dto);
     }
 
-    @PostMapping(value = "/setWorkM010_035")
-    public ResponseDTO<?> setWorkM010_035(@RequestBody WorkDTO.HrReqSaveDTO dto) {
-        return workService.setWorkM010_035(dto);
+    @PostMapping(value = "/setWorkL010_016")
+    public ResponseDTO<?> setWorkL010_016(@RequestBody WorkDTO.HrReqSaveDTO dto) {
+        return workService.setWorkL010_016(dto);
     }
 
-    @PostMapping(value = "/setWorkM010_041")
-    public ResponseDTO<?> setWorkM010_041(@RequestBody WorkDTO.HrReqSaveDTO dto) {
-        return workService.setWorkM010_041(dto);
+    @PostMapping(value = "/setWorkL010_018")
+    public ResponseDTO<?> setWorkL010_018(@RequestBody WorkDTO.HrReqSaveDTO dto) {
+        return workService.setWorkL010_018(dto);
     }
 
     @PostMapping(value = "/setWorkM010_042")
@@ -167,12 +167,13 @@ public class WorkController {
     }
 
     //setWorkM010_037
-    @GetMapping(value = "/setWorkM010_036")
-    public ResponseDTO<?> setWorkM010_036(@RequestParam("date") String date,
+    @GetMapping(value = "/setWorkL010_017")
+    public ResponseDTO<?> setWorkL010_017(@RequestParam("date") String date,
                                           @RequestParam("userSid") BigDecimal userSid,
                                           @RequestParam("seq") BigDecimal seq,
-                                          @RequestParam("remark") String remark) {
-        return workService.setWorkM010_036(date,userSid,seq,remark);
+                                          @RequestParam("remark") String remark,
+                                          @RequestParam("type")String type) {
+        return workService.setWorkL010_017(date,userSid,seq,remark,type);
     }
 
     //setWorkM010_037

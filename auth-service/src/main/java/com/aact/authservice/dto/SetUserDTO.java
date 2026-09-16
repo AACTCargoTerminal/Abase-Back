@@ -23,33 +23,18 @@ public class SetUserDTO {
 	@EmptyAsSupport.EmptyAs(value = "*",label = "자료실암호")
 	private String passHp;
 
-	@JsonProperty("userName2")
+	@JsonProperty("userName")
 	@JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
 	@EmptyAsSupport.EmptyAs(value = "*",label = "공용어")
+	private String userName;
+
+	@JsonProperty("userName2")
+	@JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+	@EmptyAsSupport.EmptyAs(value = "*",label = "한글")
 	private String userName2;
 
 	@JsonProperty("langCode")
 	@JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
 	@EmptyAsSupport.EmptyAs(value = "*",label = "언어")
 	private String langCode;
-
-	@JsonProperty("email")
-	@JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
-	@EmptyAsSupport.EmptyAs(value = "")
-	private String email;
-
-	@JsonProperty("phone")
-	@JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
-	@EmptyAsSupport.EmptyAs(value = "")
-	private String phone;
-
-	@JsonProperty("mobile")
-	@JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
-	@EmptyAsSupport.EmptyAs(value = "")
-	private String mobile;
-
-	@JsonProperty("fax")
-	@JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
-	@EmptyAsSupport.EmptyAs(value = "")
-	private String fax;
 }
