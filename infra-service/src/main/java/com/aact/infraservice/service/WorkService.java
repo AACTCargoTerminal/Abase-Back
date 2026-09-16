@@ -167,6 +167,20 @@ public class WorkService extends ServiceBase {
                             throw new BizException("setWorkM010_014", row.userId() + "에 스케줄 작성이 안돼있습니다.");
                         }
 
+                        String sql = "SELECT USER_SID FROM TCM_USER_MASTER WHERE USABLE_FLAG = 'Y' AND USER_ID = '"+row.userId()+"'";
+
+                        dbRet = repo.callSql(sql);
+
+                        if(dbRet.getErrFlag().equals("Y")){
+                            throw new BizException("setWorkM010_014",dbRet.getErrMsg());
+                        }
+
+                        if(dbRet.getResult().get(0).isEmpty()){
+                            throw new BizException("setWorkM010_014",row.userId()+" 없는 근무자 입니다.");
+                        }
+
+                        userSid = Util.getDecimal(dbRet.getResult().get(0).get(0).get("USER_SID").getObj());
+
                         for(int dayIdx = 0; dayIdx<row.dayArray().size();dayIdx++){
                             WorkDTO.SaveDayDTO row2 = row.dayArray().get(dayIdx);
 
@@ -176,73 +190,84 @@ public class WorkService extends ServiceBase {
                             if (str.length > 2) {
                                 throw new BizException("setWorkM010_014", row.userId() + "근무자 " + row2.day() + "일 " + "하루에 코드는 2개까지입니다.");
                             }
+
                             if (str.length == 0) {
-                                continue;
-                            }
-                            for (int i = 0; i < str.length; i++) {
-                                String dayStrTmp = str[i];
-                                String beforeReg = "";
-                                String code = "";
-                                String terminal = "";
-                                BigDecimal ot = new BigDecimal(0);
-
-                                for (int j = 0; j < 3; j++) {
-                                    String[] parseTmp = parsingDayStr(dayStrTmp);
-                                    if (parseTmp == null) {
-                                        throw new BizException("setWorkM010_014", row.userId() + "에 " + row2.day() + "일 코드가 잘못됐습니다. ( " + row2.dayStr() + " )");
-                                    }
-                                    if (parseTmp[1] == null) {
-                                        if (j == 0) {
-                                            code = parseTmp[0];
-                                        } else {
-                                            if (beforeReg.equals("-")) {
-                                                terminal = parseTmp[0];
-                                            } else if (beforeReg.equals("+")) {
-                                                ot = Util.getDecimal(parseTmp[0]);
-                                            }
-                                        }
-                                        break;
-                                    }
-                                    beforeReg = parseTmp[0];
-                                    if (j == 0) {
-                                        code = parseTmp[1];
-                                    } else {
-                                        if (beforeReg.equals("-")) {
-                                            terminal = parseTmp[1];
-                                        } else if (beforeReg.equals("+")) {
-                                            ot = Util.getDecimal(parseTmp[1]);
-                                        }
-                                    }
-
-
-                                    dayStrTmp = parseTmp[2];
-
-
-                                }
-
-                                if (!terminal.isEmpty()) {
-                                    if (!terminal.equals("A")) {
-                                        boolean flag = false;
-                                        for (Map<String, DbTypeDTO> dbRow : hrtrm.getResult().get(0)) {
-                                            if (dbRow.get("CODE_CODE").getObj().toString().equals(terminal)) {
-                                                flag = true;
-                                            }
-                                        }
-
-                                        if (!flag) {
-                                            throw new BizException("setWorkM010_014", terminal + "< 터미널은 없는 터미널입니다.");
-                                        }
-                                    }
-                                }
-
-                                dbRet = repo.setWorkL010_011(yyyy, mon, row.userId(),row2.day() , new BigDecimal(i),
-                                        code,ot,terminal,dto.terminalCode(),dto.teamCode(),
+                                dbRet = repo.setWorkM010_021(yyyy,mon,row2.day(),userSid,new BigDecimal("-1"),"N",
                                         info.getUserLang(), Util.getGUID(),
                                         info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-                                if (dbRet.getErrFlag().equals("Y")) {
-                                    throw new BizException("setWorkM010_014", dbRet.getErrMsg());
+
+                                if(dbRet.getErrFlag().equals("Y")){
+                                    throw new BizException("setWorkM010_014",dbRet.getErrMsg());
                                 }
-                                userSid = Util.getDecimal(dbRet.getRetObj().get("O_USER_SID"));
+
+
+                            }else{
+                                for (int i = 0; i < str.length; i++) {
+                                    String dayStrTmp = str[i];
+                                    String beforeReg = "";
+                                    String code = "";
+                                    String terminal = "";
+                                    BigDecimal ot = new BigDecimal(0);
+
+                                    for (int j = 0; j < 3; j++) {
+                                        String[] parseTmp = parsingDayStr(dayStrTmp);
+                                        if (parseTmp == null) {
+                                            throw new BizException("setWorkM010_014", row.userId() + "에 " + row2.day() + "일 코드가 잘못됐습니다. ( " + row2.dayStr() + " )");
+                                        }
+                                        if (parseTmp[1] == null) {
+                                            if (j == 0) {
+                                                code = parseTmp[0];
+                                            } else {
+                                                if (beforeReg.equals("-")) {
+                                                    terminal = parseTmp[0];
+                                                } else if (beforeReg.equals("+")) {
+                                                    ot = Util.getDecimal(parseTmp[0]);
+                                                }
+                                            }
+                                            break;
+                                        }
+                                        beforeReg = parseTmp[0];
+                                        if (j == 0) {
+                                            code = parseTmp[1];
+                                        } else {
+                                            if (beforeReg.equals("-")) {
+                                                terminal = parseTmp[1];
+                                            } else if (beforeReg.equals("+")) {
+                                                ot = Util.getDecimal(parseTmp[1]);
+                                            }
+                                        }
+
+
+                                        dayStrTmp = parseTmp[2];
+
+
+                                    }
+
+                                    if (!terminal.isEmpty()) {
+                                        if (!terminal.equals("A")) {
+                                            boolean flag = false;
+                                            for (Map<String, DbTypeDTO> dbRow : hrtrm.getResult().get(0)) {
+                                                if (dbRow.get("CODE_CODE").getObj().toString().equals(terminal)) {
+                                                    flag = true;
+                                                }
+                                            }
+
+                                            if (!flag) {
+                                                throw new BizException("setWorkM010_014", terminal + "< 터미널은 없는 터미널입니다.");
+                                            }
+                                        }
+                                    }
+
+                                    dbRet = repo.setWorkL010_011(yyyy, mon, row.userId(),row2.day() , new BigDecimal(i),
+                                            code,ot,terminal,dto.terminalCode(),dto.teamCode(),
+                                            info.getUserLang(), Util.getGUID(),
+                                            info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+                                    if (dbRet.getErrFlag().equals("Y")) {
+                                        throw new BizException("setWorkM010_014", dbRet.getErrMsg());
+                                    }
+                                    userSid = Util.getDecimal(dbRet.getRetObj().get("O_USER_SID"));
+                                }
+
                             }
 
                             if(dayIdx == row.dayArray().size()-1){
