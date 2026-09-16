@@ -40,6 +40,46 @@ public class ApprController {
         return apprService.getApprM010_003(apprId);
     }
 
+    // 관리자 기안 목록 전체 조회
+    @GetMapping("/admin")
+    public ResponseDTO<?> getApprM010_004(@RequestParam(required = false) String fromDate, @RequestParam(required = false) String toDate, @RequestParam(required = false) String title, @RequestParam(required = false) String reqDeptCode, @RequestParam(required = false) BigDecimal statusSid) {
+        ApprDTO apprDTO = new ApprDTO();
+
+        apprDTO.setFromDate(fromDate);
+        apprDTO.setToDate(toDate);
+        apprDTO.setTitle(title);
+        apprDTO.setReqDeptCode(reqDeptCode);
+        apprDTO.setStatusSid(statusSid);
+
+        return apprService.getApprM010_004(apprDTO);
+    }
+
+    // 관리자 부서별 기안 조회
+    @GetMapping("/admin/dept")
+    public ResponseDTO<?> getApprM010_005(@RequestParam(required = false) String fromDate, @RequestParam(required = false) String toDate, @RequestParam(required = false) String title, @RequestParam(required = false) String reqDeptCode, @RequestParam(required = false) BigDecimal statusSid) {
+        ApprDTO apprDTO = new ApprDTO();
+
+        apprDTO.setFromDate(fromDate);
+        apprDTO.setToDate(toDate);
+        apprDTO.setTitle(title);
+        apprDTO.setReqDeptCode(reqDeptCode);
+        apprDTO.setStatusSid(statusSid);
+
+        return apprService.getApprM010_005(apprDTO);
+    }
+
+    // 부서별 사용자 목록 조회
+    @GetMapping("/dept-user")
+    public ResponseDTO<?> getApprM010_006(@RequestParam String deptCode) {
+        return apprService.getApprM010_006(deptCode);
+    }
+
+    // 결재 사용자 목록 조회
+    @GetMapping("/approval-user")
+    public ResponseDTO<?> getApprM010_007() {
+        return apprService.getApprM010_007();
+    }
+
     // 기안 등록
     @PostMapping
     public ResponseDTO<?> setApprM010_010(@RequestBody ApprDTO apprDTO) {
