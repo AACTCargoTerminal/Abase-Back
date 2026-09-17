@@ -757,8 +757,40 @@ public class WorkService extends ServiceBase {
 
                 Map<String,DbTypeDTO> userDto = dbRet.getResult().get(0).get(0);
 
-                String remark = Util.getStrChk(userDto.get("REMARK").getObj());
+                StringBuilder sql = new StringBuilder();
+                sql.append("SELECT L.REMARK ");
+                sql.append("FROM THR_OT_DETAIL_LOG L ");
+                sql.append("WHERE L.YEAR = '" + yyyy + "' ");
+                sql.append("AND L.MON = '" + mon + "' ");
+                sql.append("AND L.DAY = '" + day + "' ");
+                sql.append("AND L.USER_SID = " + row.userSid() + " ");
+                sql.append("AND L.SEQ = " + row.seq() + " ");
+                sql.append("AND L.LOG_SEQ = ( ");
+                sql.append("    SELECT MAX(ODL.LOG_SEQ) ");
+                sql.append("    FROM THR_OT_DETAIL_LOG ODL ");
+                sql.append("    JOIN TCM_CODE_MASTER TCM ");
+                sql.append("      ON TCM.CODE_CODE = ODL.CODE_CODE ");
+                sql.append("     AND TCM.USABLE_FLAG = 'Y' ");
+                sql.append("    WHERE ODL.YEAR = '" + yyyy + "' ");
+                sql.append("      AND ODL.MON = '" + mon + "' ");
+                sql.append("      AND ODL.DAY = '" + day + "' ");
+                sql.append("      AND ODL.USER_SID = " + row.userSid() + " ");
+                sql.append("      AND ODL.SEQ = " + row.seq() + " ");
+                sql.append("      AND ODL.USABLE_FLAG = 'Y' ");
+                sql.append("      AND NVL(TCM.VALUE6_CHAR,'*') = 'OT_INS' ");
+                sql.append(")");
+
+                dbRet = repo.callSql(sql.toString());
+
+                if(dbRet.getErrFlag().equals("Y")){
+                    throw new BizException("setCapsReSave", dbRet.getErrMsg());
+                }
                 String userId = Util.getStrChk(userDto.get("USER_ID").getObj());
+                if(dbRet.getResult().get(0).isEmpty()){
+                    throw new BizException("setCapsReSave", userId+" 신청 최신사유가 없습니다.");
+                }
+
+                String remark = Util.getStrChk(dbRet.getResult().get(0).get(0).get("REMARK").getObj());
                 String createdId = Util.getStrChk(userDto.get("CREATED_USER_ID").getObj());
                 String startTime = Util.getStrChk(userDto.get("START_TIME").getObj());
                 String endTime = Util.getStrChk(userDto.get("END_TIME").getObj());
@@ -1719,13 +1751,9 @@ public class WorkService extends ServiceBase {
                         throw new BizException("getWorkTime", dto.getTeamName()+" 상단 결제 셋팅이 없습니다.");
                     }
                     Map<String,Object> downLine = resFilter.stream().filter(v->v.get("VALUE1_CHAR").equals("FORM2")).findFirst().orElse(null);
-                    if(downLine==null){
-                        throw new BizException("getWorkTime", dto.getTeamName()+" 하단 결제 셋팅이 없습니다.");
-                    }
+
                     Map<String,Object> downName = resFilter.stream().filter(v->v.get("VALUE1_CHAR").equals("FORM3")).findFirst().orElse(null);
-                    if(downName==null){
-                        throw new BizException("getWorkTime", dto.getTeamName()+" 하단 결제 이름 셋팅이 없습니다.");
-                    }
+
 
                     int upCount = 0;
                     for(Map.Entry<String, Object> entry : upLine.entrySet()){
@@ -1734,11 +1762,14 @@ public class WorkService extends ServiceBase {
                         }
                     }
                     int downCount = 0;
-                    for(Map.Entry<String, Object> entry : downLine.entrySet()){
-                        if(entry.getKey().contains("CHAR")&&!Util.getStrChk(entry.getValue()).isEmpty()&&!entry.getKey().contains("VALUE1")){
-                            downCount++;
+                    if(downLine!=null){
+                        for(Map.Entry<String, Object> entry : downLine.entrySet()){
+                            if(entry.getKey().contains("CHAR")&&!Util.getStrChk(entry.getValue()).isEmpty()&&!entry.getKey().contains("VALUE1")){
+                                downCount++;
+                            }
                         }
                     }
+
 
 
                     Sheet formSheet = srcWorkbook.getSheet("FORM"+upCount);
@@ -1755,22 +1786,22 @@ public class WorkService extends ServiceBase {
 
                     //제목
                     Row row = copySheet.getRow(0);
-                    Cell cell = row.getCell(0);
+                    Cell cell = row.getCell(0,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     cell.setCellValue("시간 외 근무수당 신청서( "+dto.getTeamName()+" )");
                     row = copySheet.getRow(1);
                     //결재라인 수정
                     if(upCount==2){
 
                         for(int i = 1;i<=upCount;i++){
-                            cell = row.getCell(9+i);
+                            cell = row.getCell(9+i,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                             cell.setCellValue(Util.getStrChk(upLine.get("VALUE"+(i+1)+"_CHAR")));
                         }
                     }else if(upCount == 3){
                         for(int i = 1;i<=upCount;i++){
                             if(i==1){
-                                cell = row.getCell(10+i);
+                                cell = row.getCell(10+i,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                             }else{
-                                cell = row.getCell(11+i);
+                                cell = row.getCell(11+i,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                             }
                             cell.setCellValue(Util.getStrChk(upLine.get("VALUE"+(i+1)+"_CHAR")));
                         }
@@ -1779,7 +1810,7 @@ public class WorkService extends ServiceBase {
                     }
 
                     row = copySheet.getRow(4);
-                    cell = row.getCell(0);
+                    cell = row.getCell(0,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     if(date.isEmpty()){
                         LocalDate localDate = LocalDate.parse(dto.getDate(), inputFormat);
                         cell.setCellValue(localDate.format(outputFormat));
@@ -2009,17 +2040,18 @@ public class WorkService extends ServiceBase {
 
                         drawing.createPicture(anchor, pictureIdx);
                     }
+                    if(downLine!=null){
+                        for(int i = 1;i<=downCount;i++){
+                            row = copySheet.getRow(selectIdx+dataCount + 2+i);
+                            cell = row.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell.setCellValue(Util.getStrChk(downLine.get("VALUE"+(i+1)+"_CHAR"))+" :");
 
-                    for(int i = 1;i<=downCount;i++){
-                        row = copySheet.getRow(selectIdx+dataCount + 2+i);
-                        cell = row.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                        cell.setCellValue(Util.getStrChk(downLine.get("VALUE"+(i+1)+"_CHAR"))+" :");
-
-                        cell = row.getCell(10, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                        cell.setCellValue(Util.getStrChk(downName.get("VALUE"+(i+1)+"_CHAR")));
-                        cell = row.getCell(11, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                        cell.setCellValue("(인)");
-                        cell.setCellStyle(rightStyle);
+                            cell = row.getCell(10, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell.setCellValue(Util.getStrChk(downName.get("VALUE"+(i+1)+"_CHAR")));
+                            cell = row.getCell(11, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell.setCellValue("(인)");
+                            cell.setCellStyle(rightStyle);
+                        }
                     }
                 }
 
@@ -2164,24 +2196,24 @@ public class WorkService extends ServiceBase {
                         );
 
                         row = copySheet.getRow(0);
-                        cell = row.getCell(0);
+                        cell = row.getCell(0,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                         String value = cell.getStringCellValue();
                         value = value.replace("{$1}",mon.toString());
                         cell.setCellValue(value);
 
                         row = copySheet.getRow(9);
-                        cell = row.getCell(1);
+                        cell = row.getCell(1,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                         value = cell.getStringCellValue();
                         value = value.replace("{$1}",beforeMon.toString());
                         cell.setCellValue(value);
 
-                        cell = row.getCell(4);
+                        cell = row.getCell(4,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                         value = cell.getStringCellValue();
                         value = value.replace("{$1}",mon.toString());
                         cell.setCellValue(value);
 
                         row = copySheet.getRow(19);
-                        cell = row.getCell(0);
+                        cell = row.getCell(0,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                         value = cell.getStringCellValue();
                         value = value.replace("{$1}",mon.toString());
                         cell.setCellValue(value);
@@ -2192,7 +2224,7 @@ public class WorkService extends ServiceBase {
                                 DateTimeFormatter.ofPattern("yyyy. MM. dd")
                         );
                         row = copySheet.getRow(32);
-                        cell = row.getCell(0);
+                        cell = row.getCell(0,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                         cell.setCellValue(currentDate);
 
 
@@ -2200,15 +2232,15 @@ public class WorkService extends ServiceBase {
 
                         if(lineLength == 3){
                             for(int i =0;i<lineLength;i++){
-                                cell = row.getCell(12+i);
+                                cell = row.getCell(12+i,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                                 cell.setCellValue(dto.getGroupLine()[i]);
                             }
                         }else if(lineLength == 4){
                             for(int i =0;i<lineLength;i++){
                                 if(i==0){
-                                    cell = row.getCell(11+i);
+                                    cell = row.getCell(11+i,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                                 }else{
-                                    cell = row.getCell(12+i);
+                                    cell = row.getCell(12+i,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                                 }
                                 cell.setCellValue(dto.getGroupLine()[i]);
                             }
@@ -2357,7 +2389,7 @@ public class WorkService extends ServiceBase {
                     );
 
                     Row row = copySheet.getRow(0);
-                    Cell cell = row.getCell(0);
+                    Cell cell = row.getCell(0,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     cell.setCellValue(dto.getMon()+"월 시간 외 근로시간 개인별 세부내역 ("+dto.getTeamName()+"_"+dto.getTerminalCode()+")");
 
                     int rowSize = dto.getRowList().size();
@@ -2498,15 +2530,15 @@ public class WorkService extends ServiceBase {
                     );
 
                     row = copySheet.getRow(sumRowIdx);
-                    cell = row.getCell(0);
+                    cell = row.getCell(0,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     cell.setCellValue(dto.getTeamName()+" 합계");
-                    cell = row.getCell(7);
+                    cell = row.getCell(7,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     cell.setCellValue(dto.getSumAddHour());
-                    cell = row.getCell(8);
+                    cell = row.getCell(8,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     cell.setCellValue(dto.getSumNightHour());
-                    cell = row.getCell(9);
+                    cell = row.getCell(9,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     cell.setCellValue(dto.getSumHoliHour());
-                    cell = row.getCell(10);
+                    cell = row.getCell(10,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     cell.setCellValue(dto.getSumHoliAddHour());
 
                 }
@@ -3005,10 +3037,10 @@ public class WorkService extends ServiceBase {
         // 셀 스타일/값 복사
         for (int i = srcRow.getFirstCellNum(); i < srcRow.getLastCellNum(); i++) {
 
-            Cell srcCell = srcRow.getCell(i);
+            Cell srcCell = srcRow.getCell(i,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
             if (srcCell == null) continue;
 
-            Cell destCell = destRow.getCell(i);
+            Cell destCell = destRow.getCell(i,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
             if (destCell == null) {
                 destCell = destRow.createCell(i);
             }
@@ -3076,13 +3108,13 @@ public class WorkService extends ServiceBase {
              i < srcRow.getLastCellNum();
              i++) {
 
-            Cell srcCell = srcRow.getCell(i);
+            Cell srcCell = srcRow.getCell(i,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
 
             if (srcCell == null) {
                 continue;
             }
 
-            Cell destCell = destRow.getCell(i);
+            Cell destCell = destRow.getCell(i,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
 
             if (destCell == null) {
                 destCell = destRow.createCell(i);
