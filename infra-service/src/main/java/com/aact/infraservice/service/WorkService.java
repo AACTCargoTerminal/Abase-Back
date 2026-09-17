@@ -1797,13 +1797,16 @@ public class WorkService extends ServiceBase {
                             cell.setCellValue(Util.getStrChk(upLine.get("VALUE"+(i+1)+"_CHAR")));
                         }
                     }else if(upCount == 3){
-                        for(int i = 1;i<=upCount;i++){
-                            if(i==1){
-                                cell = row.getCell(10+i,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                            }else{
-                                cell = row.getCell(11+i,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                            }
-                            cell.setCellValue(Util.getStrChk(upLine.get("VALUE"+(i+1)+"_CHAR")));
+                        int[] approvalCols = {10, 12, 13};
+
+                        for (int i = 0; i < approvalCols.length; i++) {
+                            cell = row.getCell(
+                                    approvalCols[i],
+                                    Row.MissingCellPolicy.CREATE_NULL_AS_BLANK
+                            );
+                            cell.setCellValue(
+                                    Util.getStrChk(upLine.get("VALUE" + (i + 2) + "_CHAR"))
+                            );
                         }
                     }else{
                         throw new BizException("getWorkTime", upCount+"개수의 결제라인은 없습니다.");
@@ -2003,14 +2006,42 @@ public class WorkService extends ServiceBase {
                     rightStyle.setAlignment(HorizontalAlignment.RIGHT);
                     rightStyle.setVerticalAlignment(VerticalAlignment.CENTER);
                     //팀장 셋팅
-                    row = copySheet.getRow(selectIdx+dataCount + 2);
-                    cell = row.getCell(8,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                    int nameCol = upCount == 2 ? 10 : 11; // FORM2: K, FORM3: L
+                    int signCol = upCount == 2 ? 11 : 13; // FORM2: L, FORM3: N
+                    int signRowIdx = selectIdx + dataCount + 2;
+
+                    row = copySheet.getRow(signRowIdx);
+
+// FORM3: 이름 영역 L:M 병합
+                    if (upCount == 3) {
+                        // 템플릿에 이미 같은 병합이 있으면 중복 추가하지 않음
+                        boolean alreadyMerged = false;
+
+                        for (CellRangeAddress region : copySheet.getMergedRegions()) {
+                            if (region.getFirstRow() == signRowIdx
+                                    && region.getLastRow() == signRowIdx
+                                    && region.getFirstColumn() == 11
+                                    && region.getLastColumn() == 12) {
+                                alreadyMerged = true;
+                                break;
+                            }
+                        }
+
+                        if (!alreadyMerged) {
+                            copySheet.addMergedRegion(
+                                    new CellRangeAddress(signRowIdx, signRowIdx, 11, 12)
+                            );
+                        }
+                    }
+
+                    cell = row.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     cell.setCellValue("팀 장 :");
 
-                    cell = row.getCell(10,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                    // 이름: 병합 영역의 첫 셀인 L에 입력
+                    cell = row.getCell(nameCol, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     cell.setCellValue(dto.getApproveName());
 
-                    cell = row.getCell(11,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                    cell = row.getCell(signCol, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     cell.setCellValue("(인)");
                     cell.setCellStyle(rightStyle);
 
@@ -2028,10 +2059,10 @@ public class WorkService extends ServiceBase {
                         ClientAnchor anchor = helper.createClientAnchor();
 
                         // K열 위쪽에 이미지 배치
-                        anchor.setCol1(11); // K
-                        anchor.setRow1(selectIdx+dataCount+2);  // 9행
-                        anchor.setCol2(12); // L
-                        anchor.setRow2(selectIdx+dataCount+3); // 11행
+                        anchor.setCol1(signCol);
+                        anchor.setCol2(signCol + 1);
+                        anchor.setRow1(signRowIdx);
+                        anchor.setRow2(signRowIdx + 1);
 
                         anchor.setDx1(Units.toEMU(10));
                         anchor.setDy1(Units.toEMU(2));
@@ -2040,15 +2071,52 @@ public class WorkService extends ServiceBase {
 
                         drawing.createPicture(anchor, pictureIdx);
                     }
-                    if(downLine!=null){
-                        for(int i = 1;i<=downCount;i++){
-                            row = copySheet.getRow(selectIdx+dataCount + 2+i);
-                            cell = row.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                            cell.setCellValue(Util.getStrChk(downLine.get("VALUE"+(i+1)+"_CHAR"))+" :");
+                    if (downLine != null) {
+                        for (int i = 1; i <= downCount; i++) {
+                            int rowIdx = selectIdx + dataCount + 2 + i;
 
-                            cell = row.getCell(10, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                            cell.setCellValue(Util.getStrChk(downName.get("VALUE"+(i+1)+"_CHAR")));
-                            cell = row.getCell(11, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            row = copySheet.getRow(rowIdx);
+                            if (row == null) {
+                                row = copySheet.createRow(rowIdx);
+                            }
+
+                            // FORM3: 이름 영역 L:M 병합
+                            if (upCount == 3) {
+                                boolean alreadyMerged = false;
+
+                                for (CellRangeAddress region : copySheet.getMergedRegions()) {
+                                    if (region.getFirstRow() == rowIdx
+                                            && region.getLastRow() == rowIdx
+                                            && region.getFirstColumn() == 11
+                                            && region.getLastColumn() == 12) {
+                                        alreadyMerged = true;
+                                        break;
+                                    }
+                                }
+
+                                if (!alreadyMerged) {
+                                    copySheet.addMergedRegion(
+                                            new CellRangeAddress(rowIdx, rowIdx, 11, 12)
+                                    );
+                                }
+                            }
+
+                            // 직책
+                            cell = row.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell.setCellValue(
+                                    Util.getStrChk(downLine.get("VALUE" + (i + 1) + "_CHAR")) + " :"
+                            );
+
+                            // 이름
+                            cell = row.getCell(nameCol, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell.setCellValue(
+                                    downName == null
+                                            ? ""
+                                            : Util.getStrChk(downName.get("VALUE" + (i + 1) + "_CHAR"))
+                            );
+
+                            // (인)
+                            cell = row.getCell(signCol, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                             cell.setCellValue("(인)");
                             cell.setCellStyle(rightStyle);
                         }
@@ -2131,27 +2199,35 @@ public class WorkService extends ServiceBase {
 
                 StringBuilder sql = new StringBuilder();
 
-                sql.append("SELECT YEAR||MON YYYYMM, ");
-                sql.append("       SUM(ADD_WORK_HOUR) SUM_ADD_HOUR, ");
-                sql.append("       SUM(NIGHT_WORK_HOUR) SUM_NIGHT_HOUR, ");
-                sql.append("       SUM(HOLIDAY_WORK_HOUR + HOLIDAY_ADD_HOUR) SUM_HOLIDAY_HOUR, ");
-                sql.append("       TEAM_CODE, ");
-                sql.append("       SYS_FUNCTION.FCM_GET_CODE_NAME_BY_AK1('HRPAT', TEAM_CODE, 'KOR') TEAM_NAME ");
-                sql.append("FROM ( ");
-                sql.append("    SELECT T.*, ");
-                sql.append("           ROW_NUMBER() OVER ( ");
-                sql.append("               PARTITION BY YEAR, MON, USER_SID, DAY, SEQ ");
-                sql.append("               ORDER BY LOG_SEQ DESC ");
-                sql.append("           ) RN ");
-                sql.append("    FROM THR_OT_DETAIL_LOG T ");
-                sql.append("    WHERE YEAR||MON IN ('").append(date).append("','").append(prevMonth).append("') ");
-                sql.append("      AND REQ_FLAG = 'C' ");
-                sql.append("      AND USABLE_FLAG = 'Y' ");
-                sql.append("      AND REQ_START_TIME IS NOT NULL ");
-                sql.append("      AND REQ_END_TIME IS NOT NULL ");
-                sql.append(") ");
-                sql.append("WHERE RN = 1 ");
-                sql.append("GROUP BY TEAM_CODE, YEAR, MON");
+                sql.append("SELECT SUM(TOT.ADD_WORK_HOUR) SUM_ADD_HOUR ");
+                sql.append("     , SUM(TOT.NIGHT_WORK_HOUR) SUM_NIGHT_HOUR ");
+                sql.append("     , SUM(TOT.HOLIDAY_WORK_HOUR + TOT.HOLIDAY_ADD_HOUR) SUM_HOLIDAY_HOUR ");
+                sql.append("     , ODR.CODE_CODE TEAM_CODE ");
+                sql.append("     , SYS_FUNCTION.FCM_GET_CODE_NAME_BY_AK1('HRPAT', ODR.CODE_CODE, 'KOR') TEAM_NAME ");
+                sql.append("FROM THR_OT_DETAIL TOD ");
+                sql.append("JOIN THR_OT_TIME TOT ");
+                sql.append("  ON TOD.YEAR = TOT.YEAR ");
+                sql.append(" AND TOD.MON = TOT.MON ");
+                sql.append(" AND TOD.DAY = TOT.DAY ");
+                sql.append(" AND TOD.USER_SID = TOT.USER_SID ");
+                sql.append(" AND TOD.SEQ = TOT.SEQ ");
+                sql.append(" AND TOT.USABLE_FLAG = 'Y' ");
+                sql.append("JOIN THR_OT_DETAIL_REF ODR ");
+                sql.append("  ON TOD.YEAR = ODR.YEAR ");
+                sql.append(" AND TOD.MON = ODR.MON ");
+                sql.append(" AND TOD.DAY = ODR.DAY ");
+                sql.append(" AND TOD.USER_SID = ODR.USER_SID ");
+                sql.append(" AND TOD.SEQ = ODR.SEQ ");
+                sql.append(" AND ODR.USABLE_FLAG = 'Y' ");
+                sql.append(" AND ODR.CLASS_CODE = 'HRPAT' ");
+                sql.append("JOIN TCM_CODE_MASTER TCM ");
+                sql.append("  ON TCM.CODE_CODE = TOD.DETAIL_STATUS ");
+                sql.append(" AND TCM.USABLE_FLAG = 'Y' ");
+                sql.append(" AND TCM.CLASS_CODE = 'HRREQ' ");
+                sql.append("WHERE TOD.USABLE_FLAG = 'Y' ");
+                sql.append("  AND TOD.YEAR || TOD.MON IN ('").append(date).append("','").append(prevMonth).append("') ");
+                sql.append("  AND TCM.VALUE6_CHAR = 'SCH_COM' ");
+                sql.append("GROUP BY ODR.CODE_CODE, TOD.YEAR, TOD.MON ");
 
                 dbRetSum = repo.callSql(sql.toString());
                 if (dbRetSum.getErrFlag().equals("Y")) {
