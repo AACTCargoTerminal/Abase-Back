@@ -758,7 +758,7 @@ public class WorkService extends ServiceBase {
                 Map<String,DbTypeDTO> userDto = dbRet.getResult().get(0).get(0);
 
                 StringBuilder sql = new StringBuilder();
-                sql.append("SELECT L.REMARK ");
+                sql.append("SELECT L.REMARK  REMARK ");
                 sql.append("FROM THR_OT_DETAIL_LOG L ");
                 sql.append("WHERE L.YEAR = '" + yyyy + "' ");
                 sql.append("AND L.MON = '" + mon + "' ");
