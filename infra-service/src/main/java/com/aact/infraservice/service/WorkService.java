@@ -769,7 +769,7 @@ public class WorkService extends ServiceBase {
                 sql.append("    SELECT MAX(ODL.LOG_SEQ) ");
                 sql.append("    FROM THR_OT_DETAIL_LOG ODL ");
                 sql.append("    JOIN TCM_CODE_MASTER TCM ");
-                sql.append("      ON TCM.CODE_CODE = ODL.CODE_CODE ");
+                sql.append("      ON TCM.CODE_CODE = ODL.REQ_FLAG ");
                 sql.append("     AND TCM.USABLE_FLAG = 'Y' ");
                 sql.append("    WHERE ODL.YEAR = '" + yyyy + "' ");
                 sql.append("      AND ODL.MON = '" + mon + "' ");
