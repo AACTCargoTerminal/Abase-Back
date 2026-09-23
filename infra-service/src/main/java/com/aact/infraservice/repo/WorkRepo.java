@@ -638,7 +638,7 @@ public class WorkRepo extends BizBase {
     }
 
     public DbDto setWorkM010_019(String yyyy, String mm, String day, BigDecimal workUserSid, BigDecimal seq, String capsStart, String capsEnd, String startTime,
-                                 String endTime, BigDecimal addDay,String remark, String langCode, String guid, String userId, String ipAddr, String pgmId) {
+                                 String endTime, BigDecimal addDay,String deductFlag,String remark, String langCode, String guid, String userId, String ipAddr, String pgmId) {
 
         List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
 
@@ -652,6 +652,7 @@ public class WorkRepo extends BizBase {
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQ_START_TIME", startTime));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQ_END_TIME", endTime));
         input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_ADD_DAY", addDay));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_DEDUCT_FLAG", deductFlag));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REMARK", remark));
 
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_LANGUAGE_CODE", langCode));
