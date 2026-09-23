@@ -503,7 +503,7 @@ public class WorkService extends ServiceBase {
                         info.getUserId(), info.getUserIpAddress(), info.getPgmId());
             }else{
                 dbRet = repo.setWorkM010_019(yyyy, mon, day, info.getUserSid(), dto.seq(),startSet.getData().orgTime(), endSet.getData().orgTime(), dto.reqStartTime(), dto.reqEndTime(),
-                        dto.addDay(),  dto.remark(), info.getUserLang(), Util.getGUID(),
+                        dto.addDay(), dto.deductFlag(), dto.remark(), info.getUserLang(), Util.getGUID(),
                         info.getUserId(), info.getUserIpAddress(), info.getPgmId());
 
             }
@@ -589,7 +589,7 @@ public class WorkService extends ServiceBase {
                     throw new BizException("findDateToId", endSet.getErrMsg());
                 }
                 dbRet = repo.setWorkM010_019(yyyy, mon, day, userSid, BigDecimal.ZERO,startSet.getData().orgTime(), endSet.getData().orgTime(), row.reqStartTime(), row.reqEndTime(),
-                        row.addDay(),  row.remark(), info.getUserLang(), Util.getGUID(),
+                        row.addDay(), row.deductFlag(), row.remark(), info.getUserLang(), Util.getGUID(),
                         info.getUserId(), info.getUserIpAddress(), info.getPgmId());
                 if (dbRet.getErrFlag().equals("Y")) {
                     throw new BizException("setWorkM010_039", dbRet.getErrMsg());
@@ -738,6 +738,8 @@ public class WorkService extends ServiceBase {
     public ResponseDTO<?> setCapsReSave(List<CapsTimeDTO.DeleteDTO> dtos) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
+
+
         return execute(repo, () -> {
             DbDto dbRet = null;
             for (CapsTimeDTO.DeleteDTO row : dtos) {
@@ -795,6 +797,7 @@ public class WorkService extends ServiceBase {
                 String startTime = Util.getStrChk(userDto.get("START_TIME").getObj());
                 String endTime = Util.getStrChk(userDto.get("END_TIME").getObj());
                 long addDay = Util.getInteger(userDto.get("VALUE1_NUMBER").getObj());
+                String deductFlag = Util.getStrChk(userDto.get("DEDUCT_FLAG").getObj());
 
                 ResponseDTO<CapsTimeDTO.CapsRangeResult> startSet = capsService.findDateToId(CapsGetType.START,userId,row.date(),startTime);
                 if(startSet.getErrFlag().equals("Y")){
@@ -809,7 +812,7 @@ public class WorkService extends ServiceBase {
                 }
 
                 dbRet = repo.setWorkM010_019(yyyy, mon, day, row.userSid(), row.seq(),startSet.getData().orgTime(), endSet.getData().orgTime(), startTime,endTime,
-                        Util.getDecimal(addDay),  remark, info.getUserLang(), Util.getGUID(),
+                        Util.getDecimal(addDay),deductFlag,  remark, info.getUserLang(), Util.getGUID(),
                         createdId, info.getUserIpAddress(), info.getPgmId());
 
                 if(dbRet.getErrFlag().equals("Y")){
