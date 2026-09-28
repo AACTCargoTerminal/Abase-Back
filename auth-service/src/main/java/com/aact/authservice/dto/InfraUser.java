@@ -30,7 +30,12 @@ public class InfraUser {
             @JsonProperty("JOIN_DAY") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "입사일") String joinDay,
             @JsonProperty("GROUP_JOIN_DAY") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String groupJoinDay,
             @JsonProperty("TERMINAL_CODE") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "터미널") String terminalCode,
-            @JsonProperty("TERMINAL_NAME") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String terminalName) {
+            @JsonProperty("TERMINAL_NAME") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String terminalName,
+            @JsonProperty("AUTH_WORKTIMELINE_YN") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "N") String authWorktimelineYn,
+            @JsonProperty("AUTH_BOARD_WRITE_YN") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "N") String authBoardWriteYn,
+            @JsonProperty("AUTH_IN_CANCEL_YN") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "N") String authInCancelYn,
+            @JsonProperty("AUTH_BOARDHP_WRITE_YN") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "N") String authBoardhpWriteYn,
+            @JsonProperty("AUTH_IT_BOARD_YN") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "N") String authItBoardYn) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
