@@ -973,7 +973,9 @@ public class WorkService extends ServiceBase {
                     "    AND WKT.USABLE_FLAG = 'Y' " +
                     ")";
 
-            for(Map<String,Object> calRow : cal){
+            for(int i = 0;i<cal.size();i++){
+                Map<String,Object> calRow = cal.get(i);
+
                 String calDate = Util.getStrChk(calRow.get("CALENDAR_DATE"));
                 String holiCode = Util.getStrChk(calRow.get("HOLIDAY_CODE"));
                 String yyyy = calDate.substring(0,4);
@@ -1060,6 +1062,14 @@ public class WorkService extends ServiceBase {
                             groupTmp.put("TERMINAL_CODE",terminalCode);
                             groupTmp.put("TEAM_CODE",teamCode);
                             groupArray.add(groupTmp);
+                        }
+
+                        if(i == cal.size()-1){
+                            dbRet = repo.setWorkL010_012(yyyy,mon,userSid,"KOR",Util.getGUID(),"DAEMON","::","DAEMON");
+                            if(dbRet.getErrFlag().equals("Y")){
+                                throw new BizException("setScheduleAutoJob",dbRet.getErrMsg());
+                            }
+
                         }
                     }
 
