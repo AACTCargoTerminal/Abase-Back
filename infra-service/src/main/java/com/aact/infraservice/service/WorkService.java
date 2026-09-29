@@ -52,27 +52,27 @@ public class WorkService extends ServiceBase {
         WorkRepo repo = workRepoProvider.getObject();
 
         return execute(repo, () -> {
-            DbDto dbRet = repo.getWorkM010_002(date, deptCode, terminalCode, Util.getStrChk(approveFlag), info.getUserLang(), Util.getGUID(),
+            DbDto dbRet = repo.getWorkL010_005(date, deptCode, terminalCode, info.getUserLang(), Util.getGUID(),
                     info.getUserId(), info.getUserIpAddress(), info.getPgmId());
 
             return okOrThrow("getWorkM010_002", dbRet);
         });
     }
 
-    public ResponseDTO<?> getWorkM010_006(WorkDTO.HrSearchDTO dto) {
+    public ResponseDTO<?> getWorkL010_008(WorkDTO.HrSearchDTO dto) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
 
         return execute(repo, () -> {
-            DbDto dbRet = repo.getWorkM010_006(dto.type(),dto.reqFlag(),dto.deptCode(),dto.terminalCode(),dto.toDate(),dto.fromDate(),dto.date(),dto.userName(),
+            DbDto dbRet = repo.getWorkL010_008(dto.type(),dto.reqFlag(),dto.deptCode(),dto.terminalCode(),dto.toDate(),dto.fromDate(),dto.date(),dto.userName(),
                     dto.otFlag(),info.getUserLang(), Util.getGUID(),
                     info.getUserId(), info.getUserIpAddress(), info.getPgmId());
 
-            return okOrThrow("getWorkM010_006", dbRet);
+            return okOrThrow("getWorkL010_008", dbRet);
         });
     }
 
-    public ResponseDTO<?> getWorkM010_007(String date,BigDecimal userSid,BigDecimal seq) {
+    public ResponseDTO<?> getWorkL010_009(String date,BigDecimal userSid,BigDecimal seq) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
 
@@ -80,27 +80,27 @@ public class WorkService extends ServiceBase {
             String yyyy = date.substring(0,4);
             String mon = date.substring(4,6);
             Integer day = Integer.parseInt(date.substring(6,8));
-            DbDto dbRet = repo.getWorkM010_007(yyyy,mon,userSid,Util.getStrChk(day),seq,info.getUserLang(), Util.getGUID(),
+            DbDto dbRet = repo.getWorkL010_009(yyyy,mon,userSid,Util.getStrChk(day),seq,info.getUserLang(), Util.getGUID(),
                     info.getUserId(), info.getUserIpAddress(), info.getPgmId());
 
-            return okOrThrow("getWorkM010_007", dbRet);
+            return okOrThrow("getWorkL010_009", dbRet);
         });
     }
 
-    public ResponseDTO<?> setWorkM010_041(WorkDTO.HrReqSaveDTO dto) {
+    public ResponseDTO<?> setWorkL010_018(WorkDTO.HrReqSaveDTO dto) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
         return execute(repo, () -> {
 
             DbDto dbRet = null;
             for (WorkDTO.HrReqSaveRowDTO row : dto.reqArray()) {
-                dbRet = repo.setWorkM010_041(row.year(), row.mon(), row.userSid(), row.day(), row.seq(),info.getUserLang(), Util.getGUID(),
+                dbRet = repo.setWorkL010_018(row.year(), row.mon(), row.userSid(), row.day(), row.seq(),info.getUserLang(), Util.getGUID(),
                         info.getUserId(), info.getUserIpAddress(), info.getPgmId());
                 if (dbRet.getErrFlag().equals("Y")) {
-                    throw new BizException("setWorkM010_041", dbRet.getErrMsg());
+                    throw new BizException("setWorkL010_018", dbRet.getErrMsg());
                 }
             }
-            return okOrThrow("setWorkM010_041", dbRet);
+            return okOrThrow("setWorkL010_018", dbRet);
         });
     }
 
@@ -129,6 +129,7 @@ public class WorkService extends ServiceBase {
                 ExcelDTO.HoldImgDTO tmpRow = new ExcelDTO.HoldImgDTO();
                 tmpRow.setData(fileRet.getData());
                 tmpRow.setMime(Util.getStrChk(row.get("MIME").getObj()));
+                tmpRow.setRemark(Util.getStrChk(row.get("REMARK").getObj()));
                 tmpFile.add(tmpRow);
             }
 
@@ -166,6 +167,20 @@ public class WorkService extends ServiceBase {
                             throw new BizException("setWorkM010_014", row.userId() + "에 스케줄 작성이 안돼있습니다.");
                         }
 
+                        String sql = "SELECT USER_SID FROM TCM_USER_MASTER WHERE USABLE_FLAG = 'Y' AND USER_ID = '"+row.userId()+"'";
+
+                        dbRet = repo.callSql(sql);
+
+                        if(dbRet.getErrFlag().equals("Y")){
+                            throw new BizException("setWorkM010_014",dbRet.getErrMsg());
+                        }
+
+                        if(dbRet.getResult().get(0).isEmpty()){
+                            throw new BizException("setWorkM010_014",row.userId()+" 없는 근무자 입니다.");
+                        }
+
+                        userSid = Util.getDecimal(dbRet.getResult().get(0).get(0).get("USER_SID").getObj());
+
                         for(int dayIdx = 0; dayIdx<row.dayArray().size();dayIdx++){
                             WorkDTO.SaveDayDTO row2 = row.dayArray().get(dayIdx);
 
@@ -175,83 +190,97 @@ public class WorkService extends ServiceBase {
                             if (str.length > 2) {
                                 throw new BizException("setWorkM010_014", row.userId() + "근무자 " + row2.day() + "일 " + "하루에 코드는 2개까지입니다.");
                             }
+
                             if (str.length == 0) {
-                                continue;
-                            }
-                            for (int i = 0; i < str.length; i++) {
-                                String dayStrTmp = str[i];
-                                String beforeReg = "";
-                                String code = "";
-                                String terminal = "";
-                                BigDecimal ot = new BigDecimal(0);
-
-                                for (int j = 0; j < 3; j++) {
-                                    String[] parseTmp = parsingDayStr(dayStrTmp);
-                                    if (parseTmp == null) {
-                                        throw new BizException("setWorkM010_014", row.userId() + "에 " + row2.day() + "일 코드가 잘못됐습니다. ( " + row2.dayStr() + " )");
-                                    }
-                                    if (parseTmp[1] == null) {
-                                        if (j == 0) {
-                                            code = parseTmp[0];
-                                        } else {
-                                            if (beforeReg.equals("-")) {
-                                                terminal = parseTmp[0];
-                                            } else if (beforeReg.equals("+")) {
-                                                ot = Util.getDecimal(parseTmp[0]);
-                                            }
-                                        }
-                                        break;
-                                    }
-                                    beforeReg = parseTmp[0];
-                                    if (j == 0) {
-                                        code = parseTmp[1];
-                                    } else {
-                                        if (beforeReg.equals("-")) {
-                                            terminal = parseTmp[1];
-                                        } else if (beforeReg.equals("+")) {
-                                            ot = Util.getDecimal(parseTmp[1]);
-                                        }
-                                    }
-
-
-                                    dayStrTmp = parseTmp[2];
-
-
-                                }
-
-                                if (!terminal.isEmpty()) {
-                                    if (!terminal.equals("A")) {
-                                        boolean flag = false;
-                                        for (Map<String, DbTypeDTO> dbRow : hrtrm.getResult().get(0)) {
-                                            if (dbRow.get("CODE_CODE").getObj().toString().equals(terminal)) {
-                                                flag = true;
-                                            }
-                                        }
-
-                                        if (!flag) {
-                                            throw new BizException("setWorkM010_014", terminal + "< 터미널은 없는 터미널입니다.");
-                                        }
-                                    }
-                                }
-
-                                dbRet = repo.setWorkM010_040(yyyy, mon, row.userId(),row2.day() , new BigDecimal(i),
-                                        code,ot,terminal,dto.terminalCode(),dto.teamCode(),
+                                dbRet = repo.setWorkM010_021(yyyy,mon,row2.day(),userSid,new BigDecimal("-1"),"N",
                                         info.getUserLang(), Util.getGUID(),
                                         info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-                                if (dbRet.getErrFlag().equals("Y")) {
-                                    throw new BizException("setWorkM010_014", dbRet.getErrMsg());
-                                }
-                                userSid = Util.getDecimal(dbRet.getRetObj().get("O_USER_SID"));
-                            }
 
-                            if((dayIdx == row.dayArray().size()-1)&&row.closeFlag().equals("Y")){
-                                dbRet = repo.setWorkM010_014(yyyy, mon, userSid,info.getUserLang(), Util.getGUID(),
-                                        info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-                                if (dbRet.getErrFlag().equals("Y")) {
-                                    throw new BizException("setWorkM010_014", dbRet.getErrMsg());
+                                if(dbRet.getErrFlag().equals("Y")){
+                                    throw new BizException("setWorkM010_014",dbRet.getErrMsg());
                                 }
+
+
+                            }else{
+                                for (int i = 0; i < str.length; i++) {
+                                    String dayStrTmp = str[i];
+                                    String beforeReg = "";
+                                    String code = "";
+                                    String terminal = "";
+                                    BigDecimal ot = new BigDecimal(0);
+
+                                    for (int j = 0; j < 3; j++) {
+                                        String[] parseTmp = parsingDayStr(dayStrTmp);
+                                        if (parseTmp == null) {
+                                            throw new BizException("setWorkM010_014", row.userId() + "에 " + row2.day() + "일 코드가 잘못됐습니다. ( " + row2.dayStr() + " )");
+                                        }
+                                        if (parseTmp[1] == null) {
+                                            if (j == 0) {
+                                                code = parseTmp[0];
+                                            } else {
+                                                if (beforeReg.equals("-")) {
+                                                    terminal = parseTmp[0];
+                                                } else if (beforeReg.equals("+")) {
+                                                    ot = Util.getDecimal(parseTmp[0]);
+                                                }
+                                            }
+                                            break;
+                                        }
+                                        beforeReg = parseTmp[0];
+                                        if (j == 0) {
+                                            code = parseTmp[1];
+                                        } else {
+                                            if (beforeReg.equals("-")) {
+                                                terminal = parseTmp[1];
+                                            } else if (beforeReg.equals("+")) {
+                                                ot = Util.getDecimal(parseTmp[1]);
+                                            }
+                                        }
+
+
+                                        dayStrTmp = parseTmp[2];
+
+
+                                    }
+
+                                    if (!terminal.isEmpty()) {
+                                        if (!terminal.equals("A")) {
+                                            boolean flag = false;
+                                            for (Map<String, DbTypeDTO> dbRow : hrtrm.getResult().get(0)) {
+                                                if (dbRow.get("CODE_CODE").getObj().toString().equals(terminal)) {
+                                                    flag = true;
+                                                }
+                                            }
+
+                                            if (!flag) {
+                                                throw new BizException("setWorkM010_014", row.userId() +"근무자 "+row2.day()+"일 "+ terminal + " 터미널은 없는 터미널입니다.");
+                                            }
+                                        }
+                                    }
+
+                                    dbRet = repo.setWorkL010_011(yyyy, mon, row.userId(),row2.day() , new BigDecimal(i),
+                                            code,ot,terminal,dto.terminalCode(),dto.teamCode(),
+                                            info.getUserLang(), Util.getGUID(),
+                                            info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+                                    if (dbRet.getErrFlag().equals("Y")) {
+                                        throw new BizException("setWorkM010_014", dbRet.getErrMsg());
+                                    }
+                                    userSid = Util.getDecimal(dbRet.getRetObj().get("O_USER_SID"));
+                                }
+
                             }
                         }
+
+                        List<WorkDTO.SaveDayDTO> tmp = row.dayArray().stream().filter(v->!v.dayStr().isEmpty()).toList();
+
+                        if(!tmp.isEmpty()){
+                            dbRet = repo.setWorkL010_012(yyyy, mon, userSid,info.getUserLang(), Util.getGUID(),
+                                    info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+                            if (dbRet.getErrFlag().equals("Y")) {
+                                throw new BizException("setWorkL010_012", dbRet.getErrMsg());
+                            }
+                        }
+
 
                     }
                     return okOrThrow("setWorkM010_014", dbRet);
@@ -291,6 +320,7 @@ public class WorkService extends ServiceBase {
 
     public String[] parsingDayStr(String dayStr) {
         try {
+            dayStr = dayStr.toUpperCase();
             int idx = dayStr.length();
             char found = 0;
 
@@ -335,22 +365,22 @@ public class WorkService extends ServiceBase {
 
     }
 
-    public ResponseDTO<?> setWorkM010_017(String date,String teamCode,String terminalCode) {
+    public ResponseDTO<?> setWorkL010_013(String date,String teamCode,String terminalCode) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
 
         return execute(repo, () -> {
             if (info.getSignData() == null || info.getSignData().length == 0) {
-                throw new BizException("setWorkM010_017", "도장을 등록하여 주세요.");
+                throw new BizException("setWorkL010_013", "도장을 등록하여 주세요.");
             }
             DbDto dbRet = null;
 
-            dbRet = repo.setWorkM010_017(date.substring(0, 4), date.substring(4, 6), teamCode, terminalCode,info.getUserLang(), Util.getGUID(),
+            dbRet = repo.setWorkL010_013(date.substring(0, 4), date.substring(4, 6), teamCode, terminalCode,info.getUserLang(), Util.getGUID(),
                     info.getUserId(), info.getUserIpAddress(), info.getPgmId());
             if (dbRet.getErrFlag().equals("Y")) {
-                throw new BizException("setWorkM010_017", dbRet.getErrMsg());
+                throw new BizException("setWorkL010_013", dbRet.getErrMsg());
             }
-            return okOrThrow("setWorkM010_017", dbRet);
+            return okOrThrow("setWorkL010_013", dbRet);
         });
 
     }
@@ -393,19 +423,23 @@ public class WorkService extends ServiceBase {
                 throw new BizException("setWorkM010_018", "파일변환실패");
             }
 
-            FileMeta meta = metaRet.get(0);
-            BigDecimal fileSize = Util.getDecimal(meta.getSize());
-            if (fileSize.compareTo(BigDecimal.ZERO) == 0) {
-                throw new BizException("setWorkM010_018", "파일사이즈 문제");
+            for(int i = 0;i<metaRet.size();i++){
+                BigDecimal fileSize = Util.getDecimal(metaRet.get(i).getSize());
+                if (fileSize.compareTo(BigDecimal.ZERO) == 0) {
+                    throw new BizException("setWorkM010_018", "파일사이즈 문제");
+                }
+                FileMeta meta = metaRet.get(i);
+                BigDecimal idx = Util.getDecimal(i+1);
+                dbRet = repo.setWorkM010_018(dto.year(), dto.mon(), Util.getInteger(dto.day()).toString(), dto.userSid(), dto.seq(), idx,dto.imgType(),
+                        meta.getDir(), meta.getOriginName(), meta.getChangeName(), meta.getFullpath(),
+                        fileSize, meta.getMime(), meta.getExt(), info.getUserLang(), Util.getGUID(),
+                        info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+                if (dbRet.getErrFlag().equals("Y")) {
+                    throw new BizException("setWorkM010_018", dbRet.getErrMsg());
+                }
             }
 
-            dbRet = repo.setWorkM010_018(dto.year(), dto.mon(), Util.getInteger(dto.day()).toString(), dto.userSid(), dto.seq(), dto.imgType(),
-                    meta.getDir(), meta.getOriginName(), meta.getChangeName(), meta.getFullpath(),
-                    fileSize, meta.getMime(), meta.getExt(), info.getUserLang(), Util.getGUID(),
-                    info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-            if (dbRet.getErrFlag().equals("Y")) {
-                throw new BizException("setWorkM010_018", dbRet.getErrMsg());
-            }
+
 
             return okOrThrow("setWorkM010_018", dbRet);
         });
@@ -473,7 +507,7 @@ public class WorkService extends ServiceBase {
                         info.getUserId(), info.getUserIpAddress(), info.getPgmId());
             }else{
                 dbRet = repo.setWorkM010_019(yyyy, mon, day, info.getUserSid(), dto.seq(),startSet.getData().orgTime(), endSet.getData().orgTime(), dto.reqStartTime(), dto.reqEndTime(),
-                        dto.addDay(),  dto.remark(), info.getUserLang(), Util.getGUID(),
+                        dto.addDay(), dto.deductFlag(), dto.remark(), info.getUserLang(), Util.getGUID(),
                         info.getUserId(), info.getUserIpAddress(), info.getPgmId());
 
             }
@@ -505,7 +539,7 @@ public class WorkService extends ServiceBase {
                 throw new BizException("setWorkM010_019", "파일사이즈 문제");
             }
 
-            dbRet = repo.setWorkM010_018(yyyy, mon, day, info.getUserSid(), dto.seq(), "TIME",
+            dbRet = repo.setWorkM010_018(yyyy, mon, day, info.getUserSid(), dto.seq(),BigDecimal.ONE, "TIME",
                     metaRet.get(0).getDir(), metaRet.get(0).getOriginName(), metaRet.get(0).getChangeName(), metaRet.get(0).getFullpath()
                     , fileSize, metaRet.get(0).getMime(), metaRet.get(0).getExt(), info.getUserLang(), Util.getGUID(),
                     info.getUserId(), info.getUserIpAddress(), info.getPgmId());
@@ -559,7 +593,7 @@ public class WorkService extends ServiceBase {
                     throw new BizException("findDateToId", endSet.getErrMsg());
                 }
                 dbRet = repo.setWorkM010_019(yyyy, mon, day, userSid, BigDecimal.ZERO,startSet.getData().orgTime(), endSet.getData().orgTime(), row.reqStartTime(), row.reqEndTime(),
-                        row.addDay(),  row.remark(), info.getUserLang(), Util.getGUID(),
+                        row.addDay(), row.deductFlag(), row.remark(), info.getUserLang(), Util.getGUID(),
                         info.getUserId(), info.getUserIpAddress(), info.getPgmId());
                 if (dbRet.getErrFlag().equals("Y")) {
                     throw new BizException("setWorkM010_039", dbRet.getErrMsg());
@@ -572,7 +606,7 @@ public class WorkService extends ServiceBase {
 
     }
 
-    public ResponseDTO<?> setWorkM010_036(String date,BigDecimal userSid,BigDecimal seq,String remark) {
+    public ResponseDTO<?> setWorkL010_017(String date,BigDecimal userSid,BigDecimal seq,String remark,String type) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
 
@@ -582,14 +616,14 @@ public class WorkService extends ServiceBase {
             String mon = date.substring(4, 6);
             String day = String.valueOf(Integer.parseInt(date.substring(6, 8)));
 
-            dbRet = repo.setWorkM010_036(yyyy, mon, day, userSid, seq,remark,  info.getUserLang(), Util.getGUID(),
+            dbRet = repo.setWorkL010_017(yyyy, mon, day, userSid, seq,remark, type, info.getUserLang(), Util.getGUID(),
                     info.getUserId(), info.getUserIpAddress(), info.getPgmId());
 
             if (dbRet.getErrFlag().equals("Y")) {
-                throw new BizException("setWorkM010_036", dbRet.getErrMsg());
+                throw new BizException("setWorkL010_017", dbRet.getErrMsg());
             }
 
-            return okOrThrow("setWorkM010_036", dbRet);
+            return okOrThrow("setWorkL010_017", dbRet);
         });
     }
 
@@ -634,17 +668,17 @@ public class WorkService extends ServiceBase {
 
     }
 
-    public ResponseDTO<?> getWorkM010_004(String date) {
+    public ResponseDTO<?> getWorkL010_007(String date,String monFlag) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
         return execute(repo, () -> {
-            DbDto dbRet = repo.getWorkM010_004(date, info.getUserLang(), Util.getGUID(),
+            DbDto dbRet = repo.getWorkL010_007(date, monFlag,info.getUserLang(), Util.getGUID(),
                     info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-            return okOrThrow("getWorkM010_004", dbRet);
+            return okOrThrow("getWorkL010_007", dbRet);
         });
     }
 
-    public ResponseDTO<?> getWorkM010_005(String date, String deptCode, String terminalCode,String userName, String approveFlag) {
+    public ResponseDTO<?> getWorkL010_006(String date, String deptCode, String terminalCode,String userName, String approveFlag) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
         return execute(repo, () -> {
@@ -659,11 +693,11 @@ public class WorkService extends ServiceBase {
                 mon = date.substring(4, 6);
                 day = date.substring(6, 8);
             } else {
-                throw new BizException("getWorkM010_005", "날짜 에러");
+                throw new BizException("getWorkL010_006", "날짜 에러");
             }
-            DbDto dbRet = repo.getWorkM010_005(yyyy, mon, day, deptCode,terminalCode, userName, approveFlag, info.getUserLang(), Util.getGUID(),
+            DbDto dbRet = repo.getWorkL010_006(yyyy, mon, day, deptCode,terminalCode, userName, approveFlag, info.getUserLang(), Util.getGUID(),
                     info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-            return okOrThrow("getWorkM010_005", dbRet);
+            return okOrThrow("getWorkL010_006", dbRet);
         });
     }
 
@@ -685,29 +719,31 @@ public class WorkService extends ServiceBase {
         });
     }
 
-    public ResponseDTO<?> setWorkM010_031(List<CapsTimeDTO.DeleteDTO> dtos) {
+    public ResponseDTO<?> setWorkL010_014(List<CapsTimeDTO.DeleteDTO> dtos) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
         return execute(repo, () -> {
             if (info.getSignData() == null || info.getSignData().length == 0) {
-                throw new BizException("setWorkM010_031", "도장을 등록하여 주세요.");
+                throw new BizException("setWorkL010_014", "도장을 등록하여 주세요.");
             }
             DbDto dbRet = null;
             for (CapsTimeDTO.DeleteDTO row : dtos) {
                 String day = String.valueOf(Integer.parseInt(row.date().substring(6, 8)));
-                dbRet = repo.setWorkM010_031(row.date().substring(0, 4), row.date().substring(4, 6), day, row.userSid(), row.seq(), row.logSeq(), info.getUserLang(), Util.getGUID(),
+                dbRet = repo.setWorkL010_014(row.date().substring(0, 4), row.date().substring(4, 6), day, row.userSid(), row.seq(), info.getUserLang(), Util.getGUID(),
                         info.getUserId(), info.getUserIpAddress(), info.getPgmId());
                 if (dbRet.getErrFlag().equals("Y")) {
-                    throw new BizException("setWorkM010_031", dbRet.getErrMsg());
+                    throw new BizException("setWorkL010_014", dbRet.getErrMsg());
                 }
             }
-            return okOrThrow("setWorkM010_031", dbRet);
+            return okOrThrow("setWorkL010_014", dbRet);
         });
     }
 
     public ResponseDTO<?> setCapsReSave(List<CapsTimeDTO.DeleteDTO> dtos) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
+
+
         return execute(repo, () -> {
             DbDto dbRet = null;
             for (CapsTimeDTO.DeleteDTO row : dtos) {
@@ -727,12 +763,45 @@ public class WorkService extends ServiceBase {
 
                 Map<String,DbTypeDTO> userDto = dbRet.getResult().get(0).get(0);
 
-                String remark = Util.getStrChk(userDto.get("REMARK").getObj());
+                StringBuilder sql = new StringBuilder();
+                sql.append("SELECT L.REMARK  REMARK ");
+                sql.append("FROM THR_OT_DETAIL_LOG L ");
+                sql.append("WHERE L.YEAR = '" + yyyy + "' ");
+                sql.append("AND L.MON = '" + mon + "' ");
+                sql.append("AND L.DAY = '" + day + "' ");
+                sql.append("AND L.USER_SID = " + row.userSid() + " ");
+                sql.append("AND L.SEQ = " + row.seq() + " ");
+                sql.append("AND L.LOG_SEQ = ( ");
+                sql.append("    SELECT MAX(ODL.LOG_SEQ) ");
+                sql.append("    FROM THR_OT_DETAIL_LOG ODL ");
+                sql.append("    JOIN TCM_CODE_MASTER TCM ");
+                sql.append("      ON TCM.CODE_CODE = ODL.REQ_FLAG ");
+                sql.append("     AND TCM.USABLE_FLAG = 'Y' ");
+                sql.append("    WHERE ODL.YEAR = '" + yyyy + "' ");
+                sql.append("      AND ODL.MON = '" + mon + "' ");
+                sql.append("      AND ODL.DAY = '" + day + "' ");
+                sql.append("      AND ODL.USER_SID = " + row.userSid() + " ");
+                sql.append("      AND ODL.SEQ = " + row.seq() + " ");
+                sql.append("      AND ODL.USABLE_FLAG = 'Y' ");
+                sql.append("      AND NVL(TCM.VALUE6_CHAR,'*') = 'OT_INS' ");
+                sql.append(")");
+
+                dbRet = repo.callSql(sql.toString());
+
+                if(dbRet.getErrFlag().equals("Y")){
+                    throw new BizException("setCapsReSave", dbRet.getErrMsg());
+                }
                 String userId = Util.getStrChk(userDto.get("USER_ID").getObj());
+                if(dbRet.getResult().get(0).isEmpty()){
+                    throw new BizException("setCapsReSave", userId+" 신청 최신사유가 없습니다.");
+                }
+
+                String remark = Util.getStrChk(dbRet.getResult().get(0).get(0).get("REMARK").getObj());
                 String createdId = Util.getStrChk(userDto.get("CREATED_USER_ID").getObj());
                 String startTime = Util.getStrChk(userDto.get("START_TIME").getObj());
                 String endTime = Util.getStrChk(userDto.get("END_TIME").getObj());
                 long addDay = Util.getInteger(userDto.get("VALUE1_NUMBER").getObj());
+                String deductFlag = Util.getStrChk(userDto.get("DEDUCT_FLAG").getObj());
 
                 ResponseDTO<CapsTimeDTO.CapsRangeResult> startSet = capsService.findDateToId(CapsGetType.START,userId,row.date(),startTime);
                 if(startSet.getErrFlag().equals("Y")){
@@ -747,7 +816,7 @@ public class WorkService extends ServiceBase {
                 }
 
                 dbRet = repo.setWorkM010_019(yyyy, mon, day, row.userSid(), row.seq(),startSet.getData().orgTime(), endSet.getData().orgTime(), startTime,endTime,
-                        Util.getDecimal(addDay),  remark, info.getUserLang(), Util.getGUID(),
+                        Util.getDecimal(addDay),deductFlag,  remark, info.getUserLang(), Util.getGUID(),
                         createdId, info.getUserIpAddress(), info.getPgmId());
 
                 if(dbRet.getErrFlag().equals("Y")){
@@ -758,29 +827,30 @@ public class WorkService extends ServiceBase {
         });
     }
 
-    public ResponseDTO<?> setWorkM010_032(WorkDTO.ApproveDTO dto) {
+    public ResponseDTO<?> setWorkL010_015(WorkDTO.ApproveDTO dto) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
         return execute(repo, () -> {
             if (info.getSignData() == null || info.getSignData().length == 0) {
-                throw new BizException("setWorkM010_032", "도장을 등록하여 주세요.");
+                throw new BizException("setWorkL010_015", "도장을 등록하여 주세요.");
             }
 
             DbDto dbRet = null;
             for(WorkDTO.ApproveRowDTO row : dto.userArray()){
 
-                for(String day:row.dayArray()){
-                    dbRet = repo.setWorkM010_032(dto.date().substring(0, 4), dto.date().substring(4, 6), day, row.userSid(), info.getUserLang(), Util.getGUID(),
+                for(WorkDTO.ApproveCellDTO day:row.dayArray()){
+                    dbRet = repo.setWorkL010_015(dto.date().substring(0, 4), dto.date().substring(4, 6), day.day(), row.userSid(),day.seq(),
+                            info.getUserLang(), Util.getGUID(),
                             info.getUserId(), info.getUserIpAddress(), info.getPgmId());
                     if (dbRet.getErrFlag().equals("Y")) {
-                        throw new BizException("setWorkM010_032", dbRet.getErrMsg());
+                        throw new BizException("setWorkL010_015", dbRet.getErrMsg());
                     }
                 }
 
 
 
             }
-            return okOrThrow("setWorkM010_032", dbRet);
+            return okOrThrow("setWorkL010_015", dbRet);
         });
     }
 
@@ -804,7 +874,7 @@ public class WorkService extends ServiceBase {
         });
     }
 
-    public ResponseDTO<?> setWorkM010_035(WorkDTO.HrReqSaveDTO dto) {
+    public ResponseDTO<?> setWorkL010_016(WorkDTO.HrReqSaveDTO dto) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
         return execute(repo, () -> {
@@ -812,15 +882,15 @@ public class WorkService extends ServiceBase {
             DbDto dbRet = null;
             for (WorkDTO.HrReqSaveRowDTO row : dto.reqArray()) {
 
-                dbRet = repo.setWorkM010_035(row.year(), row.mon(), row.day(), row.userSid(), row.seq(),info.getUserLang(), Util.getGUID(),
+                dbRet = repo.setWorkL010_016(row.year(), row.mon(), row.day(), row.userSid(), row.seq(),info.getUserLang(), Util.getGUID(),
                         info.getUserId(), info.getUserIpAddress(), info.getPgmId());
                 if (dbRet.getErrFlag().equals("Y")) {
-                    throw new BizException("setWorkM010_035", dbRet.getErrMsg());
+                    throw new BizException("setWorkL010_016", dbRet.getErrMsg());
                 }
 
 
             }
-            return okOrThrow("setWorkM010_035", dbRet);
+            return okOrThrow("setWorkL010_016", dbRet);
         });
     }
 
@@ -907,7 +977,9 @@ public class WorkService extends ServiceBase {
                     "    AND WKT.USABLE_FLAG = 'Y' " +
                     ")";
 
-            for(Map<String,Object> calRow : cal){
+            for(int i = 0;i<cal.size();i++){
+                Map<String,Object> calRow = cal.get(i);
+
                 String calDate = Util.getStrChk(calRow.get("CALENDAR_DATE"));
                 String holiCode = Util.getStrChk(calRow.get("HOLIDAY_CODE"));
                 String yyyy = calDate.substring(0,4);
@@ -980,7 +1052,7 @@ public class WorkService extends ServiceBase {
                         if(dbRet.getErrFlag().equals("Y")){
                             throw new BizException("setScheduleAutoJob",dbRet.getErrMsg());
                         }
-                        dbRet = repo.setWorkM010_040(yyyy,mon,userId,day,BigDecimal.ZERO,workTypeCode,
+                        dbRet = repo.setWorkL010_011(yyyy,mon,userId,day,BigDecimal.ZERO,workTypeCode,
                                 BigDecimal.ZERO,"",terminalCode,teamCode,"KOR",Util.getGUID(),"DAEMON","::","DAEMON");
                         if(dbRet.getErrFlag().equals("Y")){
                             throw new BizException("setScheduleAutoJob",dbRet.getErrMsg());
@@ -994,6 +1066,14 @@ public class WorkService extends ServiceBase {
                             groupTmp.put("TERMINAL_CODE",terminalCode);
                             groupTmp.put("TEAM_CODE",teamCode);
                             groupArray.add(groupTmp);
+                        }
+
+                        if(i == cal.size()-1){
+                            dbRet = repo.setWorkL010_012(yyyy,mon,userSid,"KOR",Util.getGUID(),"DAEMON","::","DAEMON");
+                            if(dbRet.getErrFlag().equals("Y")){
+                                throw new BizException("setScheduleAutoJob",dbRet.getErrMsg());
+                            }
+
                         }
                     }
 
@@ -1040,7 +1120,7 @@ public class WorkService extends ServiceBase {
 
                 String yyyy = date.substring(0,4);
                 String mon = date.substring(4,6);
-                dbRet = repo.setWorkM010_017(yyyy,mon,groupRow.get("TEAM_CODE"),groupRow.get("TERMINAL_CODE"),"KOR",Util.getGUID(),teamId,"::","DAEMON");
+                dbRet = repo.setWorkL010_013(yyyy,mon,groupRow.get("TEAM_CODE"),groupRow.get("TERMINAL_CODE"),"KOR",Util.getGUID(),teamId,"::","DAEMON");
                 if(dbRet.getErrFlag().equals("Y")){
                     throw new BizException("setScheduleAutoJob",dbRet.getErrMsg());
                 }
@@ -1123,7 +1203,7 @@ public class WorkService extends ServiceBase {
             headers = ResponseDTO.from(dbRet).getData().get(0);
             holiday = Util.getStrChk(dbRet.getResult().get(0).stream().filter((v)->!v.get("HOLIDAY_CODE").getObj().equals("N")).count());
 
-            dbRet = repo.getWorkM010_002(date, teamCode, terminalCode, "N", info.getUserLang(), Util.getGUID(),
+            dbRet = repo.getWorkL010_005(date, teamCode, terminalCode, info.getUserLang(), Util.getGUID(),
                     info.getUserId(), info.getUserIpAddress(), info.getPgmId());
 
             if(dbRet.getErrFlag().equals("Y")){
@@ -1688,13 +1768,9 @@ public class WorkService extends ServiceBase {
                         throw new BizException("getWorkTime", dto.getTeamName()+" 상단 결제 셋팅이 없습니다.");
                     }
                     Map<String,Object> downLine = resFilter.stream().filter(v->v.get("VALUE1_CHAR").equals("FORM2")).findFirst().orElse(null);
-                    if(downLine==null){
-                        throw new BizException("getWorkTime", dto.getTeamName()+" 하단 결제 셋팅이 없습니다.");
-                    }
+
                     Map<String,Object> downName = resFilter.stream().filter(v->v.get("VALUE1_CHAR").equals("FORM3")).findFirst().orElse(null);
-                    if(downName==null){
-                        throw new BizException("getWorkTime", dto.getTeamName()+" 하단 결제 이름 셋팅이 없습니다.");
-                    }
+
 
                     int upCount = 0;
                     for(Map.Entry<String, Object> entry : upLine.entrySet()){
@@ -1703,11 +1779,14 @@ public class WorkService extends ServiceBase {
                         }
                     }
                     int downCount = 0;
-                    for(Map.Entry<String, Object> entry : downLine.entrySet()){
-                        if(entry.getKey().contains("CHAR")&&!Util.getStrChk(entry.getValue()).isEmpty()&&!entry.getKey().contains("VALUE1")){
-                            downCount++;
+                    if(downLine!=null){
+                        for(Map.Entry<String, Object> entry : downLine.entrySet()){
+                            if(entry.getKey().contains("CHAR")&&!Util.getStrChk(entry.getValue()).isEmpty()&&!entry.getKey().contains("VALUE1")){
+                                downCount++;
+                            }
                         }
                     }
+
 
 
                     Sheet formSheet = srcWorkbook.getSheet("FORM"+upCount);
@@ -1724,31 +1803,34 @@ public class WorkService extends ServiceBase {
 
                     //제목
                     Row row = copySheet.getRow(0);
-                    Cell cell = row.getCell(0);
+                    Cell cell = row.getCell(0,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     cell.setCellValue("시간 외 근무수당 신청서( "+dto.getTeamName()+" )");
                     row = copySheet.getRow(1);
                     //결재라인 수정
                     if(upCount==2){
 
                         for(int i = 1;i<=upCount;i++){
-                            cell = row.getCell(9+i);
+                            cell = row.getCell(9+i,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                             cell.setCellValue(Util.getStrChk(upLine.get("VALUE"+(i+1)+"_CHAR")));
                         }
                     }else if(upCount == 3){
-                        for(int i = 1;i<=upCount;i++){
-                            if(i==1){
-                                cell = row.getCell(10+i);
-                            }else{
-                                cell = row.getCell(11+i);
-                            }
-                            cell.setCellValue(Util.getStrChk(upLine.get("VALUE"+(i+1)+"_CHAR")));
+                        int[] approvalCols = {10, 12, 13};
+
+                        for (int i = 0; i < approvalCols.length; i++) {
+                            cell = row.getCell(
+                                    approvalCols[i],
+                                    Row.MissingCellPolicy.CREATE_NULL_AS_BLANK
+                            );
+                            cell.setCellValue(
+                                    Util.getStrChk(upLine.get("VALUE" + (i + 2) + "_CHAR"))
+                            );
                         }
                     }else{
                         throw new BizException("getWorkTime", upCount+"개수의 결제라인은 없습니다.");
                     }
 
                     row = copySheet.getRow(4);
-                    cell = row.getCell(0);
+                    cell = row.getCell(0,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     if(date.isEmpty()){
                         LocalDate localDate = LocalDate.parse(dto.getDate(), inputFormat);
                         cell.setCellValue(localDate.format(outputFormat));
@@ -1941,14 +2023,42 @@ public class WorkService extends ServiceBase {
                     rightStyle.setAlignment(HorizontalAlignment.RIGHT);
                     rightStyle.setVerticalAlignment(VerticalAlignment.CENTER);
                     //팀장 셋팅
-                    row = copySheet.getRow(selectIdx+dataCount + 2);
-                    cell = row.getCell(8,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                    int nameCol = upCount == 2 ? 10 : 11; // FORM2: K, FORM3: L
+                    int signCol = upCount == 2 ? 11 : 13; // FORM2: L, FORM3: N
+                    int signRowIdx = selectIdx + dataCount + 2;
+
+                    row = copySheet.getRow(signRowIdx);
+
+// FORM3: 이름 영역 L:M 병합
+                    if (upCount == 3) {
+                        // 템플릿에 이미 같은 병합이 있으면 중복 추가하지 않음
+                        boolean alreadyMerged = false;
+
+                        for (CellRangeAddress region : copySheet.getMergedRegions()) {
+                            if (region.getFirstRow() == signRowIdx
+                                    && region.getLastRow() == signRowIdx
+                                    && region.getFirstColumn() == 11
+                                    && region.getLastColumn() == 12) {
+                                alreadyMerged = true;
+                                break;
+                            }
+                        }
+
+                        if (!alreadyMerged) {
+                            copySheet.addMergedRegion(
+                                    new CellRangeAddress(signRowIdx, signRowIdx, 11, 12)
+                            );
+                        }
+                    }
+
+                    cell = row.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     cell.setCellValue("팀 장 :");
 
-                    cell = row.getCell(10,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                    // 이름: 병합 영역의 첫 셀인 L에 입력
+                    cell = row.getCell(nameCol, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     cell.setCellValue(dto.getApproveName());
 
-                    cell = row.getCell(11,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                    cell = row.getCell(signCol, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     cell.setCellValue("(인)");
                     cell.setCellStyle(rightStyle);
 
@@ -1966,10 +2076,10 @@ public class WorkService extends ServiceBase {
                         ClientAnchor anchor = helper.createClientAnchor();
 
                         // K열 위쪽에 이미지 배치
-                        anchor.setCol1(11); // K
-                        anchor.setRow1(selectIdx+dataCount+2);  // 9행
-                        anchor.setCol2(12); // L
-                        anchor.setRow2(selectIdx+dataCount+3); // 11행
+                        anchor.setCol1(signCol);
+                        anchor.setCol2(signCol + 1);
+                        anchor.setRow1(signRowIdx);
+                        anchor.setRow2(signRowIdx + 1);
 
                         anchor.setDx1(Units.toEMU(10));
                         anchor.setDy1(Units.toEMU(2));
@@ -1978,17 +2088,55 @@ public class WorkService extends ServiceBase {
 
                         drawing.createPicture(anchor, pictureIdx);
                     }
+                    if (downLine != null) {
+                        for (int i = 1; i <= downCount; i++) {
+                            int rowIdx = selectIdx + dataCount + 2 + i;
 
-                    for(int i = 1;i<=downCount;i++){
-                        row = copySheet.getRow(selectIdx+dataCount + 2+i);
-                        cell = row.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                        cell.setCellValue(Util.getStrChk(downLine.get("VALUE"+(i+1)+"_CHAR"))+" :");
+                            row = copySheet.getRow(rowIdx);
+                            if (row == null) {
+                                row = copySheet.createRow(rowIdx);
+                            }
 
-                        cell = row.getCell(10, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                        cell.setCellValue(Util.getStrChk(downName.get("VALUE"+(i+1)+"_CHAR")));
-                        cell = row.getCell(11, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                        cell.setCellValue("(인)");
-                        cell.setCellStyle(rightStyle);
+                            // FORM3: 이름 영역 L:M 병합
+                            if (upCount == 3) {
+                                boolean alreadyMerged = false;
+
+                                for (CellRangeAddress region : copySheet.getMergedRegions()) {
+                                    if (region.getFirstRow() == rowIdx
+                                            && region.getLastRow() == rowIdx
+                                            && region.getFirstColumn() == 11
+                                            && region.getLastColumn() == 12) {
+                                        alreadyMerged = true;
+                                        break;
+                                    }
+                                }
+
+                                if (!alreadyMerged) {
+                                    copySheet.addMergedRegion(
+                                            new CellRangeAddress(rowIdx, rowIdx, 11, 12)
+                                    );
+                                }
+                            }
+
+                            // 직책
+                            cell = row.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell.setCellValue(
+                                    Util.getStrChk(downLine.get("VALUE" + (i + 1) + "_CHAR")) + " :"
+                            );
+
+                            // 이름
+                            cell = row.getCell(nameCol, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell.setCellValue(
+                                    downName == null
+                                            ? ""
+                                            : Util.getStrChk(downName.get("VALUE" + (i + 1) + "_CHAR"))
+                            );
+
+                            // (인)
+                            cell = row.getCell(signCol, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell.setCellValue("(인)");
+                            cell.setCellStyle(rightStyle);
+                        }
                     }
                 }
 
@@ -2068,27 +2216,35 @@ public class WorkService extends ServiceBase {
 
                 StringBuilder sql = new StringBuilder();
 
-                sql.append("SELECT YEAR||MON YYYYMM, ");
-                sql.append("       SUM(ADD_WORK_HOUR) SUM_ADD_HOUR, ");
-                sql.append("       SUM(NIGHT_WORK_HOUR) SUM_NIGHT_HOUR, ");
-                sql.append("       SUM(HOLIDAY_WORK_HOUR + HOLIDAY_ADD_HOUR) SUM_HOLIDAY_HOUR, ");
-                sql.append("       TEAM_CODE, ");
-                sql.append("       SYS_FUNCTION.FCM_GET_CODE_NAME_BY_AK1('HRPAT', TEAM_CODE, 'KOR') TEAM_NAME ");
-                sql.append("FROM ( ");
-                sql.append("    SELECT T.*, ");
-                sql.append("           ROW_NUMBER() OVER ( ");
-                sql.append("               PARTITION BY YEAR, MON, USER_SID, DAY, SEQ ");
-                sql.append("               ORDER BY LOG_SEQ DESC ");
-                sql.append("           ) RN ");
-                sql.append("    FROM THR_OT_DETAIL_LOG T ");
-                sql.append("    WHERE YEAR||MON IN ('").append(date).append("','").append(prevMonth).append("') ");
-                sql.append("      AND REQ_FLAG = 'C' ");
-                sql.append("      AND USABLE_FLAG = 'Y' ");
-                sql.append("      AND REQ_START_TIME IS NOT NULL ");
-                sql.append("      AND REQ_END_TIME IS NOT NULL ");
-                sql.append(") ");
-                sql.append("WHERE RN = 1 ");
-                sql.append("GROUP BY TEAM_CODE, YEAR, MON");
+                sql.append("SELECT SUM(TOT.ADD_WORK_HOUR) SUM_ADD_HOUR ");
+                sql.append("     , SUM(TOT.NIGHT_WORK_HOUR) SUM_NIGHT_HOUR ");
+                sql.append("     , SUM(TOT.HOLIDAY_WORK_HOUR + TOT.HOLIDAY_ADD_HOUR) SUM_HOLIDAY_HOUR ");
+                sql.append("     , ODR.CODE_CODE TEAM_CODE ");
+                sql.append("     , SYS_FUNCTION.FCM_GET_CODE_NAME_BY_AK1('HRPAT', ODR.CODE_CODE, 'KOR') TEAM_NAME ");
+                sql.append("FROM THR_OT_DETAIL TOD ");
+                sql.append("JOIN THR_OT_TIME TOT ");
+                sql.append("  ON TOD.YEAR = TOT.YEAR ");
+                sql.append(" AND TOD.MON = TOT.MON ");
+                sql.append(" AND TOD.DAY = TOT.DAY ");
+                sql.append(" AND TOD.USER_SID = TOT.USER_SID ");
+                sql.append(" AND TOD.SEQ = TOT.SEQ ");
+                sql.append(" AND TOT.USABLE_FLAG = 'Y' ");
+                sql.append("JOIN THR_OT_DETAIL_REF ODR ");
+                sql.append("  ON TOD.YEAR = ODR.YEAR ");
+                sql.append(" AND TOD.MON = ODR.MON ");
+                sql.append(" AND TOD.DAY = ODR.DAY ");
+                sql.append(" AND TOD.USER_SID = ODR.USER_SID ");
+                sql.append(" AND TOD.SEQ = ODR.SEQ ");
+                sql.append(" AND ODR.USABLE_FLAG = 'Y' ");
+                sql.append(" AND ODR.CLASS_CODE = 'HRPAT' ");
+                sql.append("JOIN TCM_CODE_MASTER TCM ");
+                sql.append("  ON TCM.CODE_CODE = TOD.DETAIL_STATUS ");
+                sql.append(" AND TCM.USABLE_FLAG = 'Y' ");
+                sql.append(" AND TCM.CLASS_CODE = 'HRREQ' ");
+                sql.append("WHERE TOD.USABLE_FLAG = 'Y' ");
+                sql.append("  AND TOD.YEAR || TOD.MON IN ('").append(date).append("','").append(prevMonth).append("') ");
+                sql.append("  AND TCM.VALUE6_CHAR = 'SCH_COM' ");
+                sql.append("GROUP BY ODR.CODE_CODE, TOD.YEAR, TOD.MON ");
 
                 dbRetSum = repo.callSql(sql.toString());
                 if (dbRetSum.getErrFlag().equals("Y")) {
@@ -2133,24 +2289,24 @@ public class WorkService extends ServiceBase {
                         );
 
                         row = copySheet.getRow(0);
-                        cell = row.getCell(0);
+                        cell = row.getCell(0,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                         String value = cell.getStringCellValue();
                         value = value.replace("{$1}",mon.toString());
                         cell.setCellValue(value);
 
                         row = copySheet.getRow(9);
-                        cell = row.getCell(1);
+                        cell = row.getCell(1,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                         value = cell.getStringCellValue();
                         value = value.replace("{$1}",beforeMon.toString());
                         cell.setCellValue(value);
 
-                        cell = row.getCell(4);
+                        cell = row.getCell(4,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                         value = cell.getStringCellValue();
                         value = value.replace("{$1}",mon.toString());
                         cell.setCellValue(value);
 
                         row = copySheet.getRow(19);
-                        cell = row.getCell(0);
+                        cell = row.getCell(0,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                         value = cell.getStringCellValue();
                         value = value.replace("{$1}",mon.toString());
                         cell.setCellValue(value);
@@ -2161,7 +2317,7 @@ public class WorkService extends ServiceBase {
                                 DateTimeFormatter.ofPattern("yyyy. MM. dd")
                         );
                         row = copySheet.getRow(32);
-                        cell = row.getCell(0);
+                        cell = row.getCell(0,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                         cell.setCellValue(currentDate);
 
 
@@ -2169,15 +2325,15 @@ public class WorkService extends ServiceBase {
 
                         if(lineLength == 3){
                             for(int i =0;i<lineLength;i++){
-                                cell = row.getCell(12+i);
+                                cell = row.getCell(12+i,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                                 cell.setCellValue(dto.getGroupLine()[i]);
                             }
                         }else if(lineLength == 4){
                             for(int i =0;i<lineLength;i++){
                                 if(i==0){
-                                    cell = row.getCell(11+i);
+                                    cell = row.getCell(11+i,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                                 }else{
-                                    cell = row.getCell(12+i);
+                                    cell = row.getCell(12+i,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                                 }
                                 cell.setCellValue(dto.getGroupLine()[i]);
                             }
@@ -2326,7 +2482,7 @@ public class WorkService extends ServiceBase {
                     );
 
                     Row row = copySheet.getRow(0);
-                    Cell cell = row.getCell(0);
+                    Cell cell = row.getCell(0,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     cell.setCellValue(dto.getMon()+"월 시간 외 근로시간 개인별 세부내역 ("+dto.getTeamName()+"_"+dto.getTerminalCode()+")");
 
                     int rowSize = dto.getRowList().size();
@@ -2370,14 +2526,18 @@ public class WorkService extends ServiceBase {
                             if(j==0){
                                 cell = row.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                                 cell.setCellValue(rowList.getUserName());
-                                copySheet.addMergedRegion(
-                                        new CellRangeAddress(
-                                                sumRowIdx,
-                                                sumRowIdx+rowList.getCellList().size()-1,
-                                                1, // B열
-                                                1
-                                        )
-                                );
+                                int mergeSize = rowList.getCellList().size();
+
+                                if (mergeSize > 1) {
+                                    copySheet.addMergedRegion(
+                                            new CellRangeAddress(
+                                                    sumRowIdx,
+                                                    sumRowIdx + mergeSize - 1,
+                                                    1, // B열
+                                                    1
+                                            )
+                                    );
+                                }
                             }
 
                             ExcelDTO.DetailCellDTO cellRow = rowList.getCellList().get(j);
@@ -2463,15 +2623,15 @@ public class WorkService extends ServiceBase {
                     );
 
                     row = copySheet.getRow(sumRowIdx);
-                    cell = row.getCell(0);
+                    cell = row.getCell(0,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     cell.setCellValue(dto.getTeamName()+" 합계");
-                    cell = row.getCell(7);
+                    cell = row.getCell(7,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     cell.setCellValue(dto.getSumAddHour());
-                    cell = row.getCell(8);
+                    cell = row.getCell(8,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     cell.setCellValue(dto.getSumNightHour());
-                    cell = row.getCell(9);
+                    cell = row.getCell(9,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     cell.setCellValue(dto.getSumHoliHour());
-                    cell = row.getCell(10);
+                    cell = row.getCell(10,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                     cell.setCellValue(dto.getSumHoliAddHour());
 
                 }
@@ -2970,10 +3130,10 @@ public class WorkService extends ServiceBase {
         // 셀 스타일/값 복사
         for (int i = srcRow.getFirstCellNum(); i < srcRow.getLastCellNum(); i++) {
 
-            Cell srcCell = srcRow.getCell(i);
+            Cell srcCell = srcRow.getCell(i,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
             if (srcCell == null) continue;
 
-            Cell destCell = destRow.getCell(i);
+            Cell destCell = destRow.getCell(i,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
             if (destCell == null) {
                 destCell = destRow.createCell(i);
             }
@@ -3041,13 +3201,13 @@ public class WorkService extends ServiceBase {
              i < srcRow.getLastCellNum();
              i++) {
 
-            Cell srcCell = srcRow.getCell(i);
+            Cell srcCell = srcRow.getCell(i,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
 
             if (srcCell == null) {
                 continue;
             }
 
-            Cell destCell = destRow.getCell(i);
+            Cell destCell = destRow.getCell(i,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
 
             if (destCell == null) {
                 destCell = destRow.createCell(i);

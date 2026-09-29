@@ -41,13 +41,19 @@ public class WorkDTO {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record ApproveRowDTO(
-            @JsonProperty("userSid") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") BigDecimal userSid,
-            @JsonProperty("dayArray") List<String> dayArray) {
+            @JsonProperty("userSid") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "근무자계정") BigDecimal userSid,
+            @JsonProperty("dayArray") List<ApproveCellDTO> dayArray) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record ApproveCellDTO(
+            @JsonProperty("seq") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "스케줄순번") BigDecimal seq,
+            @JsonProperty("day") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "스케줄날짜") String day) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record ApproveDTO(
-            @JsonProperty("date") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String date,
+            @JsonProperty("date") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "날짜정보") String date,
             @JsonProperty("userArray") List<ApproveRowDTO> userArray) {
     }
 

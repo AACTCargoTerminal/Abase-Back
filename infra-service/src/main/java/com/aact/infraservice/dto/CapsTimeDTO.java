@@ -25,6 +25,7 @@ public class CapsTimeDTO {
             @JsonProperty("nightHour") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("0") BigDecimal nightHour,
             @JsonProperty("holiHour") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("0") BigDecimal holiHour,
             @JsonProperty("holiAddHour") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("0") BigDecimal holiAddHour,
+            @JsonProperty("deductFlag") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("N") String deductFlag,
             @JsonProperty("remark") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String remark,
             @JsonProperty("files") List<MultipartFile> files) {
     }
@@ -37,6 +38,7 @@ public class CapsTimeDTO {
             @JsonProperty("reqStartTime") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String reqStartTime,
             @JsonProperty("reqEndTime") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String reqEndTime,
             @JsonProperty("remark") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String remark,
+            @JsonProperty("deductFlag") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("N") String deductFlag,
             @JsonProperty("files") List<MultipartFile> files) {
     }
 

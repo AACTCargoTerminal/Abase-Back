@@ -215,6 +215,7 @@ public class ExcelDTO {
     @NoArgsConstructor
     public static class HoldImgDTO {
 
+        private String remark;
         private String mime;
         private byte[] data;
 
