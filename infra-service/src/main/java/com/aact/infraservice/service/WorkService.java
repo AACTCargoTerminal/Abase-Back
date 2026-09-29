@@ -269,15 +269,18 @@ public class WorkService extends ServiceBase {
                                 }
 
                             }
+                        }
 
-                            if(dayIdx == row.dayArray().size()-1){
-                                dbRet = repo.setWorkL010_012(yyyy, mon, userSid,info.getUserLang(), Util.getGUID(),
-                                        info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-                                if (dbRet.getErrFlag().equals("Y")) {
-                                    throw new BizException("setWorkL010_012", dbRet.getErrMsg());
-                                }
+                        List<WorkDTO.SaveDayDTO> tmp = row.dayArray().stream().filter(v->!v.dayStr().isEmpty()).toList();
+
+                        if(!tmp.isEmpty()){
+                            dbRet = repo.setWorkL010_012(yyyy, mon, userSid,info.getUserLang(), Util.getGUID(),
+                                    info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+                            if (dbRet.getErrFlag().equals("Y")) {
+                                throw new BizException("setWorkL010_012", dbRet.getErrMsg());
                             }
                         }
+
 
                     }
                     return okOrThrow("setWorkM010_014", dbRet);
