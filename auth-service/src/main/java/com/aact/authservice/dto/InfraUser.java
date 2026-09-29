@@ -35,7 +35,13 @@ public class InfraUser {
             @JsonProperty("AUTH_BOARD_WRITE_YN") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "N") String authBoardWriteYn,
             @JsonProperty("AUTH_IN_CANCEL_YN") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "N") String authInCancelYn,
             @JsonProperty("AUTH_BOARDHP_WRITE_YN") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "N") String authBoardhpWriteYn,
-            @JsonProperty("AUTH_IT_BOARD_YN") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "N") String authItBoardYn) {
+            @JsonProperty("AUTH_IT_BOARD_YN") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "N") String authItBoardYn,
+            @JsonProperty("COMPANY_CODE") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*", label = "법인") String companyCode,
+            @JsonProperty("BRANCH_CODE") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*", label = "지사") String branchCode,
+            @JsonProperty("USABLE_FLAG") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*", label = "사용 여부") String usableFlag, @JsonProperty("EMAIL_ADDRESS") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String emailAddress,
+            @JsonProperty("PHONE_NO") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String phoneNo,
+            @JsonProperty("MOBILE_NO") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String mobileNo,
+            @JsonProperty("FAX_NO") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String faxNo) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
