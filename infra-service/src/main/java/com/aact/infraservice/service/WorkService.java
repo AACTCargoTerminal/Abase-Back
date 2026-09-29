@@ -253,7 +253,7 @@ public class WorkService extends ServiceBase {
                                             }
 
                                             if (!flag) {
-                                                throw new BizException("setWorkM010_014", terminal + "< 터미널은 없는 터미널입니다.");
+                                                throw new BizException("setWorkM010_014", row.userId() +"근무자 "+row2.day()+"일 "+ terminal + " 터미널은 없는 터미널입니다.");
                                             }
                                         }
                                     }
@@ -317,6 +317,7 @@ public class WorkService extends ServiceBase {
 
     public String[] parsingDayStr(String dayStr) {
         try {
+            dayStr = dayStr.toUpperCase();
             int idx = dayStr.length();
             char found = 0;
 
