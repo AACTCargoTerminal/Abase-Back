@@ -72,11 +72,12 @@ public class WorkRepo extends BizBase {
 
     }
 
-    public DbDto getWorkL010_007(String date, String langCode, String guid, String userId, String ipAddr, String pgmId) {
+    public DbDto getWorkL010_007(String date, String monFlag,String langCode, String guid, String userId, String ipAddr, String pgmId) {
 
         List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
 
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_YYYYMMDD", date));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_MON_FLAG", monFlag));
 
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_LANGUAGE_CODE", langCode));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_PROGRESS_GUID", guid));
