@@ -67,8 +67,8 @@ public class WorkController {
     }
 
     @GetMapping(value = "/getWorkL010_007")
-    public ResponseDTO<?> getWorkL010_007(@RequestParam("date") String date) {
-        return workService.getWorkL010_007(date);
+    public ResponseDTO<?> getWorkL010_007(@RequestParam("date") String date,@RequestParam(value = "monFlag", defaultValue = "N",required = false)String monFlag) {
+        return workService.getWorkL010_007(date,monFlag);
     }
 
     //getWorkM010_005

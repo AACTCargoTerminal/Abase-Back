@@ -668,11 +668,11 @@ public class WorkService extends ServiceBase {
 
     }
 
-    public ResponseDTO<?> getWorkL010_007(String date) {
+    public ResponseDTO<?> getWorkL010_007(String date,String monFlag) {
         ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
         return execute(repo, () -> {
-            DbDto dbRet = repo.getWorkL010_007(date, info.getUserLang(), Util.getGUID(),
+            DbDto dbRet = repo.getWorkL010_007(date, monFlag,info.getUserLang(), Util.getGUID(),
                     info.getUserId(), info.getUserIpAddress(), info.getPgmId());
             return okOrThrow("getWorkL010_007", dbRet);
         });
