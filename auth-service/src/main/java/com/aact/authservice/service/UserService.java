@@ -320,11 +320,11 @@ public class UserService extends ServiceBase {
             String phone = "";
             String mobile = "";
             String fax = "";
-            String workYn = Util.getStrChk(dto.authWorktimelineYn(), "N");
-            String boardYn = Util.getStrChk(dto.authBoardWriteYn(), "N");
-            String inYn = Util.getStrChk(dto.authInCancelYn(), "N");
-            String boardHpYn = Util.getStrChk(dto.authBoardhpWriteYn(), "N");
-            String itYn = Util.getStrChk(dto.authItBoardYn(), "N");
+            String workYn = "N";
+            String boardYn = "N";
+            String inYn = "N";
+            String boardHpYn = "N";
+            String itYn = "N";
 
             if(deptCode.isEmpty()){
                 throw new BizException("setUserInfoMgm", "HR 부서와 SAMS 부서의 일처하는 부서가 없습니다.");
@@ -356,6 +356,11 @@ public class UserService extends ServiceBase {
                     phone =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("PHONE_NO").getObj());
                     mobile =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("MOBILE_NO").getObj());
                     fax =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("FAX_NO").getObj());
+                    workYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_WORKTIMELINE_YN").getObj());
+                    boardYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_BOARD_WRITE_YN").getObj());
+                    inYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_IN_CANCEL_YN").getObj());
+                    boardHpYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_BOARDHP_WRITE_YN").getObj());
+                    itYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_IT_BOARD_YN").getObj());
                 }
 
                 dbRet = repo.setUserInfo(dto.userId(),dto.userIdChange(), dto.userPass(), dto.userPassHp(), dto.userName1(),
@@ -1062,7 +1067,7 @@ public class UserService extends ServiceBase {
 
                         String companyCode = "AACT";
                         String branchCode = "AACTINC";
-                        String deptCode = hrpat.getData().stream  ().filter(v->v.get("CODE_CODE").equals(userRow.getTeminalCode()))
+                        String deptCode = hrpat.getData().stream().filter(v->v.get("CODE_CODE").equals(userRow.getTeminalCode()))
                                 .findFirst().map(v->Util.getStrChk(v.get("VALUE3_CHAR"))).orElse("");
                         String langCode = "KOR";
                         String email = "";
