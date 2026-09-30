@@ -294,16 +294,6 @@ public class UserService extends ServiceBase {
         return execute(repo,()->{
             DbDto dbRet = null;
 
-
-            ResponseDTO<List<Map<String, Object>>> hrpat = clientService.get(ClientName.SYS,uriBuilder -> uriBuilder
-                    .path("/sys/getBaseOds")
-                    .queryParam("classCode", "HRPAT")
-                    .queryParam("codeName", "")
-                    .build(),new ParameterizedTypeReference<ResponseDTO<List<Map<String, Object>>>>() {});
-            if(hrpat.getErrFlag().equals("Y")){
-                throw new BizException("setUserInfoMgm", hrpat.getErrMsg());
-            }
-
             String teminalCode = dto.terminalCode();
             String teminalName = dto.terminalName();
             String companyCode = dto.companyCode();
@@ -321,7 +311,7 @@ public class UserService extends ServiceBase {
             String itYn = Util.getStrChk(dto.authItBoardYn(), "N");
 
             if(deptCode.isEmpty()){
-                throw new BizException("setUserInfoMgm", "HR 부서와 SAMS 부서의 일처하는 부서가 없습니다.");
+                throw new BizException("setUserInfoMgm", "부서를 선택해주세요.");
             }
 
             if(dto.userSid().compareTo(BigDecimal.ZERO)==0){
