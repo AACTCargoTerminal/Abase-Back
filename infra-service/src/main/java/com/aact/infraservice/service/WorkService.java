@@ -642,13 +642,23 @@ public class WorkService extends ServiceBase {
             String mon = dto.reqStartDate().substring(4, 6);
             String day = String.valueOf(Integer.parseInt(dto.reqStartDate().substring(6, 8)));
 
-            ResponseDTO<CapsTimeDTO.CapsRangeResult> startSet = capsService.findDateToId(CapsGetType.START,info.getUserId(),dto.reqStartDate(),dto.reqStartTime());
+            String sql = "SELECT USER_ID FROM TCM_USER_MASTER WHERE USABLE_FLAG = 'Y' AND USER_SID = "+dto.userSid();
+
+            dbRet = repo.callSql(sql);
+
+            if (dbRet.getErrFlag().equals("Y")) {
+                throw new BizException("setWorkM010_038", dbRet.getErrMsg());
+            }
+
+            String userId = Util.getStrChk(dbRet.getResult().get(0).get(0).get("USER_ID").getObj());
+
+            ResponseDTO<CapsTimeDTO.CapsRangeResult> startSet = capsService.findDateToId(CapsGetType.START,userId,dto.reqStartDate(),dto.reqStartTime());
             if(startSet.getErrFlag().equals("Y")){
                 throw new BizException("findDateToId", startSet.getErrMsg());
             }
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
             LocalDate endDate = LocalDate.parse(dto.reqStartDate(),formatter).plusDays(dto.addDay().longValue());
-            ResponseDTO<CapsTimeDTO.CapsRangeResult> endSet = capsService.findDateToId(CapsGetType.END,info.getUserId(),endDate.format(formatter),dto.reqEndTime());
+            ResponseDTO<CapsTimeDTO.CapsRangeResult> endSet = capsService.findDateToId(CapsGetType.END,userId,endDate.format(formatter),dto.reqEndTime());
             if(endSet.getErrFlag().equals("Y")){
                 throw new BizException("findDateToId", endSet.getErrMsg());
             }
