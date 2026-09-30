@@ -11,18 +11,22 @@ import com.aact.commonClient.service.FileClientService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import org.apache.coyote.Response;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StopWatch;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -30,6 +34,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -306,15 +311,15 @@ public class UserService extends ServiceBase {
 
             String teminalCode = "";
             String teminalName = "";
-            String companyCode = dto.companyCode();
-            String branchCode = dto.branchCode();
+            String companyCode = "AACT";
+            String branchCode = "AACTINC";
             String deptCode = hrpat.getData().stream().filter(v->v.get("CODE_CODE").equals(dto.teamCode()))
                     .findFirst().map(v->Util.getStrChk(v.get("VALUE3_CHAR"))).orElse("");
             String langCode = "KOR";
-            String email = dto.emailAddress();
-            String phone = dto.phoneNo();
-            String mobile = dto.mobileNo();
-            String fax = dto.faxNo();
+            String email = "";
+            String phone = "";
+            String mobile = "";
+            String fax = "";
             String workYn = Util.getStrChk(dto.authWorktimelineYn(), "N");
             String boardYn = Util.getStrChk(dto.authBoardWriteYn(), "N");
             String inYn = Util.getStrChk(dto.authInCancelYn(), "N");
@@ -344,7 +349,13 @@ public class UserService extends ServiceBase {
                 if(!dbRet.getResult().get(0).isEmpty()){
                     teminalCode =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("TERMINAL_CODE_WORK").getObj(),dto.terminalCode());
                     teminalName =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("TERMINAL_NAME_WORK").getObj(),dto.terminalName());
+                    companyCode = Util.getStrChk(dbRet.getResult().get(0).get(0).get("COMPANY_CODE").getObj());
+                    branchCode = Util.getStrChk(dbRet.getResult().get(0).get(0).get("BRANCH_CODE").getObj());
                     langCode =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("DEFAULT_LANGUAGE_CODE").getObj());
+                    email =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("EMAIL_ADDRESS").getObj());
+                    phone =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("PHONE_NO").getObj());
+                    mobile =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("MOBILE_NO").getObj());
+                    fax =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("FAX_NO").getObj());
                 }
 
                 dbRet = repo.setUserInfo(dto.userId(),dto.userIdChange(), dto.userPass(), dto.userPassHp(), dto.userName1(),

@@ -115,7 +115,7 @@ public class UserRepo extends BizBase {
         return callProc("USR_SCHEDULE_L010.PWM_SCHEDULE_L010_003", input);
     }
 
-    public DbDto setUserInfo(String userId, String changeId, String paas, String passHp, String userName1, String userName2,
+    public DbDto setUserInfo(String userId, String changeId,String paas, String passHp, String userName1, String userName2,
                              String companyCode, String branchCode, String deptCode, String langCode, String email, String phone,
                              String mobile, String fax, String trmCode, String trmName, String workYn, String boardYn, String inYn,
                              String boardHpYn, String itYn, String lang, String prgressGuid, String requestId, String requestIp,
@@ -143,6 +143,7 @@ public class UserRepo extends BizBase {
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_AUTH_IN_CANCEL_YN", inYn));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_AUTH_BOARDHP_WRITE_YN", boardHpYn));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_AUTH_IT_BOARD_YN", itYn));
+
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_LANGUAGE_CODE", lang));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_PROGRESS_GUID", prgressGuid));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_USER_ID", requestId));
