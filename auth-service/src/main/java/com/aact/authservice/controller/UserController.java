@@ -25,7 +25,11 @@ import java.util.Map;
 public class UserController {
     private final UserService userService;
 
-    @PostMapping(value = "/login", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(
+            value = "/login",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
     public ResponseDTO<?> login(HttpServletRequest reqs, @RequestBody @Validated LoginReq.LoginDTO req) {
         return userService.login(req,reqs);
     }
