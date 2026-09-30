@@ -11,22 +11,18 @@ import com.aact.commonClient.service.FileClientService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
-import org.apache.coyote.Response;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StopWatch;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
-import java.awt.*;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -34,7 +30,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -309,22 +304,21 @@ public class UserService extends ServiceBase {
                 throw new BizException("setUserInfoMgm", hrpat.getErrMsg());
             }
 
-            String teminalCode = "";
-            String teminalName = "";
-            String companyCode = "AACT";
-            String branchCode = "AACTINC";
-            String deptCode = hrpat.getData().stream().filter(v->v.get("CODE_CODE").equals(dto.teamCode()))
-                    .findFirst().map(v->Util.getStrChk(v.get("VALUE3_CHAR"))).orElse("");
-            String langCode = "KOR";
-            String email = "";
-            String phone = "";
-            String mobile = "";
-            String fax = "";
-            String workYn = "N";
-            String boardYn = "N";
-            String inYn = "N";
-            String boardHpYn = "N";
-            String itYn = "N";
+            String teminalCode = dto.terminalCode();
+            String teminalName = dto.terminalName();
+            String companyCode = dto.companyCode();
+            String branchCode = dto.branchCode();
+            String deptCode = dto.departmentCode();
+            String langCode = dto.defaultLanguageCode();
+            String email = dto.emailAddress();
+            String phone = dto.phoneNo();
+            String mobile = dto.mobileNo();
+            String fax = dto.faxNo();
+            String workYn = Util.getStrChk(dto.authWorktimelineYn(), "N");
+            String boardYn = Util.getStrChk(dto.authBoardWriteYn(), "N");
+            String inYn = Util.getStrChk(dto.authInCancelYn(), "N");
+            String boardHpYn = Util.getStrChk(dto.authBoardhpWriteYn(), "N");
+            String itYn = Util.getStrChk(dto.authItBoardYn(), "N");
 
             if(deptCode.isEmpty()){
                 throw new BizException("setUserInfoMgm", "HR 부서와 SAMS 부서의 일처하는 부서가 없습니다.");
@@ -346,23 +340,6 @@ public class UserService extends ServiceBase {
                     throw new BizException("setUserInfoMgm", dbRet.getErrMsg());
                 }
 
-                if(!dbRet.getResult().get(0).isEmpty()){
-                    teminalCode =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("TERMINAL_CODE_WORK").getObj(),dto.terminalCode());
-                    teminalName =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("TERMINAL_NAME_WORK").getObj(),dto.terminalName());
-                    companyCode = Util.getStrChk(dbRet.getResult().get(0).get(0).get("COMPANY_CODE").getObj());
-                    branchCode = Util.getStrChk(dbRet.getResult().get(0).get(0).get("BRANCH_CODE").getObj());
-                    langCode =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("DEFAULT_LANGUAGE_CODE").getObj());
-                    email =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("EMAIL_ADDRESS").getObj());
-                    phone =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("PHONE_NO").getObj());
-                    mobile =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("MOBILE_NO").getObj());
-                    fax =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("FAX_NO").getObj());
-                    workYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_WORKTIMELINE_YN").getObj());
-                    boardYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_BOARD_WRITE_YN").getObj());
-                    inYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_IN_CANCEL_YN").getObj());
-                    boardHpYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_BOARDHP_WRITE_YN").getObj());
-                    itYn =  Util.getStrChk(dbRet.getResult().get(0).get(0).get("AUTH_IT_BOARD_YN").getObj());
-                }
-
                 dbRet = repo.setUserInfo(dto.userId(),dto.userIdChange(), dto.userPass(), dto.userPassHp(), dto.userName1(),
                         dto.userName2(),companyCode,branchCode,deptCode,
                         langCode,email,phone,mobile,fax,teminalCode,teminalName,
@@ -380,45 +357,6 @@ public class UserService extends ServiceBase {
             if(userSid.compareTo(BigDecimal.ZERO)==0){
                 throw new BizException("setUserInfoMgm", "유저 정보 저장실패 HR 설정 불가능");
             }
-
-            dbRet = repo.setUserRel(userSid,"HRWDT","A",
-                    "0000",dto.joinDay(),"","",""
-                    ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
-            if(dbRet.getErrFlag().equals("Y")){
-                throw new BizException("setUserInfoMgm", dbRet.getErrMsg());
-            }
-            if(!dto.groupJoinDay().isEmpty()){
-                dbRet = repo.setUserRel(userSid,"HRWDT","C",
-                        "0000",dto.groupJoinDay(),"","",""
-                        ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
-                if(dbRet.getErrFlag().equals("Y")){
-                    throw new BizException("setUserInfoMgm", dbRet.getErrMsg());
-                }
-            }
-
-            dbRet = repo.setUserRel(userSid,"HRPAT",dto.teamCode(),
-                    "0000",dto.teamDate(),"","",""
-                    ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
-            if(dbRet.getErrFlag().equals("Y")){
-                throw new BizException("setUserInfoMgm", dbRet.getErrMsg());
-            }
-
-            dbRet = repo.setUserRel(userSid,"TRMCD",dto.terminalCode(),
-                    "0000","","","",""
-                    ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
-            if(dbRet.getErrFlag().equals("Y")){
-                throw new BizException("setUserInfoMgm", dbRet.getErrMsg());
-            }
-
-            dbRet = repo.setUserRel(userSid,"TRMCD",dto.terminalCode(),
-                    "0000","","","",""
-                    ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
-            if(dbRet.getErrFlag().equals("Y")){
-                throw new BizException("setUserInfoMgm", dbRet.getErrMsg());
-            }
-
-
-
             return okOrThrow("setUserInfoMgm", dbRet);
         });
     }
@@ -1054,8 +992,8 @@ public class UserService extends ServiceBase {
                     if(dbRet.getResult().get(0).isEmpty()){
 
                         dbRet = repo.setUserInfo("",userRow.getUserId(),pass,pass,userRow.getUserName(),userRow.getUserName(),"AACT","AACTINC"
-                        ,Util.getStrChk(findHrpat.get("VALUE3_CHAR")),"KOR","","","","",Util.getStrChk(findTrmcd.get("CODE_CODE"))
-                        , Util.getStrChk(findTrmcd.get("CODE_NAME")),"N","N","N","N","N"
+                                ,Util.getStrChk(findHrpat.get("VALUE3_CHAR")),"KOR","","","","",Util.getStrChk(findTrmcd.get("CODE_CODE"))
+                                , Util.getStrChk(findTrmcd.get("CODE_NAME")),"N","N","N","N","N"
                                 ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
                         if(dbRet.getErrFlag().equals("Y")){
                             throw new BizException("setUserGroup", dbRet.getErrMsg());
