@@ -118,7 +118,11 @@ public class WorkController {
     public ResponseDTO<?> setWorkL010_018(@RequestBody WorkDTO.HrReqSaveDTO dto) {
         return workService.setWorkL010_018(dto);
     }
-
+    //setWorkM010_021
+    @DeleteMapping(value = "/setWorkM010_021")
+    public ResponseDTO<?> setWorkM010_021(@RequestBody WorkDTO.SchDeleteDTO dto) {
+        return workService.setWorkM010_021(dto);
+    }
     @PostMapping(value = "/setWorkM010_042")
     public ResponseDTO<?> setWorkM010_042(@RequestBody WorkDTO.HrFileSearchDTO dto) {
         return workService.setWorkM010_042(dto);
