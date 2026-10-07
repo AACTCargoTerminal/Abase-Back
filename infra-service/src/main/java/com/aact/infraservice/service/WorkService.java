@@ -159,6 +159,12 @@ public class WorkService extends ServiceBase {
 
                     DbDto hrtrm = repo.callSql("SELECT CODE_CODE FROM TCM_CODE_MASTER WHERE CLASS_CODE = 'HRTRM' AND USABLE_FLAG = 'Y'");
 
+                    DbDto calCount = repo.callSql("SELECT COUNT(*) CAL_COUNT FROM TCM_CALENDAR_MASTER WHERE USABLE_FLAG = 'Y' AND YYYYMM = '"+yyyy+mon+"'");
+                    if(calCount.getErrFlag().equals("Y")){
+                        throw new BizException("setWorkM010_014", calCount.getErrMsg());
+                    }
+
+                    int count = Util.getInteger(calCount.getResult().get(0).get(0).get("CAL_COUNT").getObj());
 
                     for (WorkDTO.SaveUserDTO row : dto.userArray()) {
                         BigDecimal userSid = null;
@@ -273,7 +279,9 @@ public class WorkService extends ServiceBase {
 
                         List<WorkDTO.SaveDayDTO> tmp = row.dayArray().stream().filter(v->!v.dayStr().isEmpty()).toList();
 
-                        if(!tmp.isEmpty()){
+                        if(tmp.size()== count){
+                            throw new BizException("setWorkM010_014", row.userId() +"근무자의 근무일정이 모두 비어있습니다. \n최소 1일 이상의 근무일정을 입력해주세요.");
+                        }else{
                             dbRet = repo.setWorkL010_012(yyyy, mon, userSid,info.getUserLang(), Util.getGUID(),
                                     info.getUserId(), info.getUserIpAddress(), info.getPgmId());
                             if (dbRet.getErrFlag().equals("Y")) {
@@ -548,6 +556,54 @@ public class WorkService extends ServiceBase {
         });
 
 
+    }
+
+    public ResponseDTO<?> setWorkM010_021(WorkDTO.SchDeleteDTO dto) {
+        ClsUserInfo info = UserContext.get();
+        WorkRepo repo = workRepoProvider.getObject();
+
+        return execute(repo, () -> {
+            DbDto dbRet = null;
+
+            DbDto calCount = repo.callSql("SELECT COUNT(*) CAL_COUNT FROM TCM_CALENDAR_MASTER WHERE USABLE_FLAG = 'Y' AND YYYYMM = '"+dto.date()+"'");
+            if(calCount.getErrFlag().equals("Y")){
+                throw new BizException("setWorkM010_021", calCount.getErrMsg());
+            }
+
+            int count = Util.getInteger(calCount.getResult().get(0).get(0).get("CAL_COUNT").getObj());
+
+            String yyyy = dto.date().substring(0,4);
+            String mon = dto.date().substring(4,6);
+
+            if(dto.userArray()==null||dto.userArray().isEmpty()){
+                throw new BizException("setWorkM010_021", "삭제할 근무자가 없습니다.");
+            }
+
+            for(int i = 1;i<= count;i++){
+                for(BigDecimal row : dto.userArray()){
+                    dbRet = repo.setWorkM010_021(yyyy,mon,Util.getStrChk(i) ,row,new BigDecimal("-1"),"N",
+                            info.getUserLang(), Util.getGUID(),
+                            info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+
+                    if(dbRet.getErrFlag().equals("Y")){
+                        throw new BizException("setWorkM010_021", dbRet.getErrMsg());
+                    }
+                }
+
+            }
+
+            for(BigDecimal row : dto.userArray()){
+                dbRet = repo.setWorkM010_021(yyyy,mon,"00" ,row,new BigDecimal("-1"),"N",
+                        info.getUserLang(), Util.getGUID(),
+                        info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+
+                if(dbRet.getErrFlag().equals("Y")){
+                    throw new BizException("setWorkM010_021", dbRet.getErrMsg());
+                }
+            }
+
+            return okOrThrow("setWorkM010_021", dbRet);
+        });
     }
 
     public ResponseDTO<?> setWorkM010_039(List<CapsTimeDTO.SearchGroupDTO> dtos) {

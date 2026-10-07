@@ -14,6 +14,12 @@ import java.util.List;
 
 public class WorkDTO {
     @JsonIgnoreProperties(ignoreUnknown = true)
+    public record SchDeleteDTO(
+            @JsonProperty("date") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "날짜") String date,
+            @JsonProperty("userArray") List<BigDecimal> userArray) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public record SaveDTO(
             @JsonProperty("date") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String date,
             @JsonProperty("halfType") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String halfType,
