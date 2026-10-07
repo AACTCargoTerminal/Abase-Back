@@ -34,7 +34,7 @@ public class RetiredUserCleanupService extends ServiceBase {
         UserRepo repo = userRepoProvider.getObject();
 
         return execute(repo, () -> {
-            DbDto dbRet = repo.setRetiredUserCleanup(
+            DbDto dbRet = repo.setUserM010_023(
                     cutoffDate,
                     "KOR",
                     Util.getGUID(),
@@ -48,7 +48,7 @@ public class RetiredUserCleanupService extends ServiceBase {
                     cutoffDate
             );
 
-            return okOrThrow("setRetiredUserCleanup", dbRet);
+            return okOrThrow("setUserM010_023", dbRet);
         });
     }
 }

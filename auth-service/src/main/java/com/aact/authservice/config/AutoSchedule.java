@@ -14,7 +14,7 @@ public class AutoSchedule {
 
     private final RetiredUserCleanupService retiredUserCleanupService;
 
-    @Scheduled(cron = "0 0 0 10 * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 0 0 11 * *", zone = "Asia/Seoul")
     public void scheduleRetiredUserCleanup() {
         log.info("퇴사 사용자 자동 비활성화 시작");
 

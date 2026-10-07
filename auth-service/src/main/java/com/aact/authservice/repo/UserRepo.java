@@ -377,7 +377,7 @@ public class UserRepo extends BizBase {
 
         return callProc("USR_USER_M010.PCM_USER_M010_021", input);
     }
-    public DbDto setRetiredUserCleanup(
+    public DbDto setUserM010_023(
             String cutoffDate,
             String lang,
             String progressGuid,
