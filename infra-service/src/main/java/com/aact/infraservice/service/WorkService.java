@@ -277,19 +277,11 @@ public class WorkService extends ServiceBase {
                             }
                         }
 
-                        List<WorkDTO.SaveDayDTO> tmp = row.dayArray().stream().filter(v->!v.dayStr().isEmpty()).toList();
-
-                        if(tmp.size()== count){
-                            throw new BizException("setWorkM010_014", row.userId() +"근무자의 근무일정이 모두 비어있습니다. \n최소 1일 이상의 근무일정을 입력해주세요.");
-                        }else{
-                            dbRet = repo.setWorkL010_012(yyyy, mon, userSid,info.getUserLang(), Util.getGUID(),
-                                    info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-                            if (dbRet.getErrFlag().equals("Y")) {
-                                throw new BizException("setWorkL010_012", dbRet.getErrMsg());
-                            }
+                        dbRet = repo.setWorkL010_012(yyyy, mon, userSid,info.getUserLang(), Util.getGUID(),
+                                info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+                        if (dbRet.getErrFlag().equals("Y")) {
+                            throw new BizException("setWorkL010_012", dbRet.getErrMsg());
                         }
-
-
                     }
                     return okOrThrow("setWorkM010_014", dbRet);
 
