@@ -377,4 +377,36 @@ public class UserRepo extends BizBase {
 
         return callProc("USR_USER_M010.PCM_USER_M010_021", input);
     }
+    public DbDto setUserM010_023(
+            String cutoffDate,
+            String lang,
+            String progressGuid,
+            String requestUserId,
+            String requestIp,
+            String programId
+    ) {
+        List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN,
+                "I_CUTOFF_DATE", cutoffDate));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN,
+                "I_LANGUAGE_CODE", lang));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN,
+                "I_PROGRESS_GUID", progressGuid));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN,
+                "I_REQUEST_USER_ID", requestUserId));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN,
+                "I_REQUEST_IP_ADDRESS", requestIp));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN,
+                "I_REQUEST_PROGRAM_ID", programId));
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT,
+                "O_ERROR_FLAG", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT,
+                "O_RETURN_CODE", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT,
+                "O_RETURN_MESSAGE", ""));
+
+        return callProc("USR_USER_M010.PCM_USER_M010_023", input);
+    }
 }
