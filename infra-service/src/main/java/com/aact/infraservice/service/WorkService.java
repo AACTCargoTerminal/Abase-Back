@@ -29,12 +29,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Duration;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.YearMonth;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.List;
 
@@ -198,16 +196,18 @@ public class WorkService extends ServiceBase {
                             }
 
                             if (str.length == 0) {
-                                dbRet = repo.setWorkM010_021(yyyy,mon,row2.day(),userSid,new BigDecimal("-1"),"N",
+                                dbRet = repo.setWorkL010_011(yyyy, mon, row.userId(),row2.day() , BigDecimal.ZERO,
+                                        "",BigDecimal.ZERO,"",dto.terminalCode(),dto.teamCode(),
                                         info.getUserLang(), Util.getGUID(),
                                         info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-
-                                if(dbRet.getErrFlag().equals("Y")){
-                                    throw new BizException("setWorkM010_014",dbRet.getErrMsg());
+                                if (dbRet.getErrFlag().equals("Y")) {
+                                    throw new BizException("setWorkM010_014", dbRet.getErrMsg());
                                 }
+                                userSid = Util.getDecimal(dbRet.getRetObj().get("O_USER_SID"));
 
 
-                            }else{
+                            }
+                            else{
                                 for (int i = 0; i < str.length; i++) {
                                     String dayStrTmp = str[i];
                                     String beforeReg = "";
@@ -501,12 +501,12 @@ public class WorkService extends ServiceBase {
 
 
             if(Util.getInteger(tmpTeam.get("VALUE1_NUMBER"))==1){
-                dbRet = repo.setWorkM010_020(yyyy, mon, day, info.getUserSid(), dto.seq(), startSet.getData().orgTime(), endSet.getData().orgTime(), dto.reqStartTime(), dto.reqEndTime(),
+                dbRet = repo.setWorkM010_020(yyyy, mon, day, info.getUserSid(), dto.seq(), dto.insWorkTypeCode(),startSet.getData().orgTime(), endSet.getData().orgTime(), dto.reqStartTime(), dto.reqEndTime(),
                         dto.addDay(), Util.getDecimal(dto.addHour()), Util.getDecimal(dto.nightHour()),Util.getDecimal(dto.holiHour()), Util.getDecimal(dto.holiAddHour()),
                         dto.remark(), info.getUserLang(), Util.getGUID(),
                         info.getUserId(), info.getUserIpAddress(), info.getPgmId());
             }else{
-                dbRet = repo.setWorkM010_019(yyyy, mon, day, info.getUserSid(), dto.seq(),startSet.getData().orgTime(), endSet.getData().orgTime(), dto.reqStartTime(), dto.reqEndTime(),
+                dbRet = repo.setWorkM010_019(yyyy, mon, day, info.getUserSid(), dto.seq(), dto.insWorkTypeCode(),startSet.getData().orgTime(), endSet.getData().orgTime(), dto.reqStartTime(), dto.reqEndTime(),
                         dto.addDay(), dto.deductFlag(), dto.remark(), info.getUserLang(), Util.getGUID(),
                         info.getUserId(), info.getUserIpAddress(), info.getPgmId());
 
@@ -622,6 +622,8 @@ public class WorkService extends ServiceBase {
 
                 BigDecimal userSid = Util.getDecimal(dbRet.getResult().get(0).get(0).get("USER_SID").getObj());
 
+
+
                 if(row.addDay().compareTo(BigDecimal.ONE) > 0){
                     throw new BizException("setWorkM010_039", "날짜를 점검해주세요.");
                 }
@@ -640,7 +642,22 @@ public class WorkService extends ServiceBase {
                 if(endSet.getErrFlag().equals("Y")){
                     throw new BizException("findDateToId", endSet.getErrMsg());
                 }
-                dbRet = repo.setWorkM010_019(yyyy, mon, day, userSid, BigDecimal.ZERO,startSet.getData().orgTime(), endSet.getData().orgTime(), row.reqStartTime(), row.reqEndTime(),
+
+                sql = "SELECT WORK_TYPE_CODE FROM THR_OT_DETAIL WHERE USABLE_FLAG = 'Y' AND YEAR = '"+yyyy+"' "
+                       + "AND MON = '"+mon+"' AND DAY = '"+day+"' AND USER_SID = "+userSid+" AND SEQ = "+BigDecimal.ZERO;
+
+                dbRet = repo.callSql(sql);
+                if (dbRet.getErrFlag().equals("Y")) {
+                    throw new BizException("setWorkM010_039", dbRet.getErrMsg());
+                }
+
+                if(dbRet.getResult().get(0).isEmpty()){
+                    throw new BizException("setWorkM010_039", row.userId()+"은 예정근무가 없습니다.");
+                }
+
+                String workTypeCode = Util.getStrChk(dbRet.getResult().get(0).get(0).get("WORK_TYPE_CODE").getObj());
+
+                dbRet = repo.setWorkM010_019(yyyy, mon, day, userSid, BigDecimal.ZERO,workTypeCode,startSet.getData().orgTime(), endSet.getData().orgTime(), row.reqStartTime(), row.reqEndTime(),
                         row.addDay(), row.deductFlag(), row.remark(), info.getUserLang(), Util.getGUID(),
                         info.getUserId(), info.getUserIpAddress(), info.getPgmId());
                 if (dbRet.getErrFlag().equals("Y")) {
@@ -860,6 +877,7 @@ public class WorkService extends ServiceBase {
                 String endTime = Util.getStrChk(userDto.get("END_TIME").getObj());
                 long addDay = Util.getInteger(userDto.get("VALUE1_NUMBER").getObj());
                 String deductFlag = Util.getStrChk(userDto.get("DEDUCT_FLAG").getObj());
+                String workTypeCode = Util.getStrChk(userDto.get("INS_CODE_CODE").getObj());
 
                 ResponseDTO<CapsTimeDTO.CapsRangeResult> startSet = capsService.findDateToId(CapsGetType.START,userId,row.date(),startTime);
                 if(startSet.getErrFlag().equals("Y")){
@@ -873,7 +891,7 @@ public class WorkService extends ServiceBase {
                     throw new BizException("setCapsReSave", endSet.getErrMsg());
                 }
 
-                dbRet = repo.setWorkM010_019(yyyy, mon, day, row.userSid(), row.seq(),startSet.getData().orgTime(), endSet.getData().orgTime(), startTime,endTime,
+                dbRet = repo.setWorkM010_019(yyyy, mon, day, row.userSid(), row.seq(),workTypeCode,startSet.getData().orgTime(), endSet.getData().orgTime(), startTime,endTime,
                         Util.getDecimal(addDay),deductFlag,  remark, info.getUserLang(), Util.getGUID(),
                         createdId, info.getUserIpAddress(), info.getPgmId());
 
@@ -1185,6 +1203,564 @@ public class WorkService extends ServiceBase {
             }
 
             return okOrThrow("setScheduleAutoJob", dbRet);
+        });
+    }
+
+    public ResponseDTO<?> setSchAutoMatch(String dateStr){
+        WorkRepo repo = workRepoProvider.getObject();
+        return execute(repo,()->{
+            DbDto dbRet = null;
+
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+            DateTimeFormatter formatter2 = DateTimeFormatter.ofPattern("HHmmss");
+            String yyyyMM = dateStr.substring(0,6);
+            String dd = dateStr.substring(6,8);
+
+            StringBuilder sql = new StringBuilder();
+
+            sql.append("SELECT TOD.YEAR, TOD.MON, TOD.USER_SID, TOD.DAY, TOD.SEQ, TCM.VALUE1_NUMBER ADD_DAY, TUM.USER_ID, ");
+            sql.append("RPAD(TCM.VALUE2_CHAR,4,'0') START_TIME, RPAD(TCM.VALUE3_CHAR,4,'0') END_TIME, VALUE4_CHAR HOLIDAY_FLAG, ");
+            sql.append("ODR.CODE_CODE TEAM_CODE, ODR2.CODE_CODE TERMINAL_CODE ");
+            sql.append("FROM THR_OT_DETAIL  TOD ");
+            sql.append("JOIN TCM_USER_MASTER TUM ON TOD.USER_SID = TUM.USER_SID AND TUM.USABLE_FLAG = 'Y' ");
+            sql.append("JOIN TCM_CODE_MASTER TCM ON TOD.WORK_TYPE_CODE = TCM.CODE_CODE AND TCM.CLASS_CODE = 'OPCOD' AND TCM.USABLE_FLAG = 'Y' ");
+            sql.append("LEFT JOIN THR_OT_TIME TOT ON TOT.YEAR = TOD.YEAR AND TOT.MON = TOD.MON AND TOT.DAY = TOD.DAY AND TOT.USER_SID = TOD.USER_SID ");
+            sql.append("AND TOT.SEQ = TOD.SEQ AND TOT.USABLE_FLAG = 'Y' JOIN\tTHR_OT_DETAIL_REF\tODR ON\t\tODR.YEAR\t=\tTOD.YEAR AND\t\tODR.MON\t\t=\tTOD.MON ");
+            sql.append("AND\t\tODR.DAY\t\t=\tTOD.DAY AND\t\tODR.USER_SID\t=\tTOD.USER_SID AND\t\tODR.SEQ\t\t\t=\tTOD.SEQ AND\t\tODR.CLASS_CODE\t=\t'HRPAT' ");
+            sql.append("AND\t\tODR.USABLE_FLAG\t=\t'Y'\t\t JOIN\tTHR_OT_DETAIL_REF\tODR2 ON\t\tODR2.YEAR\t=\tTOD.YEAR AND\t\tODR2.MON\t\t=\tTOD.MON ");
+            sql.append("AND\t\tODR2.DAY\t\t=\tTOD.DAY AND\t\tODR2.USER_SID\t=\tTOD.USER_SID AND\t\tODR2.SEQ\t\t\t=\tTOD.SEQ AND\t\tODR2.CLASS_CODE\t=\t'TRMCD' ");
+            sql.append("AND\t\tODR2.USABLE_FLAG\t=\t'Y' WHERE\tNVL(TOD.APPROVE_FLAG,'N') = 'N' AND\t\tTOD.YEAR||TOD.MON = '" + yyyyMM+"' ");
+            sql.append("AND\t\tTOT.REQ_START_TIME IS NULL AND AND TOT.CAPS_START_TIME IS NULL ( ");
+            sql.append("TO_NUMBER(TOD.DAY) < TO_NUMBER( '"+dd+"' ) OR ( TO_NUMBER(TOD.DAY) = TO_NUMBER( '"+dd+"' ) AND TCM.VALUE1_NUMBER = 0 ) ) ");
+            sql.append("AND EXISTS ( ");
+            sql.append("    SELECT 1 FROM THR_OT_MASTER TOM ");
+            sql.append("    WHERE TOM.YEAR = TOD.YEAR ");
+            sql.append("    AND TOM.MON = TOD.MON AND TOM.USER_SID = TOD.USER_SID ");
+            sql.append("    AND TOM.CLOSE_FLAG = 'Y' AND TOM.USABLE_FLAG = 'Y' ");
+            sql.append(") ");
+            sql.append("ORDER BY TO_NUMBER(TOD.DAY) DESC");
+
+            dbRet = repo.callSql(sql.toString());
+
+            if(dbRet.getErrFlag().equals("Y")){
+                throw new BizException("setSchAutoMatch",dbRet.getErrMsg());
+            }
+
+            if(dbRet.getResult().get(0).isEmpty()){
+                throw new BizException("setSchAutoMatch","처리할 목록이 없습니다.");
+            }
+
+            List<Map<String,DbTypeDTO>> dbTmp = dbRet.getResult().get(0);
+
+            for(Map<String,DbTypeDTO> row: dbTmp){
+                String yyyy = Util.getStrChk(row.get("YEAR").getObj());
+                String mon = Util.getStrChk(row.get("MON").getObj());
+                String day = Util.getStrChk(row.get("DAY").getObj());
+                String parsingDay = String.format("%02d", Util.getInteger(day));
+                BigDecimal userSid = Util.getDecimal(row.get("USER_SID").getObj());
+                String userId = Util.getStrChk(row.get("USER_ID").getObj());
+                BigDecimal seq = Util.getDecimal(row.get("SEQ").getObj());
+                String teamCode = Util.getStrChk(row.get("TEAM_CODE").getObj());
+                String terminalCode = Util.getStrChk(row.get("TERMINAL_CODE").getObj());
+
+                long addDay = Util.getInteger(row.get("ADD_DAY").getObj());
+                String holidayFlag = Util.getStrChk(row.get("HOLIDAY_FLAG").getObj());
+
+                String startTime = Util.getStrChk(row.get("START_TIME").getObj());
+                String endTime = Util.getStrChk(row.get("END_TIME").getObj());
+
+                if((startTime.isEmpty()||endTime.isEmpty())&&!holidayFlag.equals("Y")){
+                    continue;
+                }
+
+                String saveStartTime = "XXXX";
+                String saveEndTime = "XXXX";
+                boolean approveStartFlag = false;
+                boolean approveEndFlag = false;
+
+                LocalDate startDate = LocalDate.parse((yyyy+mon+parsingDay),formatter).minusDays(1);
+                LocalDate endDate = LocalDate.parse((yyyy+mon+parsingDay),formatter).plusDays(1);
+
+                ResponseDTO<List<CapsTimeDTO.CapsUserTimeDTO>> capsTime = capsService.findIdToDate(userId,startDate.format(formatter),endDate.format(formatter));
+                if(capsTime.getErrFlag().equals("Y")){
+                    throw new BizException("setSchAutoMatch", capsTime.getErrMsg());
+                }
+
+                sql = new StringBuilder();
+                sql.append("SELECT NVL(TOT.CAPS_START_TIME, RPAD(TCM.VALUE2_CHAR,4,'0')) START_TIME, NVL(TOT.CAPS_END_TIME, RPAD(TCM.VALUE3_CHAR,4,'0')) END_TIME, TCM.VALUE1_NUMBER ADD_DAY ");
+                sql.append("FROM THR_OT_DETAIL TOD ");
+                sql.append("JOIN TCM_CODE_MASTER TCM ");
+                sql.append("ON TCM.CODE_CODE = TOD.WORK_TYPE_CODE AND TCM.USABLE_FLAG = 'Y' AND TCM.CLASS_CODE = 'OPCOD' ");
+                sql.append("LEFT JOIN THR_OT_TIME TOT ON TOT.YEAR = TOD.YEAR AND TOT.MON = TOD.MON AND TOT.DAY = TOD.DAY AND TOT.USER_SID = TOD.USER_SID ");
+                sql.append("AND TOT.SEQ = TOD.SEQ AND TOT.USABLE_FLAG = 'Y' ");
+                sql.append("WHERE TOD.YEAR||TOD.MON||LPAD(TOD.DAY,2,'0') = '"+startDate.format(formatter)+"' ");
+                sql.append("AND TOD.USER_SID = "+userSid+" ");
+                sql.append("AND TOD.USABLE_FLAG = 'Y' ");
+                sql.append("ORDER BY TOD.SEQ DESC");
+
+                StringBuilder sql2 = new StringBuilder();
+                sql2.append("SELECT NVL(TOT.CAPS_START_TIME, RPAD(TCM.VALUE2_CHAR,4,'0')) START_TIME, NVL(TOT.CAPS_END_TIME, RPAD(TCM.VALUE3_CHAR,4,'0')) END_TIME, TCM.VALUE1_NUMBER ADD_DAY ");
+                sql2.append("FROM THR_OT_DETAIL TOD ");
+                sql2.append("JOIN TCM_CODE_MASTER TCM ");
+                sql2.append("ON TCM.CODE_CODE = TOD.WORK_TYPE_CODE AND TCM.USABLE_FLAG = 'Y' AND TCM.CLASS_CODE = 'OPCOD' ");
+                sql2.append("LEFT JOIN THR_OT_TIME TOT ON TOT.YEAR = TOD.YEAR AND TOT.MON = TOD.MON AND TOT.DAY = TOD.DAY AND TOT.USER_SID = TOD.USER_SID ");
+                sql2.append("AND TOT.SEQ = TOD.SEQ AND TOT.USABLE_FLAG = 'Y' ");
+                sql2.append("WHERE TOD.YEAR||TOD.MON||LPAD(TOD.DAY,2,'0') = '"+endDate.format(formatter)+"' ");
+                sql2.append("AND TOD.USER_SID = "+userSid+" ");
+                sql2.append("AND TOD.USABLE_FLAG = 'Y' ");
+                sql2.append("ORDER BY TOD.SEQ ASC");
+
+                if(holidayFlag.equals("Y")){
+                    //시작시간
+                    dbRet = repo.callSql(sql.toString());
+                    if(dbRet.getErrFlag().equals("Y")){
+                        throw new BizException("setSchAutoMatch", dbRet.getErrMsg());
+                    }
+
+                    if(dbRet.getResult().get(0).isEmpty()){
+                        CapsTimeDTO.CapsUserTimeDTO capsStart = capsTime.getData().stream()
+                                .filter(item->(yyyy+mon+parsingDay).equals(item.getDate()))
+                                .filter(item->"1".equals(item.getMode()))
+                                .min(Comparator.comparingInt(item -> Integer.parseInt(String.valueOf(item.getTime()))))
+                                .orElse(null);
+
+                        if(capsStart != null){
+                            saveStartTime = capsStart.getTime().substring(0,4);
+                        }
+                    }else{
+                        String bfEndTime = Util.getStrChk(dbRet.getResult().get(0).get(0).get("END_TIME").getObj());
+                        long bfAddDay = Util.getInteger(dbRet.getResult().get(0).get(0).get("ADD_DAY").getObj());
+
+                        if(bfEndTime.isEmpty()||bfEndTime.equals("XXXX")){
+                            CapsTimeDTO.CapsUserTimeDTO capsStart = capsTime.getData().stream()
+                                    .filter(item->(yyyy+mon+parsingDay).equals(item.getDate()))
+                                    .filter(item->"1".equals(item.getMode()))
+                                    .min(Comparator.comparingInt(item -> Integer.parseInt(String.valueOf(item.getTime()))))
+                                    .orElse(null);
+
+                            if(capsStart != null){
+                                saveStartTime = capsStart.getTime().substring(0,4);
+                            }
+                        }else{
+                            String tmpStartTime = startDate.plusDays(bfAddDay).format(formatter)+bfEndTime;
+                            String tmpEndTime = yyyy+mon+parsingDay+"2359";
+
+                            CapsTimeDTO.CapsUserTimeDTO capsStart = capsTime.getData().stream()
+                                    .filter(item -> "1".equals(item.getMode()))
+                                    .filter(item -> {
+                                        String dateTime = item.getDate()
+                                                + String.format("%06d", Integer.parseInt(String.valueOf(item.getTime())));
+
+                                        return dateTime.compareTo(tmpStartTime + "00") >= 0
+                                                && dateTime.compareTo(tmpEndTime + "59") <= 0;
+                                    })
+                                    .min(Comparator.comparing(item ->
+                                            item.getDate() + String.format("%06d",
+                                                    Integer.parseInt(String.valueOf(item.getTime())))
+                                    ))
+                                    .orElse(null);
+                            if(capsStart != null){
+                                saveStartTime = capsStart.getTime().substring(0,4);
+                            }
+                        }
+                    }
+
+                    //종료시간
+                    if(!saveStartTime.equals("XXXX")){
+                        dbRet = repo.callSql(sql2.toString());
+                        if(dbRet.getErrFlag().equals("Y")){
+                            throw new BizException("setSchAutoMatch", dbRet.getErrMsg());
+                        }
+
+                        if(dbRet.getResult().get(0).isEmpty()){
+                            CapsTimeDTO.CapsUserTimeDTO capsEnd = capsTime.getData().stream()
+                                    .filter(item->(yyyy+mon+parsingDay).equals(item.getDate()))
+                                    .filter(item->"2".equals(item.getMode()))
+                                    .min(Comparator.comparingInt(item -> Integer.parseInt(String.valueOf(item.getTime()))))
+                                    .orElse(null);
+
+                            if(capsEnd != null){
+                                saveEndTime = capsEnd.getTime().substring(0,4);
+                            }
+                        }else{
+                            String afStartTime = Util.getStrChk(dbRet.getResult().get(0).get(0).get("START_TIME").getObj());
+                            if(afStartTime.isEmpty()||afStartTime.equals("XXXX")){
+                                CapsTimeDTO.CapsUserTimeDTO capsEnd = capsTime.getData().stream()
+                                        .filter(item->(yyyy+mon+parsingDay).equals(item.getDate()))
+                                        .filter(item->"2".equals(item.getMode()))
+                                        .min(Comparator.comparingInt(item -> Integer.parseInt(String.valueOf(item.getTime()))))
+                                        .orElse(null);
+
+                                if(capsEnd != null){
+                                    saveEndTime = capsEnd.getTime().substring(0,4);
+                                }
+                            }else{
+                                String tmpStartTime = endDate.format(formatter)+afStartTime;
+                                String tmpEndTime = yyyy+mon+parsingDay+"0000";
+
+                                CapsTimeDTO.CapsUserTimeDTO capsEnd = capsTime.getData().stream()
+                                        .filter(item -> "2".equals(item.getMode()))
+                                        .filter(item -> {
+                                            String dateTime = item.getDate()
+                                                    + String.format("%06d", Integer.parseInt(String.valueOf(item.getTime())));
+
+                                            return dateTime.compareTo(tmpEndTime + "00") >= 0
+                                                    && dateTime.compareTo(tmpStartTime + "59") <= 0;
+                                        })
+                                        .min(Comparator.comparing(item ->
+                                                item.getDate() + String.format("%06d",
+                                                        Integer.parseInt(String.valueOf(item.getTime())))
+                                        ))
+                                        .orElse(null);
+                                if(capsEnd != null){
+                                    saveEndTime = capsEnd.getTime().substring(0,4);
+                                }
+                            }
+                        }
+                    }
+
+                }
+                else {
+
+                    //시작시간
+                    LocalTime startTarget = LocalTime.parse(
+                            startTime,
+                            DateTimeFormatter.ofPattern("HHmm")
+                    );
+
+                    CapsTimeDTO.CapsUserTimeDTO capsStart = capsTime.getData().stream()
+                            .filter(item->(yyyy+mon+parsingDay).equals(item.getDate()))
+                            .filter(item->{
+                                String timeStr = String.format("%6s", item.getTime()).replace(' ', '0');
+                                LocalTime time = LocalTime.parse(timeStr, formatter2);
+
+                                long diff = Duration.between(time, startTarget).getSeconds();
+
+                                return diff >= 0 && diff <= 3600;
+                            }).findFirst().orElse(null);
+                    if(capsStart != null){
+                        saveStartTime = capsStart.getTime().substring(0,4);
+                        approveStartFlag = true;
+                    }else{
+                        dbRet = repo.callSql(sql.toString());
+                        if(dbRet.getErrFlag().equals("Y")){
+                            throw new BizException("setSchAutoMatch", dbRet.getErrMsg());
+                        }
+
+                        if(dbRet.getResult().get(0).isEmpty()){
+                            capsStart = capsTime.getData().stream()
+                                    .filter(item->(yyyy+mon+parsingDay).equals(item.getDate()))
+                                    .filter(item->"1".equals(item.getMode()))
+                                    .min(Comparator.comparingInt(item -> Integer.parseInt(String.valueOf(item.getTime()))))
+                                    .orElse(null);
+
+                            if(capsStart != null){
+                                saveStartTime = capsStart.getTime().substring(0,4);
+                            }
+                        }else{
+                            String bfEndTime = Util.getStrChk(dbRet.getResult().get(0).get(0).get("END_TIME").getObj());
+
+                            if(bfEndTime.isEmpty()||bfEndTime.equals("XXXX")){
+                                capsStart = capsTime.getData().stream()
+                                        .filter(item->(yyyy+mon+parsingDay).equals(item.getDate()))
+                                        .filter(item->"1".equals(item.getMode()))
+                                        .min(Comparator.comparingInt(item -> Integer.parseInt(String.valueOf(item.getTime()))))
+                                        .orElse(null);
+
+                                if(capsStart != null){
+                                    saveStartTime = capsStart.getTime().substring(0,4);
+                                }
+                            }else{
+                                String tmpStartTime = startDate.format(formatter)+bfEndTime;
+                                String tmpEndTime = yyyy+mon+parsingDay+startTime;
+
+                                capsStart = capsTime.getData().stream()
+                                        .filter(item -> "1".equals(item.getMode()))
+                                        .filter(item -> {
+                                            String dateTime = item.getDate()
+                                                    + String.format("%06d", Integer.parseInt(String.valueOf(item.getTime())));
+
+                                            return dateTime.compareTo(tmpStartTime + "00") >= 0
+                                                    && dateTime.compareTo(tmpEndTime + "59") <= 0;
+                                        })
+                                        .min(Comparator.comparing(item ->
+                                                item.getDate() + String.format("%06d",
+                                                        Integer.parseInt(String.valueOf(item.getTime())))
+                                        ))
+                                        .orElse(null);
+                                if(capsStart != null){
+                                    saveStartTime = capsStart.getTime().substring(0,4);
+                                }
+                            }
+                        }
+
+                    }
+
+                    //종료시간
+                    LocalTime endTarget = LocalTime.parse(
+                            endTime,
+                            DateTimeFormatter.ofPattern("HHmm")
+                    );
+
+                    CapsTimeDTO.CapsUserTimeDTO capsEnd = capsTime.getData().stream()
+                            .filter(item->(addDay>0?endDate.format(formatter):yyyy+mon+parsingDay).equals(item.getDate()))
+                            .filter(item->{
+                                String timeStr = String.format("%6s", item.getTime()).replace(' ', '0');
+                                LocalTime time = LocalTime.parse(timeStr, formatter2);
+
+                                long diff = Duration.between(endTarget, time).getSeconds();
+
+                                return diff >= 0 && diff <= 1800;
+                            }).findFirst().orElse(null);
+
+                    if(capsEnd != null){
+                        saveEndTime = capsEnd.getTime().substring(0,4);
+                        approveEndFlag = true;
+                    }else{
+                        dbRet = repo.callSql(sql2.toString());
+                        if(dbRet.getErrFlag().equals("Y")){
+                            throw new BizException("setSchAutoMatch", dbRet.getErrMsg());
+                        }
+
+                        if(dbRet.getResult().get(0).isEmpty()){
+                            capsEnd = capsTime.getData().stream()
+                                    .filter(item->(addDay>0?endDate.format(formatter):yyyy+mon+parsingDay).equals(item.getDate()))
+                                    .filter(item->"2".equals(item.getMode()))
+                                    .min(Comparator.comparingInt(item -> Integer.parseInt(String.valueOf(item.getTime()))))
+                                    .orElse(null);
+
+                            if(capsEnd != null){
+                                saveEndTime = capsEnd.getTime().substring(0,4);
+                            }
+                        }else{
+                            String afStartTime = Util.getStrChk(dbRet.getResult().get(0).get(0).get("START_TIME").getObj());
+
+                            if(afStartTime.isEmpty()||afStartTime.equals("XXXX")){
+                                capsEnd = capsTime.getData().stream()
+                                        .filter(item->(addDay>0?endDate.format(formatter):yyyy+mon+parsingDay).equals(item.getDate()))
+                                        .filter(item->"2".equals(item.getMode()))
+                                        .min(Comparator.comparingInt(item -> Integer.parseInt(String.valueOf(item.getTime()))))
+                                        .orElse(null);
+
+                                if(capsEnd != null){
+                                    saveEndTime = capsEnd.getTime().substring(0,4);
+                                }
+                            }else{
+                                String tmpStartTime = endDate.format(formatter)+afStartTime;
+                                String tmpEndTime = (addDay>0?endDate.format(formatter):yyyy+mon+parsingDay)+endTime;
+
+                                capsEnd = capsTime.getData().stream()
+                                        .filter(item -> "2".equals(item.getMode()))
+                                        .filter(item -> {
+                                            String dateTime = item.getDate()
+                                                    + String.format("%06d", Integer.parseInt(String.valueOf(item.getTime())));
+
+                                            return dateTime.compareTo(tmpEndTime + "00") >= 0
+                                                    && dateTime.compareTo(tmpStartTime + "59") <= 0;
+                                        })
+                                        .min(Comparator.comparing(item ->
+                                                item.getDate() + String.format("%06d",
+                                                        Integer.parseInt(String.valueOf(item.getTime())))
+                                        ))
+                                        .orElse(null);
+                                if(capsEnd != null){
+                                    saveEndTime = capsEnd.getTime().substring(0,4);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                dbRet = repo.setWorkM010_037(yyyy,mon,day,userSid,seq,null,null,null,null,saveStartTime,saveEndTime
+                                            , Util.getDecimal(addDay),null,null,null,null,"N",""
+                                            ,"KOR",Util.getGUID(),"DAEMON","","DAEMON");
+
+                if(dbRet.getErrFlag().equals("Y")){
+                    throw new BizException("setSchAutoMatch",dbRet.getErrMsg());
+                }
+
+                //스케줄 확정
+                if(approveStartFlag && approveEndFlag){
+                    String auSql = " SELECT\tTUM.USER_ID " +
+                            " FROM \tTCM_INTRA_USER_RELATION\tIUR\n" +
+                            " JOIN\tTCM_USER_MASTER\tTUM\n" +
+                            " ON\t\tTUM.USER_SID = IUR.USER_SID\n" +
+                            " AND\tTUM.USABLE_FLAG = 'Y'\n" +
+                            " JOIN\tTCM_CODE_MASTER\t\tTCM\n" +
+                            " ON\t\tTCM.CLASS_CODE = 'HRMTR'\n" +
+                            " AND\tTCM.CODE_CODE = IUR.VALUE1\n" +
+                            " AND\tTCM.USABLE_FLAG = 'Y'\n" +
+                            " WHERE\tIUR.CLASS_CODE = 'HRTAU'\n" +
+                            " AND\tIUR.VALUE2 = '10'\n" +
+                            " AND IUR.USABLE_FLAG = 'Y'" +
+                            " AND\tIUR.CODE_CODE = '"+teamCode+"' " +
+                            "AND (\n" +
+                            "            (TCM.VALUE1_CHAR IS NULL AND IUR.VALUE1 = '" + terminalCode +"') "+
+                            "            OR\n" +
+                            "            (TCM.VALUE1_CHAR IS NOT NULL AND INSTR(TCM.VALUE1_CHAR, '"+terminalCode+"') > 0)\n" +
+                            "        )";
+                    dbRet = repo.callSql(auSql);
+
+                    if(dbRet.getErrFlag().equals("Y")){
+                        throw new BizException("setSchAutoMatch",dbRet.getErrMsg());
+                    }
+
+                    if(dbRet.getResult().get(0).isEmpty()){
+                        throw new BizException("setSchAutoMatch",teamCode+" : "+ terminalCode+" 권한을 가진 팀장이 없습니다.");
+                    }
+                    String approveId = Util.getStrChk(dbRet.getResult().get(0).get(0).get("USER_ID").getObj());
+
+                    dbRet = repo.setWorkL010_015(yyyy,mon,day,userSid,seq,"KOR",Util.getGUID(),approveId,"DAEMON","DAEMON");
+
+                    if(dbRet.getErrFlag().equals("Y")){
+                        throw new BizException("setSchAutoMatch",dbRet.getErrMsg());
+                    }
+                }
+
+            }
+
+            return okOrThrow("setSchAutoMatch", dbRet);
+        });
+    }
+
+    public ResponseDTO<?> setAutoSchAppr(String dateStr,boolean flag){
+        WorkRepo repo = workRepoProvider.getObject();
+        return execute(repo,()->{
+            DbDto dbRet = null;
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+            String sql = "SELECT\tTOD.YEAR\n" +
+                    "\t, \tTOD.MON\n" +
+                    "\t, \tTOD.DAY\n" +
+                    "\t, \tTOD.USER_SID\n" +
+                    "\t, \tTOD.SEQ\n" +
+                    "\t, \tODR.CODE_CODE TERMINAL_CODE\n" +
+                    "\t, \tODR2.CODE_CODE TEAM_CODE\n" +
+                    "FROM\tTHR_OT_DETAIL\t\tTOD\n" +
+                    "LEFT\n" +
+                    "JOIN\tTHR_OT_TIME\t\t\tTOT\n" +
+                    "ON\t\tTOD.YEAR\t\t=\tTOT.YEAR\n" +
+                    "AND\t\tTOD.MON\t\t\t=\tTOT.MON\n" +
+                    "AND\t\tTOD.DAY\t\t\t=\tTOT.DAY\n" +
+                    "AND\t\tTOD.USER_SID\t=\tTOT.USER_SID\n" +
+                    "AND\t\tTOD.SEQ\t\t\t=\tTOT.SEQ\n" +
+                    "AND\t\tTOT.USABLE_FLAG\t=\t'Y'\n" +
+                    "JOIN\tTHR_OT_DETAIL_REF\tODR\n" +
+                    "ON\t\tTOD.YEAR\t\t=\tODR.YEAR\n" +
+                    "AND\t\tTOD.MON\t\t\t=\tODR.MON\n" +
+                    "AND\t\tTOD.DAY\t\t\t=\tODR.DAY\n" +
+                    "AND\t\tTOD.USER_SID\t=\tODR.USER_SID\n" +
+                    "AND\t\tTOD.SEQ\t\t\t=\tODR.SEQ\n" +
+                    "AND\t\tODR.CLASS_CODE\t=\t'TRMCD'\n" +
+                    "AND\t\tODR.USABLE_FLAG\t=\t'Y'\n" +
+                    "JOIN\tTHR_OT_DETAIL_REF\tODR2\n" +
+                    "ON\t\tTOD.YEAR\t\t=\tODR2.YEAR\n" +
+                    "AND\t\tTOD.MON\t\t\t=\tODR2.MON\n" +
+                    "AND\t\tTOD.DAY\t\t\t=\tODR2.DAY\n" +
+                    "AND\t\tTOD.USER_SID\t=\tODR2.USER_SID\n" +
+                    "AND\t\tTOD.SEQ\t\t\t=\tODR2.SEQ\n" +
+                    "AND\t\tODR2.CLASS_CODE\t=\t'HRPAT'\n" +
+                    "AND\t\tODR2.USABLE_FLAG\t=\t'Y'\n" +
+                    "WHERE\tTOD.USABLE_FLAG\t=\t'Y'\n" +
+                    "AND\t\tTOT.REQ_START_TIME\tIS\tNULL\n" +
+                    "AND\t\tNVL(TOD.APPROVE_FLAG,'N')\t=\t'N'\n" +
+                    "AND\t\tTOD.YEAR = '[$1]'\n" +
+                    "AND\t\tTOD.MON\t=\t'[$2]'\n" +
+                    "AND\t\tTO_NUMBER(TOD.DAY) <= TO_NUMBER('[$3]')";
+            String targetDate = dateStr;
+            LocalDate date = LocalDate.parse(dateStr, formatter);
+            if(flag){
+                targetDate = date.with(TemporalAdjusters.lastDayOfMonth())
+                        .format(formatter);
+            }else{
+                LocalDate start = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).minusWeeks(1);
+                LocalDate end = start.plusDays(6);
+
+                targetDate = end.getYear() == date.getYear()
+                        && end.getMonthValue() == date.getMonthValue()
+                        ? end.format(formatter)
+                        : null;
+                if(targetDate == null){
+                    throw new BizException("setAutoSchAppr","처리가능 날짜 없음 ( 마지막날짜 : "+end.format(formatter)+" )");
+                }
+            }
+
+            String yyyy = targetDate.substring(0,4);
+            String mon = targetDate.substring(4,6);
+            String day = targetDate.substring(6,8);
+
+            sql = sql.replace("[$1]",yyyy);
+            sql = sql.replace("[$2]",mon);
+            sql = sql.replace("[$3]",day);
+
+            dbRet = repo.callSql(sql);
+
+            if(dbRet.getErrFlag().equals("Y")){
+                throw new BizException("setAutoSchAppr",dbRet.getErrMsg());
+            }
+
+            if(dbRet.getResult().get(0).isEmpty()){
+                throw new BizException("setAutoSchAppr","처리할 프로세스 없음.");
+            }
+
+            List<Map<String,DbTypeDTO>> dbArray = dbRet.getResult().get(0);
+
+            sql = " SELECT\tTUM.USER_ID " +
+                    " FROM \tTCM_INTRA_USER_RELATION\tIUR\n" +
+                    " JOIN\tTCM_USER_MASTER\tTUM\n" +
+                    " ON\t\tTUM.USER_SID = IUR.USER_SID\n" +
+                    " AND\tTUM.USABLE_FLAG = 'Y'\n" +
+                    " JOIN\tTCM_CODE_MASTER\t\tTCM\n" +
+                    " ON\t\tTCM.CLASS_CODE = 'HRMTR'\n" +
+                    " AND\tTCM.CODE_CODE = IUR.VALUE1\n" +
+                    " AND\tTCM.USABLE_FLAG = 'Y'\n" +
+                    " WHERE\tIUR.CLASS_CODE = 'HRTAU'\n" +
+                    " AND\tIUR.VALUE2 = '10'\n" +
+                    " AND IUR.USABLE_FLAG = 'Y'" +
+                    " AND\tIUR.CODE_CODE = '[$1]' " +
+                    "AND (\n" +
+                    "            (TCM.VALUE1_CHAR IS NULL AND IUR.VALUE1 = '[$2]') "+
+                    "            OR\n" +
+                    "            (TCM.VALUE1_CHAR IS NOT NULL AND INSTR(TCM.VALUE1_CHAR, '[$2]') > 0)\n" +
+                    "        )";
+
+            Map<WorkDTO.AutoKey,String> approveMap = new HashMap<>();
+
+            for(Map<String,DbTypeDTO> row: dbArray){
+                String rowYyyy = Util.getStrChk(row.get("YEAR").getObj());
+                String rowMon = Util.getStrChk(row.get("MON").getObj());
+                String rowDay = Util.getStrChk(row.get("DAY").getObj());
+                String rowTerminalCode = Util.getStrChk(row.get("TERMINAL_CODE").getObj());
+                String rowTeamCode = Util.getStrChk(row.get("TEAM_CODE").getObj());
+                BigDecimal rowUserSid = Util.getDecimal(row.get("USER_SID").getObj());
+                BigDecimal rowSeq = Util.getDecimal(row.get("SEQ").getObj());
+
+                String approveId = approveMap.get(new WorkDTO.AutoKey(rowTeamCode,rowTerminalCode));
+
+                if(approveId == null){
+                    String tmpSql = sql;
+                    tmpSql = tmpSql.replace("[$1]",rowTeamCode);
+                    tmpSql = tmpSql.replace("[$2]",rowTerminalCode);
+                    dbRet = repo.callSql(tmpSql);
+
+                    if(dbRet.getErrFlag().equals("Y")){
+                        throw new BizException("setAutoSchAppr",dbRet.getErrMsg());
+                    }
+                    if(dbRet.getResult().get(0).isEmpty()){
+                        throw new BizException("setAutoSchAppr",rowTeamCode+" : "+ rowTerminalCode+" 권한을 가진 팀장이 없습니다.");
+                    }
+                    approveId = Util.getStrChk(dbRet.getResult().get(0).get(0).get("USER_ID").getObj());
+                    approveMap.put(new WorkDTO.AutoKey(rowTeamCode,rowTerminalCode),approveId);
+
+                }
+
+                dbRet = repo.setWorkL010_015(rowYyyy,rowMon,rowDay,rowUserSid,rowSeq,"KOR",Util.getGUID(),approveId,"DAEMON","DAEMON");
+
+                if(dbRet.getErrFlag().equals("Y")){
+                    throw new BizException("setAutoSchAppr",dbRet.getErrMsg());
+                }
+            }
+
+            return okOrThrow("setAutoSchAppr", dbRet);
         });
     }
 

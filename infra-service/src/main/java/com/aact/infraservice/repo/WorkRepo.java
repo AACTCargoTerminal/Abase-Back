@@ -530,6 +530,46 @@ public class WorkRepo extends BizBase {
 
     }
 
+    public DbDto setWorkM010_037(String yyyy, String mm, String day, BigDecimal workUserSid, BigDecimal seq,
+                                 String otStatus, String workTypeCode,String reqStartTime,String reqEndTime,String capsStartTime,String capsEndTime,
+                                 BigDecimal addDay, BigDecimal addWorHour, BigDecimal nightWorkHour, BigDecimal holidayHour,BigDecimal holiAddHour,
+                                 String deductFlag, String remark, String langCode, String guid, String userId, String ipAddr, String pgmId) {
+
+        List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_YYYY", yyyy));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_MON", mm));
+        input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_USER_SID", workUserSid));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_DAY", day));
+        input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_SEQ", seq));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_OT_STATUS", otStatus));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_WORK_TYPE_CODE", workTypeCode));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQ_START_TIME", reqStartTime));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQ_END_TIME", reqEndTime));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_CAPS_START_TIME", capsStartTime));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_CAPS_END_TIME", capsEndTime));
+        input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_ADD_DAY", addDay));
+        input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_ADD_WORK_HOUR", addWorHour));
+        input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_NIGHT_WORK_HOUR", nightWorkHour));
+        input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_HOLIDAY_WORK_HOUR", holidayHour));
+        input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_HOLIDAY_ADD_HOUR", holiAddHour));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_DEDUCT_FLAG", deductFlag));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REMARK", remark));
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_LANGUAGE_CODE", langCode));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_PROGRESS_GUID", guid));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_USER_ID", userId));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_IP_ADDRESS", ipAddr));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_PROGRAM_ID", pgmId));
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_ERROR_FLAG", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_CODE", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_MESSAGE", ""));
+
+        return callProc("USR_WORK_REQUEST_M010.PHM_WORK_REQUEST_M010_037", input);
+
+    }
+
     public DbDto setWorkM010_034(String yyyy, String mm, String day, BigDecimal workUserSid, BigDecimal seq,String reqFlag,String langCode, String guid, String userId, String ipAddr, String pgmId) {
 
         List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
@@ -638,7 +678,7 @@ public class WorkRepo extends BizBase {
 
     }
 
-    public DbDto setWorkM010_019(String yyyy, String mm, String day, BigDecimal workUserSid, BigDecimal seq, String capsStart, String capsEnd, String startTime,
+    public DbDto setWorkM010_019(String yyyy, String mm, String day, BigDecimal workUserSid, BigDecimal seq,String workTypeCode, String capsStart, String capsEnd, String startTime,
                                  String endTime, BigDecimal addDay,String deductFlag,String remark, String langCode, String guid, String userId, String ipAddr, String pgmId) {
 
         List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
@@ -647,7 +687,8 @@ public class WorkRepo extends BizBase {
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_MON", mm));
         input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_USER_SID", workUserSid));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_DAY", day));
-        input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_SEQ", seq));
+        input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_SEQ", seq));//I_WORK_TYPE_CODE
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_WORK_TYPE_CODE", workTypeCode));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_CAPS_START_TIME", capsStart));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_CAPS_END_TIME", capsEnd));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQ_START_TIME", startTime));
@@ -670,7 +711,7 @@ public class WorkRepo extends BizBase {
 
     }
 
-    public DbDto setWorkM010_020(String yyyy, String mm, String day, BigDecimal workUserSid, BigDecimal seq, String capsStart, String capsEnd, String startTime,
+    public DbDto setWorkM010_020(String yyyy, String mm, String day, BigDecimal workUserSid, BigDecimal seq, String workTypeCode,String capsStart, String capsEnd, String startTime,
                                  String endTime, BigDecimal addDay, BigDecimal addWorkHour, BigDecimal nightWorkHour, BigDecimal holiWorkHour, BigDecimal holiAddHour,
                                  String remark, String langCode, String guid, String userId, String ipAddr, String pgmId) {
 
@@ -681,6 +722,7 @@ public class WorkRepo extends BizBase {
         input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_USER_SID", workUserSid));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_DAY", day));
         input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_SEQ", seq));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_WORK_TYPE_CODE", workTypeCode));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_CAPS_START_TIME", capsStart));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_CAPS_END_TIME", capsEnd));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQ_START_TIME", startTime));
