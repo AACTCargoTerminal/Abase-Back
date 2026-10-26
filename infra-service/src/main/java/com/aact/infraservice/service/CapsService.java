@@ -29,7 +29,7 @@ public class CapsService extends ServiceBase {
 
     //findIdToDate
 
-    public ResponseDTO<?> findIdToDate(String id, String start, String end) {
+    public ResponseDTO<List<CapsTimeDTO.CapsUserTimeDTO>> findIdToDate(String id, String start, String end) {
 
         List<CapsTimeDTO.CapsUserTimeDTO> dbRet = capsMapper.findIdToDate(id,start,end);
 

@@ -995,7 +995,7 @@ public class UserService extends ServiceBase {
 
                         String companyCode = "AACT";
                         String branchCode = "AACTINC";
-                        String deptCode = hrpat.getData().stream().filter(v->v.get("CODE_CODE").equals(userRow.getTeminalCode()))
+                        String deptCode = hrpat.getData().stream().filter(v->v.get("CODE_CODE").equals(row.getTeamCode()))
                                 .findFirst().map(v->Util.getStrChk(v.get("VALUE3_CHAR"))).orElse("");
                         String langCode = "KOR";
                         String email = "";
@@ -1008,7 +1008,7 @@ public class UserService extends ServiceBase {
                         String boardHpYn = "N";
                         String itYn = "N";
 
-                        dbRet = repo.getUserInfo(info.getUserId(), info.getUserLang(), Util.getGUID(), info.getUserId(),
+                        dbRet = repo.getUserInfo(userRow.getUserId(), info.getUserLang(), Util.getGUID(), info.getUserId(),
                                 info.getUserIpAddress(), info.getPgmId());
                         if (dbRet.getErrFlag().equals("Y")) {
                             throw new BizException("setUserInfoMgm", dbRet.getErrMsg());

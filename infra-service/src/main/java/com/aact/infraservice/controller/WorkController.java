@@ -222,4 +222,15 @@ public class WorkController {
         }
         return workService.setCapsReSave(dtos.get("array"));
     }
+    //setSchAutoMatch
+    @GetMapping(value = "/setSchAutoMatch")
+    public ResponseDTO<?> setSchAutoMatch(@RequestParam("dateStr")String dateStr) {
+        return workService.setSchAutoMatch(dateStr);
+    }
+
+    //setSchAutoMatch
+    @GetMapping(value = "/setAutoSchAppr")
+    public ResponseDTO<?> setAutoSchAppr(@RequestParam("dateStr")String dateStr,@RequestParam("flag")boolean flag) {
+        return workService.setAutoSchAppr(dateStr,flag);
+    }
 }

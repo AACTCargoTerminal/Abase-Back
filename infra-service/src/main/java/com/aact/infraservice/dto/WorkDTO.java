@@ -182,4 +182,6 @@ public class WorkDTO {
 
     }
 
+    public record AutoKey(String teamCode, String terminalCode) {}
+
 }
