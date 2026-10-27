@@ -1,9 +1,10 @@
-package com.aact.authservice.service;
+package com.aact.authservice.service.impl;
 
 import com.aact.authservice.dto.InfraUser;
 import com.aact.authservice.dto.LoginReq;
 import com.aact.authservice.dto.SetUserDTO;
 import com.aact.authservice.repo.UserRepo;
+import com.aact.authservice.service.UserSevice;
 import com.aact.common.*;
 import com.aact.common.ServiceBase;
 import com.aact.commonClient.service.ClientService;
@@ -36,7 +37,7 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-public class UserService extends ServiceBase {
+public class UserServiceImpl extends ServiceBase implements UserSevice {
 
     private final ObjectProvider<UserRepo> userRepo;
     private final StringRedisTemplate stringRedisTemplate;
@@ -44,7 +45,7 @@ public class UserService extends ServiceBase {
     private final ClientService clientService;
     private final FileClientService fileClientService;
 
-
+    @Override
     public ResponseDTO<?> login(LoginReq.LoginDTO dto, HttpServletRequest hReq){
         UserRepo repo = userRepo.getObject();
         return execute(repo,()-> {
@@ -124,7 +125,7 @@ public class UserService extends ServiceBase {
             return ResponseDTO.builder().errFlag("N").errMsg("로그인완료").build();
         });
     }
-
+    @Override
     public ResponseDTO<?> verity(){
 
         return execute(()->{
@@ -132,7 +133,7 @@ public class UserService extends ServiceBase {
             return ResponseDTO.builder().errFlag("N").data(info).build();
         });
     }
-
+    @Override
     public ResponseDTO<?> logout(HttpServletRequest hReq){
         return execute(()->{
             HttpSession session = hReq.getSession(false);
@@ -151,6 +152,7 @@ public class UserService extends ServiceBase {
             return ResponseDTO.builder().errFlag("N").errMsg("로그아웃 완료").build();
         });
     }
+    @Override
     public ResponseDTO<?> buildMenu() {
 
         ClsUserInfo info = UserContext.get();
@@ -163,19 +165,7 @@ public class UserService extends ServiceBase {
 
 
     }
-
-    public ResponseDTO<?> getUserInfo() {
-        ClsUserInfo info = UserContext.get();
-        UserRepo repo = userRepo.getObject();
-        return execute(repo,()->{
-            DbDto dbRet = repo.getUserInfo(info.getUserId(), info.getUserLang(), Util.getGUID(), info.getUserId(),
-                    info.getUserIpAddress(), info.getPgmId());
-
-            return okOrThrow("getUserInfo", dbRet);
-        });
-
-    }
-
+    @Override
     public ResponseDTO<?> getUserM010_003(String userId) {
         ClsUserInfo info = UserContext.get();
         UserRepo repo = userRepo.getObject();
@@ -187,7 +177,7 @@ public class UserService extends ServiceBase {
         });
 
     }
-
+    @Override
     public ResponseDTO<?> getUserRel(BigDecimal userSid,String usableFlag) {
         ClsUserInfo info = UserContext.get();
         UserRepo repo = userRepo.getObject();
@@ -199,7 +189,7 @@ public class UserService extends ServiceBase {
         });
 
     }
-
+    @Override
     public ResponseDTO<?> setUserDelete(String userId) {
         ClsUserInfo info = UserContext.get();
         UserRepo repo = userRepo.getObject();
@@ -211,7 +201,7 @@ public class UserService extends ServiceBase {
         });
 
     }
-
+    @Override
     public ResponseDTO<?> getUserList(String deptCode,String userId,String userName,String usableFlag){
         ClsUserInfo info = UserContext.get();
         UserRepo repo = userRepo.getObject();
@@ -222,8 +212,7 @@ public class UserService extends ServiceBase {
             return okOrThrow("getUserList", dbRet);
         });
     }
-
-
+    @Override
     public ResponseDTO<?> setUserInfo(HttpServletRequest req, SetUserDTO dto) {
         ClsUserInfo info = UserContext.get();
         UserRepo repo = userRepo.getObject();
@@ -287,6 +276,7 @@ public class UserService extends ServiceBase {
             return okOrThrow("setUserInfo", dbRet);
         });
     }
+    @Override
     public ResponseDTO<?> setUserInfoMgm(InfraUser.SaveUserDTO dto) {
         ClsUserInfo info = UserContext.get();
         UserRepo repo = userRepo.getObject();
@@ -350,8 +340,7 @@ public class UserService extends ServiceBase {
             return okOrThrow("setUserInfoMgm", dbRet);
         });
     }
-
-
+    @Override
     public ResponseDTO<?> getPgmInfo(String pgmId) {
         ClsUserInfo info = UserContext.get();
         StringBuilder sql = new StringBuilder();
@@ -369,19 +358,7 @@ public class UserService extends ServiceBase {
         });
 
     }
-
-    public ResponseDTO<?> getUserList(String depCode) {
-        ClsUserInfo info = UserContext.get();
-        UserRepo repo = userRepo.getObject();
-        return execute(repo,()->{
-            DbDto dbRet = repo.getUserList("", "", depCode, "", info.getUserLang(), Util.getGUID(),
-                    info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-
-            return okOrThrow("getUserList", dbRet);
-        });
-
-    }
-
+    @Override
     public ResponseDTO<?> getUserSign(String userId){
         UserRepo repo = userRepo.getObject();
         StringBuilder sql = new StringBuilder();
@@ -398,7 +375,7 @@ public class UserService extends ServiceBase {
             return okOrThrow("getUserSign", dbRet);
         });
     }
-
+    @Override
     public ResponseDTO<?> setUserSign(HttpServletRequest req, List<MultipartFile> files) {
         ClsUserInfo info = UserContext.get();
         UserRepo repo = userRepo.getObject();
@@ -599,7 +576,7 @@ public class UserService extends ServiceBase {
 
         return coloredInk || redInk;
     }
-
+    @Override
     public ResponseDTO<?> getUserGroup(){
         ClsUserInfo info = UserContext.get();
         UserRepo repo = userRepo.getObject();
@@ -909,7 +886,7 @@ public class UserService extends ServiceBase {
         }
         return ret;
     }
-
+    @Override
     public ResponseDTO<?> setUserGroup(InfraUser.UserGroupDTO dto){
         ClsUserInfo info = UserContext.get();
         UserRepo repo = userRepo.getObject();
@@ -1161,7 +1138,7 @@ public class UserService extends ServiceBase {
             return okOrThrow("setUserRel", dbRet);
         });
     }
-
+    @Override
     public ResponseDTO<?> setUserRel(List<InfraUser.UserRelDTO> dtos) {
 
         ClsUserInfo info = UserContext.get();
@@ -1207,7 +1184,7 @@ public class UserService extends ServiceBase {
         });
 
     }
-
+    @Override
     public ResponseDTO<?> delUserRel(List<InfraUser.UserRelDTO>dtos){
         ClsUserInfo info = UserContext.get();
         UserRepo repo = userRepo.getObject();
@@ -1260,4 +1237,5 @@ public class UserService extends ServiceBase {
             );
         }
     }
+
 }

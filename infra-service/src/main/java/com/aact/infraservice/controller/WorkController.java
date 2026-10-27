@@ -10,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -126,11 +125,6 @@ public class WorkController {
     @PostMapping(value = "/setWorkM010_042")
     public ResponseDTO<?> setWorkM010_042(@RequestBody WorkDTO.HrFileSearchDTO dto) {
         return workService.setWorkM010_042(dto);
-    }
-
-    @PostMapping(value = "/setHrSchSave")
-    public ResponseDTO<?> setHrSchSave(@RequestBody WorkDTO.HrSchSaveDTO dto) {
-        return workService.setHrSchSave(dto);
     }
 
     //getWorkSch

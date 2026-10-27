@@ -1,331 +1,133 @@
 package com.aact.sysservice.service;
 
-import com.aact.common.*;
-import com.aact.common.SourcName;
-import com.aact.common.ServiceBase;
-import com.aact.sysservice.config.SysCodeCache;
+import com.aact.common.ResponseDTO;
 import com.aact.sysservice.dto.SysDTO;
-import com.aact.sysservice.repo.SysRepo;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
-@Service
-@RequiredArgsConstructor
-public class SysService extends ServiceBase {
-
-    private final ObjectProvider<SysRepo> sysRepo;
-    private final SysCodeCache codeCache;
-
-    public ResponseDTO<?> reload(){
-        return execute(()->{
-           codeCache.load();
-           return ResponseDTO.builder().errFlag("N").errMsg("재조회 완료").build();
-        });
-    }
-
-    public ResponseDTO<?> reload(String classCode){
-        return execute(()->{
-            codeCache.loadClassCode(classCode);
-            return ResponseDTO.builder().errFlag("N").errMsg("재조회 완료").build();
-        });
-    }
-
-    public ResponseDTO<?> getSch(String fltDate, String inoutFlag) {
-        ClsUserInfo info = UserContext.get();
-        SysRepo repo = sysRepo.getObject();
-        return execute(repo,()->{
-            DbDto dbRet = null;
-            dbRet = repo.getSch(fltDate, inoutFlag, "Y", info.getUserOperationCarrier(), info.getUserLang(),
-                    Util.getGUID(), info.getUserId(), info.getUserIpAddress(), "Main.master");
-
-            return okOrThrow("getSch", dbRet);
-        });
-
-    }
-
-    public ResponseDTO<?> getSch003(String fltDate, String inoutFlag) {
-
-
-        ClsUserInfo info = UserContext.get();
-        SysRepo repo = sysRepo.getObject();
-        return execute(repo,()->{
-            DbDto dbRet = null;
-            dbRet = repo.getSch003(fltDate, "", inoutFlag, info.getUserOperationCarrier(), "Y", info.getUserLang(),
-                    Util.getGUID(), info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-
-            return okOrThrow("getSch003", dbRet);
-        });
-    }
-    
-    public ResponseDTO<?> getBaseOds(String classCode, String codeName) {
-
-        return execute(()->{
-
-            return okOrThrow("getBaseOds", codeCache.getCodeToName(classCode,codeName,null,null,null,null,null,null,null,null,null));
-        });
-
-    }
-
-    public ResponseDTO<?> getBaseOdsValue3(String classCode, String value3) {
-
-        return execute(()->{
-            return okOrThrow("getBaseOds", codeCache.getCodeToName(classCode,null,null,null,value3,null,null,null,null,null,null));
-        });
-
-    }
-
-    public ResponseDTO<?> getBaseOdsValue2(String classCode, String value2) {
-        return execute(()->{
-            return okOrThrow("getBaseOds", codeCache.getCodeToName(classCode,null,null,value2,null,null,null,null,null,null,null));
-        });
-    }
-
-    public ResponseDTO<?> getBaseOdsValue1(String classCode, String value1) {
-        return execute(()->{
-            return okOrThrow("getBaseOds", codeCache.getCodeToName(classCode,null,value1,null,null,null,null,null,null,null,null));
-        });
-    }
-
-    public ResponseDTO<?> getSchP010_001(String fltDate, String inoutFlag) {
-
-        ClsUserInfo info = UserContext.get();
-        SysRepo repo = sysRepo.getObject();
-
-        return execute(repo,()->{
-            DbDto dt = repo.getSchP010_001(fltDate, inoutFlag, info.getUserLang(), Util.getGUID(), info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-
-
-            return okOrThrow("getSchP010_001", dt);
-        });
-    }
-
-    public ResponseDTO<?> getSchM010_001(String schSid) {
-
-        ClsUserInfo info = UserContext.get();
-
-        BigDecimal sid = new BigDecimal(schSid);
-        SysRepo repo = sysRepo.getObject();
-
-        return execute(repo,()->{
-            DbDto dt = repo.getSchM010_001(sid, info.getUserLang(), Util.getGUID(), info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-
-            return okOrThrow("getSchM010_001", dt);
-        });
-
-    }
-
-    // 임시 수출 서버만들면 변경해야함
-
-    public ResponseDTO<?> setUldBuildUpM010_013(List<BigDecimal> cargoSidArray, String[] mfstWtArray) {
-        ClsUserInfo info = UserContext.get();
-        SysRepo repo = sysRepo.getObject();
-
-        return execute(repo,()->{
-            DbDto dbDto = null;
-            for (int i = 0; i < cargoSidArray.size(); i++) {
-                if (mfstWtArray[i] == null || mfstWtArray[i].equals("0") || mfstWtArray[i].equals("")) {
-                    //패스
-                } else {
-                    dbDto = repo.setUldBuildUpM010_013(cargoSidArray.get(i), mfstWtArray[i], info.getUserLang(), Util.getGUID(), info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-                    if (dbDto.getErrFlag().equals("N")) {
-                    } else {
-                        throw new BizException("setUldBuildUpM010_013", dbDto.getErrMsg());
-                    }
-                }
-            }
-
-
-            return okOrThrow("setUldBuildUpM010_013", dbDto);
-        });
-
-    }
-
-    public ResponseDTO<?> getCustomerP010_001(SysDTO.CustomerDTO dto) {
-
-        ClsUserInfo info = UserContext.get();
-        SysRepo repo = sysRepo.getObject();
-        return execute(repo,()->{
-            DbDto dt = repo.getCustomerP010_001(dto.customerName, dto.registrationNo, dto.customerFlag, dto.vendorFlag, dto.carrierFlag, dto.agencyFlag, dto.customsFlag, dto.iataFlag, info.getUserLang(), Util.getGUID(), info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-            return okOrThrow("getCustomerP010_001", dt);
-        });
-
-    }
-
-    public ResponseDTO<?> getCustomerL010_002(BigDecimal customerSid) {
-
-        ClsUserInfo info = UserContext.get();
-        SysRepo repo = sysRepo.getObject();
-        return execute(repo,()->{
-            DbDto dt = repo.getCustomerL010_002(customerSid, "Y", info.getUserLang(), Util.getGUID(), info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-            return okOrThrow("getCustomerL010_002", dt);
-        });
-
-    }
-
-    public ResponseDTO<?> sendSitaToEmail(SysDTO.SitaEmailDTO dto) {
-
-        ClsUserInfo info = UserContext.get();
-
-        SysRepo repo = sysRepo.getObject();
-
-        return execute(repo, SourcName.INFRA,()->{
-            DbDto ret = null;
-            String emailGuid = Util.getGUID();
-            String msgGuid = Util.getGUID();
-            String sendEmail = info.getUserEmail();
-            if (!dto.senderEmail().equals("")) {
-                sendEmail = dto.senderEmail();
-            }
-
-            ret = repo.setEmailManageL010_012(emailGuid, msgGuid, BigDecimal.ZERO, "", dto.title(), dto.msg(), "FWB", sendEmail, info.getUserLang(), Util.getGUID(), info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-
-            if (ret.getErrFlag().equals("Y")) {
-                throw new BizException("setEmailManageL010_012", ret.getErrMsg());
-            }
-
-            for (String row : dto.recvEmai()) {
-                if (!row.equalsIgnoreCase("")) {
-                    String refGuid = Util.getGUID();
-                    ret = repo.setEmailManageL010_013(emailGuid, refGuid, "RECV", row, info.getUserLang(), Util.getGUID(), info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-                    if (ret.getErrFlag().equals("Y")) {
-                        throw new BizException("setEmailManageL010_013", ret.getErrMsg());
-                    }
-                }
-
-            }
-
-            return okOrThrow("sendSitaToEmail", ret);
-        });
-
-    }
-
-    public ResponseDTO<?> getBoardL010_001() {
-
-        ClsUserInfo info = UserContext.get();
-        SysRepo repo = sysRepo.getObject();
-
-        return execute(repo,()->{
-            DbDto dt = repo.getBoardL010_001("Y", info.getUserLang(), Util.getGUID(), info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-            return okOrThrow("getBoardL010_001", dt);
-        });
-
-    }
-
-    public ResponseDTO<?> getCodeA010Mgm(String classCode,String codeName, String usableFlag) {
-        ClsUserInfo info = UserContext.get();
-        SysRepo repo = sysRepo.getObject();
-
-        return execute(repo,()->{
-            DbDto dbRet = null;
-            dbRet = repo.getCodeA010_001(classCode, "N", "Y", info.getUserLang(), Util.getGUID(), info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-            if (dbRet.getErrFlag().equals("Y")) {
-                throw new BizException("getCodeA010Mgm", dbRet.getErrMsg());
-            } else {
-                if (dbRet.getResult().get(0) == null || dbRet.getResult().get(0).isEmpty()) {
-                    throw new BizException("getCodeA010Mgm", "해당 공통코드 항목은 없습니다. ( " + classCode + " )");
-                }
-            }
-            ResponseDTO<Map<Integer, List<Map<String, Object>>>> ret1 = ResponseDTO.from(dbRet);
-
-            Map<String, Object> map0 = ret1.getData().get(0).get(0);
-
-            Map<String, Object> toAdd = new LinkedHashMap<>();
-
-            for (Map.Entry<String, Object> row : map0.entrySet()) {
-                String key = row.getKey();
-                Object value = row.getValue();
-                if (key.contains("CHAR_CLASS_SID")) {
-                    if (value instanceof BigDecimal) {
-                        if (((BigDecimal) value).compareTo(BigDecimal.ZERO) != 0) {
-                            ResponseDTO<List<Map<String, Object>>> classRet = codeCache.getCodeToClassSid(Util.getDecimal(value));
-                            if (classRet.getErrFlag().equals("Y")) {
-                                throw new BizException("getCodeA010Mgm", classRet.getErrMsg());
-                            } else {
-                                if (classRet.getData().get(0) == null || classRet.getData().get(0).isEmpty()) {
-                                    throw new BizException("getCodeA010Mgm", "CLASS 항목에 문제가 있습니다.\n관리자에게 문의하세요.");
-                                }
-                                toAdd.put(key + "_ARRAY", classRet.getData());
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (!toAdd.isEmpty()) {
-                map0.putAll(toAdd);
-            }
-
-            dbRet = repo.getCodeA010_002(classCode, codeName, usableFlag, info.getUserLang(), Util.getGUID(), info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-            if (dbRet.getErrFlag().equals("Y")) {
-                throw new BizException("getCodeA010Mgm", dbRet.getErrMsg());
-            } else {
-                if (dbRet.getResult().get(0) == null) {
-                    throw new BizException("getCodeA010Mgm", "해당 공통코드 항목은 없습니다. ( " + classCode + " )");
-                }
-            }
-
-            ResponseDTO<Map<Integer, List<Map<String, Object>>>> ret2 = ResponseDTO.from(dbRet);
-            ret1.getData().put(1, ret2.getData().get(0));
-
-            return okOrThrow("getCodeA010Mgm", ret1);
-        });
-    }
-
-    public ResponseDTO<?> setCodeA010_012(List<SysDTO.CodeSaveDTO> dtoList) {
-
-        ClsUserInfo info = UserContext.get();
-        SysRepo repo = sysRepo.getObject();
-
-        return execute(repo,()->{
-            DbDto dtRet = null;
-
-
-            for (SysDTO.CodeSaveDTO row : dtoList) {
-                dtRet = repo.setCodeA010_012(row.getClassCode(), row.getCode(), row.getAsisCode(), row.getCodeName1(), row.getCodeName2(), row.getCodeDesc(),
-                        row.getValue1Char(), row.getValue2Char(), row.getValue3Char(), row.getValue4Char(), row.getValue5Char(),
-                        row.getValue6Char(), row.getValue7Char(), row.getValue8Char(), row.getValue9Char(),
-                        row.getValue1Num(), row.getValue2Num(), row.getValue3Num(), row.getValue4Num(), row.getValue5Num(), row.getValue6Num(),
-                        row.getValue7Num(), row.getValue8Num(), row.getValue9Num(), row.getSeq(), info.getUserLang(), Util.getGUID(), info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-                if (dtRet.getErrFlag().equals("Y")) {
-                    throw new BizException("setCodeA010_012", dtRet.getErrMsg());
-                }
-                codeCache.loadClassCodeRepo(repo,row.getClassCode());
-            }
-
-
-            return okOrThrow("setCodeA010_012", dtRet);
-        });
-
-    }
-
-    public ResponseDTO<?> setCodeA010_022(List<SysDTO.CodeDelDTO> dtoList) {
-
-        ClsUserInfo info = UserContext.get();
-        SysRepo repo = sysRepo.getObject();
-
-        return execute(repo,()->{
-            DbDto dtRet = null;
-
-
-            for (SysDTO.CodeDelDTO row : dtoList) {
-                dtRet = repo.setCodeA010_022(row.classCode(), row.code(), "N", info.getUserLang(), Util.getGUID(), info.getUserId(), info.getUserIpAddress(), info.getPgmId());
-                if (dtRet.getErrFlag().equals("Y")) {
-                    throw new BizException("setCodeA010_022", dtRet.getErrMsg());
-                }
-                codeCache.loadClassCodeRepo(repo,row.classCode());
-            }
-
-
-            return okOrThrow("setCodeA010_022", dtRet);
-        });
-
-    }
-
+public interface SysService {
+
+    /**
+     * 공통코드 캐시 전체 재조회
+     */
+    ResponseDTO<?> reload();
+
+    /**
+     *  캐시 특정 CLASS_CODE 재조회
+     */
+    ResponseDTO<?> reload(String classCode);
+
+    /**
+     * 운항스케줄 조회
+     * @param fltDate 날짜 형식 YYYYMMDD
+     * @param inoutFlag 출항,입항 문자열 크기 1
+     * @return
+     */
+    ResponseDTO<?> getSch(String fltDate, String inoutFlag);
+
+    /**
+     * CIMP 스케줄 조회 용도
+     * @param fltDate 날짜 형식 YYYYMMDD
+     * @param inoutFlag 출항,입항 문자열 크기 1
+     * @return
+     */
+    ResponseDTO<?> getSch003(String fltDate, String inoutFlag);
+
+    /**
+     * 공통 코드 캐시된것 코드명 기준으로 조회
+     * @param classCode 공통코드 ClassCode
+     * @param codeName 공통코드 명
+     * @return
+     */
+    ResponseDTO<?> getBaseOds(String classCode, String codeName);
+
+    /**
+     * 공통 코드 클래스코드 시준으로 Value3Char 같은것 조회
+     * @param classCode 공통코드 ClassCode
+     * @param value3 공통코드 Value3Char 같은것
+     * @return
+     */
+    ResponseDTO<?> getBaseOdsValue3(String classCode, String value3);
+
+    /**
+     * 공통 코드 클래스코드 시준으로 Value2Char 같은것 조회
+     * @param classCode 공통코드 ClassCode
+     * @param value2 공통코드 Value2Char 같은것
+     * @return
+     */
+    ResponseDTO<?> getBaseOdsValue2(String classCode, String value2);
+
+    /**
+     * 공통 코드 클래스코드 시준으로 Value1Char 같은것 조회
+     * @param classCode 공통코드 ClassCode
+     * @param value1 공통코드 Value1Char 같은것
+     * @return
+     */
+    ResponseDTO<?> getBaseOdsValue1(String classCode, String value1);
+
+    /**
+     * 운항스케줄 조회 팝업용
+     * @param fltDate 날짜 기준 YYYYMMDD
+     * @param inoutFlag 입출항 문자열 크기 1
+     * @return
+     */
+    ResponseDTO<?> getSchP010_001(String fltDate, String inoutFlag);
+
+    /**
+     * FWB, FHL 운항스케줄 조회용도
+     * @param schSid TWM_SCHEDULE_MASTER 키 값
+     * @return
+     */
+    ResponseDTO<?> getSchM010_001(String schSid);
+
+    /**
+     * 대시점 조회 팝업 용도
+     * @param dto 객체타입
+     * @return
+     */
+    ResponseDTO<?> getCustomerP010_001(SysDTO.CustomerDTO dto);
+
+    /**
+     * FWB 용 AGENT 정보
+     * @param customerSid 대리점 테이블 키값
+     * @return
+     */
+    ResponseDTO<?> getCustomerL010_002(BigDecimal customerSid);
+
+    /**
+     * CIMP SITA정보 이메일로 보내기위한 용도
+     * @param dto 이메일로 보내기위해 필요한 객체 파라미터
+     * @return
+     */
+    ResponseDTO<?> sendSitaToEmail(SysDTO.SitaEmailDTO dto);
+
+    /**
+     * 공지 게시판 조회용도
+     * @return
+     */
+    ResponseDTO<?> getBoardL010_001();
+
+    /**
+     * 공통코드 전용 관리페이지 용도 API
+     * @param classCode 클래스코드
+     * @param codeName 코드명
+     * @param usableFlag 사용유무
+     * @return
+     */
+    ResponseDTO<?> getCodeA010Mgm(String classCode,String codeName, String usableFlag);
+
+    /**
+     * 공통코드 전용 관리페이지 저장
+     * @param dtoList 공통코드전용 저장 객체
+     * @return
+     */
+    ResponseDTO<?> setCodeA010_012(List<SysDTO.CodeSaveDTO> dtoList);
+
+    /**
+     * 공통코드 전용 관리페이지 삭제
+     * @param dtoList 공통코드전용 삭제 객체
+     * @return
+     */
+    ResponseDTO<?> setCodeA010_022(List<SysDTO.CodeDelDTO> dtoList);
 }
