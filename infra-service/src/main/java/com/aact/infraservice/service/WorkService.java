@@ -1230,8 +1230,15 @@ public class WorkService extends ServiceBase {
             sql.append("AND\t\tODR.USABLE_FLAG\t=\t'Y'\t\t JOIN\tTHR_OT_DETAIL_REF\tODR2 ON\t\tODR2.YEAR\t=\tTOD.YEAR AND\t\tODR2.MON\t\t=\tTOD.MON ");
             sql.append("AND\t\tODR2.DAY\t\t=\tTOD.DAY AND\t\tODR2.USER_SID\t=\tTOD.USER_SID AND\t\tODR2.SEQ\t\t\t=\tTOD.SEQ AND\t\tODR2.CLASS_CODE\t=\t'TRMCD' ");
             sql.append("AND\t\tODR2.USABLE_FLAG\t=\t'Y' WHERE\tNVL(TOD.APPROVE_FLAG,'N') = 'N' AND\t\tTOD.YEAR||TOD.MON = '" + yyyyMM+"' ");
-            sql.append("AND\t\tTOT.REQ_START_TIME IS NULL AND AND TOT.CAPS_START_TIME IS NULL ( ");
-            sql.append("TO_NUMBER(TOD.DAY) < TO_NUMBER( '"+dd+"' ) OR ( TO_NUMBER(TOD.DAY) = TO_NUMBER( '"+dd+"' ) AND TCM.VALUE1_NUMBER = 0 ) ) ");
+            sql.append("AND TOT.REQ_START_TIME IS NULL ");
+            sql.append("AND TOT.CAPS_START_TIME IS NULL ");
+            sql.append("AND ( ");
+            sql.append("    TO_NUMBER(TOD.DAY) < TO_NUMBER('" + dd + "') ");
+            sql.append("    OR ( ");
+            sql.append("        TO_NUMBER(TOD.DAY) = TO_NUMBER('" + dd + "') ");
+            sql.append("        AND TCM.VALUE1_NUMBER = 0 ");
+            sql.append("    ) ");
+            sql.append(") ");
             sql.append("AND EXISTS ( ");
             sql.append("    SELECT 1 FROM THR_OT_MASTER TOM ");
             sql.append("    WHERE TOM.YEAR = TOD.YEAR ");
