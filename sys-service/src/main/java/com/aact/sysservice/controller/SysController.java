@@ -49,13 +49,6 @@ public class SysController {
         return sysService.getSchM010_001(schSid);
     }
 
-    // setUldBuildUpM010_013 수출 서버만들면 그걸로 변경해야함
-    @GetMapping(value = "/setUldBuildUpM010_013")
-    public ResponseDTO<?> setUldBuildUpM010_013(@RequestParam("cargoSid") List<BigDecimal> cargoSid,
-                                                @RequestParam("mfstWt") String[] mfstWt) {
-        return sysService.setUldBuildUpM010_013(cargoSid, mfstWt);
-    }
-
     // getCustomerP010_001
     @PostMapping(value = "/getCustomerP010_001")
     public ResponseDTO<?> getCustomerP010_001(@RequestBody SysDTO.CustomerDTO dto) {
