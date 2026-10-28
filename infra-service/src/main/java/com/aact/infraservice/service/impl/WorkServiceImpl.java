@@ -1639,7 +1639,16 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
                     "AND\t\tNVL(TOD.APPROVE_FLAG,'N')\t=\t'N'\n" +
                     "AND\t\tTOD.YEAR = '[$1]'\n" +
                     "AND\t\tTOD.MON\t=\t'[$2]'\n" +
-                    "AND\t\tTO_NUMBER(TOD.DAY) <= TO_NUMBER('[$3]')";
+                    "AND\t\tTO_NUMBER(TOD.DAY) <= TO_NUMBER('[$3]') " +
+                    "AND EXISTS (\n" +
+                    "    SELECT 1\n" +
+                    "    FROM THR_OT_MASTER TOM\n" +
+                    "    WHERE TOM.YEAR = TOD.YEAR\n" +
+                    "      AND TOM.MON = TOD.MON\n" +
+                    "      AND TOM.USER_SID = TOD.USER_SID\n" +
+                    "      AND TOM.USABLE_FLAG = 'Y' "+
+                    "      AND NVL(TOM.CLOSE_FLAG, 'N') = 'Y'\n" +
+                    ")";
             String targetDate = dateStr;
             LocalDate date = LocalDate.parse(dateStr, formatter);
             if(flag){
