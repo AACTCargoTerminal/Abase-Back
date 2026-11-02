@@ -227,4 +227,44 @@ public class WorkController {
     public ResponseDTO<?> setAutoSchAppr(@RequestParam("dateStr")String dateStr,@RequestParam("flag")boolean flag) {
         return workService.setAutoSchAppr(dateStr,flag);
     }
+    //getWorkL010_031
+    @GetMapping(value = "/getWorkL010_031")
+    public ResponseDTO<?> getWorkL010_031(@RequestParam("dateStr")String dateStr) {
+        return workService.getWorkL010_031(dateStr);
+    }
+    //getWorkM010_004
+
+    @GetMapping(value = "/getWorkM010_004")
+    public ResponseDTO<?> getWorkM010_004(@RequestParam("dateStr")String dateStr,@RequestParam("userSid")BigDecimal userSid,@RequestParam("seq")BigDecimal seq) {
+        return workService.getWorkM010_004(dateStr,userSid,seq);
+    }
+    //setWorkM010_014_1
+    @PostMapping(value = "/setWorkM010_014_1", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseDTO<?> setWorkM010_014_1(@Validated @ModelAttribute WorkDTO.NightTransSaveDTO dtos) {
+        return workService.setWorkM010_014_1(dtos);
+    }
+    //setWorkM010_025
+    @PostMapping(value = "/setWorkM010_025")
+    public ResponseDTO<?> setWorkM010_025(@RequestBody WorkDTO.WorkDefaultDTO dtos) {
+        return workService.setWorkM010_025(dtos);
+    }
+    //getWorkL010_032
+    @GetMapping(value = "/getWorkL010_032")
+    public ResponseDTO<?> getWorkL010_032(@RequestParam("dateStr")String dateStr
+            ,@RequestParam("teamCode")String teamCode
+            ,@RequestParam("terminalCode")String terminalCode
+            ,@RequestParam("userName")String userName
+            ,@RequestParam("approveFlag")String approveFlag) {
+        return workService.getWorkL010_032(dateStr,teamCode,terminalCode,userName,approveFlag);
+    }
+    //setWorkL010_019
+    @PostMapping(value = "/setWorkL010_019")
+    public ResponseDTO<?> setWorkL010_019(@RequestBody WorkDTO.NightApprDTO dtos) {
+        return workService.setWorkL010_019(dtos);
+    }
+    //setWorkM010_025_1
+    @PostMapping(value = "/setWorkM010_025_1")
+    public ResponseDTO<?> setWorkM010_025_1(@RequestBody WorkDTO.NightApprDTO dtos) {
+        return workService.setWorkM010_025_1(dtos);
+    }
 }
