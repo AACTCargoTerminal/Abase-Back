@@ -13,6 +13,17 @@ import java.math.BigDecimal;
 import java.util.List;
 
 public class WorkDTO {
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record WorkDefaultDTO(
+            @JsonProperty("year") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "년도") String year,
+            @JsonProperty("mon") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "월") String mon,
+            @JsonProperty("day") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "일") String day,
+            @JsonProperty("seq") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "순번") BigDecimal seq,
+            @JsonProperty("userSid") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "신청자정보") BigDecimal userSid) {
+
+    }
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record SchDeleteDTO(
             @JsonProperty("date") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "날짜") String date,
@@ -74,25 +85,6 @@ public class WorkDTO {
             @JsonProperty("fromDate") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String fromDate,
             @JsonProperty("userName") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String userName,
             @JsonProperty("otFlag") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String otFlag) {
-    }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public record HrSchSaveDTO(
-            @JsonProperty("YEAR") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String year,
-            @JsonProperty("MON") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String mon,
-            @JsonProperty("DAY") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String day,
-            @JsonProperty("USER_SID") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") BigDecimal userSid,
-            @JsonProperty("USER_ID") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String userId,
-            @JsonProperty("schArray") List<HrSchSaveRowDTO> schArray){
-    }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public record HrSchSaveRowDTO(
-
-            @JsonProperty("SEQ") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") BigDecimal seq,
-            @JsonProperty("WORK_TYPE_CODE") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("*") String workTypeCode,
-            @JsonProperty("ADD_WORK_HOUR") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") BigDecimal addHour) {
-
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -181,6 +173,23 @@ public class WorkDTO {
         private String endTime;
 
     }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record NightTransSaveDTO(
+            @JsonProperty("year") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "년도") String year,
+            @JsonProperty("mon") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "월") String mon,
+            @JsonProperty("day") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "일") String day,
+            @JsonProperty("seq") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "순번") BigDecimal seq,
+            @JsonProperty("userSid") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "신청자정보") BigDecimal userSid,
+            @JsonProperty("code") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "지역") String code,
+            @JsonProperty("value1") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String value1,
+            @JsonProperty("remark") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "사유") String remark,
+            @JsonProperty("files") List<MultipartFile> files) {
+
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record NightApprDTO(@JsonProperty("array") List<WorkDefaultDTO> array){}
 
     public record AutoKey(String teamCode, String terminalCode) {}
 

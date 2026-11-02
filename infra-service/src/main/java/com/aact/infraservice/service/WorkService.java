@@ -274,4 +274,59 @@ public interface WorkService {
      * @return
      */
     ResponseDTO<?> getWorkTime(String teamCode,String terminalCode,String toDate,String fromDate,String date,String userName);
+
+    /**
+     * 심야교통비 신청서 목록 조회
+     * @param yyyymm 날짜 YYYYMM
+     * @return
+     */
+    ResponseDTO<?> getWorkL010_031(String yyyymm);
+
+    /**
+     * 심야교통비 개인 신청 조회
+     * @param date 날짜 YYYYMMDD
+     * @param userSid 유저 키값
+     * @param seq 스케줄 순번
+     * @return
+     */
+    ResponseDTO<?> getWorkM010_004(String date,BigDecimal userSid,BigDecimal seq);
+
+    /**
+     * 심야교통비 및 서명 신청
+     * @param dto   심야교통비 신청 객체
+     * @return
+     */
+    ResponseDTO<?> setWorkM010_014_1(WorkDTO.NightTransSaveDTO dto);
+
+    /**
+     * 심야교통비 사용자 삭제처리
+     * @param dto 삭제 객체
+     * @return
+     */
+    ResponseDTO<?> setWorkM010_025(WorkDTO.WorkDefaultDTO dto);
+
+    /**
+     * 심야교통비 관리자 페이지
+     * @param date 날짜 YYYYMM
+     * @param teamCode  공통코드 HRPAT
+     * @param terminalCode 터미널코드 HRMTR
+     * @param userName  공용어 유저명
+     * @param approveFlag 확정탭 신청탭 구분
+     * @return
+     */
+    ResponseDTO<?> getWorkL010_032(String date,String teamCode,String terminalCode,String userName,String approveFlag);
+
+    /**
+     * 심야교통비 확정
+     * @param dto 확정 객체 배열
+     * @return
+     */
+    ResponseDTO<?> setWorkL010_019(WorkDTO.NightApprDTO dto);
+
+    /**
+     * 심야교통비 관리자용 삭제
+     * @param dto
+     * @return
+     */
+    ResponseDTO<?> setWorkM010_025_1(WorkDTO.NightApprDTO dto);
 }

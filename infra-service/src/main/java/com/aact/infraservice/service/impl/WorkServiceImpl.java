@@ -770,12 +770,14 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
             }
             DbDto dbRet = null;
             for (CapsTimeDTO.DeleteDTO row : dtos) {
+                repo.beginTrans();
                 String day = String.valueOf(Integer.parseInt(row.date().substring(6, 8)));
                 dbRet = repo.setWorkL010_014(row.date().substring(0, 4), row.date().substring(4, 6), day, row.userSid(), row.seq(), info.getUserLang(), Util.getGUID(),
                         info.getUserId(), info.getUserIpAddress(), info.getPgmId());
                 if (dbRet.getErrFlag().equals("Y")) {
                     throw new BizException("setWorkL010_014", dbRet.getErrMsg());
                 }
+                repo.commit();
             }
             return okOrThrow("setWorkL010_014", dbRet);
         });
@@ -880,7 +882,7 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
 
             DbDto dbRet = null;
             for(WorkDTO.ApproveRowDTO row : dto.userArray()){
-
+                repo.beginTrans();
                 for(WorkDTO.ApproveCellDTO day:row.dayArray()){
                     dbRet = repo.setWorkL010_015(dto.date().substring(0, 4), dto.date().substring(4, 6), day.day(), row.userSid(),day.seq(),
                             info.getUserLang(), Util.getGUID(),
@@ -889,8 +891,7 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
                         throw new BizException("setWorkL010_015", dbRet.getErrMsg());
                     }
                 }
-
-
+                repo.commit();
 
             }
             return okOrThrow("setWorkL010_015", dbRet);
@@ -916,6 +917,51 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
             return okOrThrow("setWorkM010_034", dbRet);
         });
     }
+
+    @Override
+    public ResponseDTO<?> setWorkM010_025(WorkDTO.WorkDefaultDTO dto) {
+        ClsUserInfo info = UserContext.get();
+        WorkRepo repo = workRepoProvider.getObject();
+        return execute(repo, () -> {
+
+            DbDto dbRet = null;
+            dbRet = repo.setWorkM010_025(dto.year(), dto.mon(), dto.day(), dto.userSid(), dto.seq(),"N",info.getUserLang(), Util.getGUID(),
+                    info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+            if (dbRet.getErrFlag().equals("Y")) {
+                throw new BizException("setWorkM010_025", dbRet.getErrMsg());
+            }
+            return okOrThrow("setWorkM010_025", dbRet);
+        });
+    }
+
+    @Override
+    public ResponseDTO<?> setWorkM010_025_1(WorkDTO.NightApprDTO dto) {
+        ClsUserInfo info = UserContext.get();
+        WorkRepo repo = workRepoProvider.getObject();
+        return execute(repo,()->{
+            ResponseDTO<?> ret = null;
+            DbDto dbDto = null;
+
+            if(dto.array()==null||dto.array().isEmpty()){
+                throw new BizException("setWorkM010_025_1","삭제 항목이 없습니다.");
+            }
+
+            for(WorkDTO.WorkDefaultDTO row:dto.array()){
+                dbDto = repo.setWorkM010_025(row.year(),row.mon(),row.day(),row.userSid(),row.seq(),"Y"
+                        ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
+
+                if(dbDto.getErrFlag().equals("Y")){
+                    throw new BizException("setWorkM010_025_1",dbDto.getErrMsg());
+                }
+            }
+
+
+            ret = ResponseDTO.from(dbDto);
+
+            return ret;
+        });
+    }
+
     @Override
     public ResponseDTO<?> setWorkL010_016(WorkDTO.HrReqSaveDTO dto) {
         ClsUserInfo info = UserContext.get();
@@ -1018,7 +1064,16 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
                     "    AND WKT.CLASS_CODE = 'HRWKT' " +
                     "    AND WKT.CODE_CODE = 'C' " +
                     "    AND WKT.USABLE_FLAG = 'Y' " +
-                    ")";
+                    ") "+
+                    "AND NOT EXISTS (\n" +
+                    "\t\t\t\t      \t\tSELECT\t1\n" +
+                    "\t\t\t\t      \t\tFROM\tTCM_INTRA_USER_RELATION\n" +
+                    "\t\t\t\t      \t\tWHERE\tCLASS_CODE\t=\t'HRWDT'\n" +
+                    "\t\t\t\t      \t\tAND\t\tCODE_CODE\t=\t'B'\n" +
+                    "\t\t\t\t      \t\tAND\t\tUSABLE_FLAG\t=\t'Y'\n" +
+                    "\t\t\t\t      \t\tAND\t\tUSER_SID\t=\tTUM.USER_SID\n" +
+                    "\t\t\t\t      \t\tAND\t\tSUBSTR(NVL(VALUE1,'99991231'),0,6) < '" +date+"' "+
+                    "\t\t\t\t      )";
 
             for(int i = 0;i<cal.size();i++){
                 Map<String,Object> calRow = cal.get(i);
@@ -3276,7 +3331,146 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
 
     }
 
-    private CellStyle getCellStyle_Line(Workbook workbook,boolean top,boolean bottom,boolean left,boolean right,boolean fontBold){
+    @Override
+    public ResponseDTO<?> getWorkL010_031(String yyyymm) {
+        ClsUserInfo info = UserContext.get();
+        WorkRepo repo = workRepoProvider.getObject();
+        return execute(repo,()->{
+            ResponseDTO<?> ret = null;
+            DbDto dbDto = null;
+
+            dbDto = repo.getWorkL010_031(yyyymm,info.getUserSid(),info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
+
+            if(dbDto.getErrFlag().equals("Y")){
+                throw new BizException("getWorkL010_031",dbDto.getErrMsg());
+            }
+
+            ret = ResponseDTO.from(dbDto);
+
+            return ret;
+        });
+    }
+
+    @Override
+    public  ResponseDTO<?> getWorkM010_004(String date,BigDecimal userSid,BigDecimal seq){
+        ClsUserInfo info = UserContext.get();
+        WorkRepo repo = workRepoProvider.getObject();
+        return execute(repo,()->{
+            ResponseDTO<?> ret = null;
+            DbDto dbDto = null;
+            String yyyy = date.substring(0,4);
+            String mon = date.substring(4,6);
+            String day = Util.getInteger(date.substring(6,8)).toString();
+            dbDto = repo.getWorkM010_004(yyyy,mon,day,userSid,seq,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
+
+            if(dbDto.getErrFlag().equals("Y")){
+                throw new BizException("getWorkM010_004",dbDto.getErrMsg());
+            }
+
+            ret = ResponseDTO.from(dbDto);
+
+            return ret;
+        });
+    }
+
+    @Override
+    public ResponseDTO<?> setWorkM010_014_1(WorkDTO.NightTransSaveDTO dto) {
+        ClsUserInfo info = UserContext.get();
+        WorkRepo repo = workRepoProvider.getObject();
+        return execute(repo,()->{
+            ResponseDTO<?> ret = null;
+            DbDto dbDto = null;
+            dbDto = repo.setWorkM010_014(dto.year(),dto.mon(),dto.day(),dto.userSid(),dto.seq(),dto.code(),dto.value1(),dto.remark()
+                    ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
+
+            if(dbDto.getErrFlag().equals("Y")){
+                throw new BizException("setWorkM010_014_1",dbDto.getErrMsg());
+            }
+
+            if (dto.files() == null || dto.files().isEmpty()) {
+                throw new BizException("setWorkM010_014_1", "서명이 없습니다.");
+            }
+            ResponseDTO<?> saveRet = fileClientService.fileSave(dto.files());
+
+            if (saveRet.getErrFlag().equals("Y")) {
+                throw new BizException("setWorkM010_014_1", "파일저장실패 : " + saveRet.getErrMsg());
+            }
+
+            List<FileMeta> metaRet = Util.castIfMatch(saveRet.getData(), new TypeReference<List<FileMeta>>() {
+            });
+
+            if (metaRet == null || metaRet.isEmpty()) {
+                throw new BizException("setWorkM010_014_1", "파일변환실패");
+            }
+
+            BigDecimal fileSize = Util.getDecimal(metaRet.get(0).getSize());
+
+            if (fileSize.compareTo(BigDecimal.ZERO) == 0) {
+                throw new BizException("setWorkM010_014_1", "파일사이즈 문제");
+            }
+
+            dbDto = repo.setWorkM010_018(dto.year(),dto.mon(),dto.day(),dto.userSid(), dto.seq(),BigDecimal.ONE, "NIGHT",
+                    metaRet.get(0).getDir(), metaRet.get(0).getOriginName(), metaRet.get(0).getChangeName(), metaRet.get(0).getFullpath()
+                    , fileSize, metaRet.get(0).getMime(), metaRet.get(0).getExt(), info.getUserLang(), Util.getGUID(),
+                    info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+
+            ret = ResponseDTO.from(dbDto);
+
+            return ret;
+        });
+    }
+
+    @Override
+    public ResponseDTO<?> getWorkL010_032(String date, String teamCode, String terminalCode, String userName, String approveFlag) {
+        ClsUserInfo info = UserContext.get();
+        WorkRepo repo = workRepoProvider.getObject();
+        return execute(repo,()->{
+            ResponseDTO<?> ret = null;
+            DbDto dbDto = null;
+            String yyyy = date.substring(0,4);
+            String mon = date.substring(4,6);
+            dbDto = repo.getWorkL010_032(yyyy,mon,teamCode,terminalCode,userName,approveFlag
+                    ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
+
+            if(dbDto.getErrFlag().equals("Y")){
+                throw new BizException("getWorkL010_032",dbDto.getErrMsg());
+            }
+
+            ret = ResponseDTO.from(dbDto);
+
+            return ret;
+        });
+    }
+
+    @Override
+    public ResponseDTO<?> setWorkL010_019(WorkDTO.NightApprDTO dto) {
+        ClsUserInfo info = UserContext.get();
+        WorkRepo repo = workRepoProvider.getObject();
+        return execute(repo,()->{
+            ResponseDTO<?> ret = null;
+            DbDto dbDto = null;
+
+            if(dto.array()==null||dto.array().isEmpty()){
+                throw new BizException("setWorkL010_019","확정 항목이 없습니다.");
+            }
+
+            for(WorkDTO.WorkDefaultDTO row:dto.array()){
+                dbDto = repo.setWorkL010_019(row.year(),row.mon(),row.day(),row.userSid(),row.seq()
+                        ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
+
+                if(dbDto.getErrFlag().equals("Y")){
+                    throw new BizException("setWorkL010_019",dbDto.getErrMsg());
+                }
+            }
+
+
+            ret = ResponseDTO.from(dbDto);
+
+            return ret;
+        });
+    }
+
+    private CellStyle getCellStyle_Line(Workbook workbook, boolean top, boolean bottom, boolean left, boolean right, boolean fontBold){
         CellStyle headerStyle = workbook.createCellStyle();
 
         headerStyle.setFillPattern(FillPatternType.NO_FILL);
