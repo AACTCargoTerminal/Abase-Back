@@ -267,4 +267,38 @@ public class WorkController {
     public ResponseDTO<?> setWorkM010_025_1(@RequestBody WorkDTO.NightApprDTO dtos) {
         return workService.setWorkM010_025_1(dtos);
     }
+
+    //getNightWorkIns
+    @GetMapping(value = "/getNightWorkIns")
+    public ResponseDTO<?> getNightWorkIns(@RequestParam("dateStr")String dateStr) {
+        return workService.getNightWorkIns(dateStr);
+    }
+
+    @GetMapping(value = "/getNightDetail")
+    public ResponseDTO<?> getNightDetail(@RequestParam("dateStr")String dateStr) {
+        return workService.getNightDetail(dateStr);
+    }
+    //getWorkL010_033
+    @GetMapping(value = "/getWorkL010_033")
+    public ResponseDTO<?> getWorkL010_033(@RequestParam("monFlag")String monFlag,@RequestParam("startDate")String startDate
+                                    ,@RequestParam("endDate")String endDate,@RequestParam("teamCode")String teamCode
+                                    ,@RequestParam("terminalCode")String terminalCode,@RequestParam("userName")String userName,@RequestParam("filter")String filter
+    ) {
+        return workService.getWorkL010_033(monFlag, startDate, endDate, teamCode, terminalCode, userName, filter);
+    }
+    //setWorkM010_017
+    @PostMapping(value = "/setWorkM010_017")
+    public ResponseDTO<?> setWorkM010_017(@RequestBody WorkDTO.ApprDTO dtos) {
+        return workService.setWorkM010_017(dtos);
+    }
+    //setWorkM010_026
+    @PostMapping(value = "/setWorkM010_026")
+    public ResponseDTO<?> setWorkM010_026(@RequestBody WorkDTO.ApprDTO dtos) {
+        return workService.setWorkM010_026(dtos);
+    }
+    //getOrgExcel
+    @GetMapping(value = "/getOrgExcel")
+    public ResponseDTO<?> getOrgExcel() {
+        return workService.getOrgExcel();
+    }
 }

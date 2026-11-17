@@ -109,13 +109,17 @@ public class UserServiceImpl extends ServiceBase implements UserSevice {
                 String oldSession = stringRedisTemplate.opsForValue().get(userKey);
 
                 if (oldSession != null && !oldSession.equals(newSessionId)) {
-                    stringRedisTemplate.delete(userKey);
-                    stringRedisTemplate.opsForValue().set(userKey, newSessionId, Duration.ofMinutes(30));
-                    stringRedisTemplate.opsForValue().set("sess:kill-reason:" + oldSession,
-                            "KICKED_BY_LOGIN|" + sid + "|" + newSessionId, Duration.ofMinutes(10));
-                } else {
-                    stringRedisTemplate.opsForValue().set(userKey, newSessionId, Duration.ofMinutes(30));
+                    stringRedisTemplate.opsForValue().set(
+                            "sess:kill-reason:" + oldSession,
+                            "KICKED_BY_LOGIN|" + sid + "|" + newSessionId
+                    );
                 }
+
+                stringRedisTemplate.opsForValue().set(
+                        userKey,
+                        newSessionId,
+                        Duration.ofMinutes(30)
+                );
             }else{
                 if (ret.getErrCode().equalsIgnoreCase("SP_USER_NOT_FOUND")) {
                     throw new BizException("login","사용자 아이디가 잘못되었습니다.");

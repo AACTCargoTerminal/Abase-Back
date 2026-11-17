@@ -184,12 +184,22 @@ public class WorkDTO {
             @JsonProperty("code") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "지역") String code,
             @JsonProperty("value1") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String value1,
             @JsonProperty("remark") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "사유") String remark,
+            @JsonProperty("startTime") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "시작시간") String startTime,
+            @JsonProperty("endTime") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "종료시간") String endTime,
+            @JsonProperty("userId") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "신청자ID") String userId,
+            @JsonProperty("addDay") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "추가날짜") int addDay,
             @JsonProperty("files") List<MultipartFile> files) {
 
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record NightApprDTO(@JsonProperty("array") List<WorkDefaultDTO> array){}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record ApprDTO(
+            @JsonProperty("type") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs(value = "*",label = "승인타입") String type,
+            @JsonProperty("array") List<WorkDefaultDTO> array){}
+
 
     public record AutoKey(String teamCode, String terminalCode) {}
 

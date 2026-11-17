@@ -12,24 +12,34 @@ import com.aact.infraservice.repo.WorkRepo;
 import com.aact.infraservice.service.WorkService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.pdfbox.io.IOUtils;
+import org.apache.pdfbox.multipdf.PDFMergerUtility;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.ss.util.RegionUtil;
 import org.apache.poi.util.Units;
+import org.apache.poi.xssf.usermodel.*;
+import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTFont;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.text.DecimalFormat;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.List;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -2893,6 +2903,7 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
                 sql.append("     , SUM(TOT.HOLIDAY_WORK_HOUR + TOT.HOLIDAY_ADD_HOUR) SUM_HOLIDAY_HOUR ");
                 sql.append("     , ODR.CODE_CODE TEAM_CODE ");
                 sql.append("     , SYS_FUNCTION.FCM_GET_CODE_NAME_BY_AK1('HRPAT', ODR.CODE_CODE, 'KOR') TEAM_NAME ");
+                sql.append("     , TOD.YEAR||TOD.MON    YYYYMM ");
                 sql.append("FROM THR_OT_DETAIL TOD ");
                 sql.append("JOIN THR_OT_TIME TOT ");
                 sql.append("  ON TOD.YEAR = TOT.YEAR ");
@@ -3380,7 +3391,28 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
         return execute(repo,()->{
             ResponseDTO<?> ret = null;
             DbDto dbDto = null;
-            dbDto = repo.setWorkM010_014(dto.year(),dto.mon(),dto.day(),dto.userSid(),dto.seq(),dto.code(),dto.value1(),dto.remark()
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+            LocalDate tmpDate = LocalDate.of(
+                    Integer.parseInt(dto.year()),
+                    Integer.parseInt(dto.mon()),
+                    Integer.parseInt(dto.day())
+            );
+
+            String startDate = tmpDate.format(formatter);
+            String endDate = tmpDate.plusDays(dto.addDay()).format(formatter);
+
+            ResponseDTO<CapsTimeDTO.CapsRangeResult> startSet = capsServiceImpl.findDateToId(CapsGetType.START,dto.userId(),startDate,dto.startTime());
+            if(startSet.getErrFlag().equals("Y")){
+                throw new BizException("findDateToId", startSet.getErrMsg());
+            }
+
+            ResponseDTO<CapsTimeDTO.CapsRangeResult> endSet = capsServiceImpl.findDateToId(CapsGetType.END,dto.userId(),endDate,dto.endTime());
+            if(endSet.getErrFlag().equals("Y")){
+                throw new BizException("findDateToId", endSet.getErrMsg());
+            }
+
+            dbDto = repo.setWorkM010_014(dto.year(),dto.mon(),dto.day(),dto.userSid(),dto.seq(),dto.code(),dto.value1()
+                    ,dto.remark(),startSet.getData().orgTime(),endSet.getData().orgTime()
                     ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
 
             if(dbDto.getErrFlag().equals("Y")){
@@ -3467,6 +3499,1450 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
             ret = ResponseDTO.from(dbDto);
 
             return ret;
+        });
+    }
+
+    @Override
+    public ResponseDTO<?> getNightWorkIns(String date) {
+        ClsUserInfo info = UserContext.get();
+        WorkRepo repo = workRepoProvider.getObject();
+        return execute(repo,()->{
+            DbDto dbDto = null;
+            Row row = null;
+            Cell cell = null;
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+            DateTimeFormatter formatter2 = DateTimeFormatter.ofPattern("yyyy년 MM월 dd일");
+            Path tempDir = Paths.get(
+                    System.getProperty("user.dir"),
+                    ".temp",
+                    UUID.randomUUID().toString()
+            );
+
+            ResponseDTO<byte[]> ret = fileClientService.fileRead("/IMG/TEMPLATE/NIGHT_INS_TEMPLATE.xlsx");
+            if (ret.getErrFlag().equals("Y")) {
+                throw new BizException("getNightWorkIns", ret.getErrMsg());
+            }
+
+            ResponseDTO<List<Map<String, Object>>> res = clientService.get(ClientName.SYS,uriBuilder -> uriBuilder
+                    .path("/sys/getBaseOds")
+                    .queryParam("classCode", "HRCOS")
+                    .queryParam("codeName", "")
+                    .build(),new ParameterizedTypeReference<ResponseDTO<List<Map<String, Object>>>>() {});
+            if(res.getErrFlag().equals("Y")){
+                throw new BizException("getNightWorkIns", res.getErrMsg());
+            }
+
+            dbDto = repo.setWorkM010_005(date.substring(0,4),date.substring(4,6),info.getUserLang(), Util.getGUID(),
+                    info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+            if(dbDto.getErrFlag().equals("Y")){
+                throw new BizException("getNightWorkIns", dbDto.getErrMsg());
+            }
+
+            Map<BigDecimal,List<Map<String,Object>>> dbRet = convNightData(dbDto);
+            List<Map<String,DbTypeDTO>> dbRet2 = dbDto.getResult().get(1);
+
+            if(dbRet.isEmpty()||dbRet2.isEmpty()){
+                throw new BizException("getNightWorkIns", "심야교통비 출력할 목록이 없습니다.");
+            }
+
+            res.getData().sort(Comparator.comparingInt((item->Integer.parseInt(Util.getStrChk(item.get("VALUE1_CHAR"),"0")))));
+            Map<String,String> hrcosMap = new LinkedHashMap<>();
+            for(Map<String,Object> hrcosRow : res.getData()){
+                String amount = Util.getStrChk(hrcosRow.get("VALUE1_CHAR"),"0");
+                String tmpRegion = Util.getStrChk(hrcosRow.get("CODE_NAME"));
+                hrcosMap.merge(amount, tmpRegion, (oldValue, newValue) -> oldValue + ", " + newValue);
+            }
+
+            Map<BigDecimal,List<Path>> pathArray = new LinkedHashMap<>();
+
+            try{
+                Files.createDirectories(tempDir);
+
+                for(int i = 0;i<dbRet2.size();i++){
+                    Map<String,DbTypeDTO> dbRow2 = dbRet2.get(i);
+
+                    try(XSSFWorkbook srcWorkbook = new XSSFWorkbook(new ByteArrayInputStream(ret.getData()));
+                        ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+
+                        XSSFSheet formSheet = srcWorkbook.getSheet("SHEET");
+                        if(formSheet == null){
+                            throw new BizException("getNightWorkIns", "Templete SHEET 기본 시트없음");
+                        }
+
+                        BigDecimal tmpUserSid = Util.getDecimal(dbRow2.get("USER_SID").getObj());
+                        String tmpApproveName = Util.getStrChk(dbRow2.get("USER_NAME").getObj());
+                        byte[] approveSign = (byte[]) dbRow2.get("DATA").getObj();
+                        String tmpSignPath = Util.getStrChk(dbRow2.get("FULL_PATH").getObj());
+                        String createdTime = Util.getStrChk(dbRow2.get("CREATED_TIME").getObj());
+
+                        LocalDate createdTime2 = LocalDate.parse(createdTime, formatter);
+                        createdTime = formatter2.format(createdTime2);
+
+                        //작성일자 셋팅
+                        row = formSheet.getRow(5);
+                        cell = row.getCell(7);
+                        cell.setCellValue("작성일자 : "+createdTime);
+
+                        int idx = 10;
+                        int seq = 1;
+
+                        if (hrcosMap.size() > 0) {
+                            formSheet.shiftRows(
+                                    idx,
+                                    formSheet.getLastRowNum(),
+                                    hrcosMap.size()-1,
+                                    true,
+                                    false
+                            );
+                        }
+                        //지역별 지급 금액 수정
+                        for (Map.Entry<String, String> entry : hrcosMap.entrySet()) {
+                            String amount = entry.getKey();
+                            String region = entry.getValue();
+
+                            if(seq!=hrcosMap.entrySet().size()){
+                                copyRowStyleFast(formSheet,10+hrcosMap.size()-1, idx);
+                            }
+                            row = formSheet.getRow(idx);
+                            cell = row.getCell(1,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell.setCellValue(seq+") "+region+" : "+String.format("%,d", Integer.parseInt(amount))+"원");
+
+                            idx++;
+                            seq++;
+
+                        }
+
+                        //본문작성
+                        int originIdx = idx+5;
+
+                        List<Map<String, Object>> list  =   dbRet.get(tmpUserSid);
+
+                        if(list == null || list.isEmpty()){
+                            continue;
+                        }
+
+                        Map<String, Object> lastRow = list.get(list.size() - 1);
+                        ResponseDTO<byte[]> signRet = fileClientService.fileRead(tmpSignPath);
+
+                        if(signRet.getErrFlag().equals("Y")){
+                            throw new BizException("getNightWorkIns",signRet.getErrMsg());
+                        }
+                        //하단 신청인, 팀장 수정
+                        int insertSignIdx = originIdx+10;
+                        int approveSignIdx = originIdx+12;
+
+                        row = formSheet.getRow(insertSignIdx);
+                        cell = row.getCell(8,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+
+                        cell.setCellValue(Util.getStrChk(lastRow.get("USER_NAME")));
+
+                        row = formSheet.getRow(approveSignIdx);
+                        cell = row.getCell(8,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                        cell.setCellValue(tmpApproveName);
+
+                        if(list.size()>3){
+                            int addCount = list.size() - 3;
+                            formSheet.shiftRows(
+                                    originIdx,
+                                    formSheet.getLastRowNum(),
+                                    addCount,
+                                    true,
+                                    false
+                            );
+
+                            CellCopyPolicy policy = new CellCopyPolicy.Builder()
+                                    .cellStyle(true)
+                                    .cellValue(true)
+                                    .cellFormula(true)
+                                    .mergedRegions(true)
+                                    .rowHeight(true)
+                                    .build();
+
+                            for (int j = 0; j < addCount; j++) {
+                                formSheet.copyRows(
+                                        list.size()+idx+4,
+                                        list.size()+idx+4,
+                                        originIdx + j,
+                                        policy
+                                );
+                            }
+                        }
+
+
+
+                        int insSeq = 1;
+                        BigDecimal sumAmount = BigDecimal.ZERO;
+                        for(Map<String,Object> entryRow : list){
+
+                            String userName = Util.getStrChk(entryRow.get("USER_NAME"));
+                            String timeDate = Util.getStrChk(entryRow.get("TIME_DATE"));
+                            String startTime = Util.getStrChk(entryRow.get("START_TIME"));
+                            String endTime = Util.getStrChk(entryRow.get("END_TIME"));
+                            int addDay = Util.getInteger(entryRow.get("ADD_DAY"));
+
+                            String workTime = startTime+" ~ "+endTime;
+
+                            if(addDay!=0){
+                                workTime = workTime+"+"+addDay;
+                            }
+
+
+                            String remark = Util.getStrChk(entryRow.get("REMARK"));
+                            String region = Util.getStrChk(entryRow.get("REGION"));
+                            String amount = String.format("%,d", Util.getInteger(entryRow.get("AMOUNT")));
+                            String cerPath =  Util.getStrChk(entryRow.get("FULL_PATH"));
+                            BigDecimal amountDec = Util.getDecimal(entryRow.get("AMOUNT"));
+                            sumAmount = sumAmount.add(amountDec);
+
+                            row = formSheet.getRow(originIdx);
+                            cell = row.getCell(0,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell.setCellValue(insSeq);
+
+                            cell = row.getCell(1,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell.setCellValue(userName);
+
+                            cell = row.getCell(2,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell.setCellValue(timeDate);
+
+                            cell = row.getCell(3,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell.setCellValue(workTime);
+
+                            cell = row.getCell(4,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell.setCellValue(remark);
+
+                            cell = row.getCell(5,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell.setCellValue(region);
+
+                            cell = row.getCell(8,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell.setCellValue(amount);
+
+                            if(!cerPath.isEmpty()){
+                                ResponseDTO<byte[]> cerRet = fileClientService.fileRead(cerPath);
+
+                                if(cerRet.getErrFlag().equals("Y")){
+                                    throw new BizException("getNightWorkIns",cerRet.getErrMsg());
+                                }
+
+                                byte[] cerPdf = cerRet.getData();
+
+                                String pdfFileName  =   tmpUserSid.toPlainString()+"_"+insSeq+".pdf";
+
+                                Path pdfPath = tempDir.resolve(pdfFileName);
+                                Files.write(pdfPath, cerPdf);
+
+                                pathArray.computeIfAbsent(tmpUserSid, k -> new ArrayList<>()).add(pdfPath);
+
+                            }
+
+                            originIdx++;
+                            insSeq++;
+
+                        }
+
+                        row = formSheet.getRow(list.size()>3?originIdx:22);
+                        cell = row.getCell(8);
+                        cell.setCellValue(  new DecimalFormat("#,##0").format(sumAmount));
+
+                        CreationHelper helper = srcWorkbook.getCreationHelper();
+                        Drawing<?> drawing = formSheet.createDrawingPatriarch();
+
+                        // ===========================
+                        // 1. 첫 번째 서명 이미지
+                        // ===========================
+
+                        int pictureIdx = srcWorkbook.addPicture(
+                                approveSign,
+                                Workbook.PICTURE_TYPE_PNG
+                        );
+
+                        ClientAnchor anchor1 = helper.createClientAnchor();
+
+                        anchor1.setCol1(9);
+                        anchor1.setCol2(10);
+                        anchor1.setRow1(list.size()>3?originIdx + 11:31);
+                        anchor1.setRow2(list.size()>3?originIdx + 12:32);
+
+                        anchor1.setDx1(Units.toEMU(10));
+                        anchor1.setDy1(Units.toEMU(2));
+                        anchor1.setDx2(0);
+                        anchor1.setDy2(0);
+
+                        drawing.createPicture(anchor1, pictureIdx);
+
+
+                        // ===========================
+                        // 2. 두 번째 서명 이미지
+                        // ===========================
+
+                        pictureIdx = srcWorkbook.addPicture(
+                                signRet.getData(),
+                                Workbook.PICTURE_TYPE_PNG
+                        );
+
+                        ClientAnchor anchor2 = helper.createClientAnchor();
+
+                        anchor2.setCol1(9);
+                        anchor2.setCol2(10);
+                        anchor2.setRow1(list.size()>3?originIdx + 9:29);
+                        anchor2.setRow2(list.size()>3?originIdx + 10:30);
+
+                        anchor2.setDx1(Units.toEMU(10));
+                        anchor2.setDy1(Units.toEMU(2));
+                        anchor2.setDx2(0);
+                        anchor2.setDy2(0);
+
+                        drawing.createPicture(anchor2, pictureIdx);
+                        //pdf 셋팅
+                        formSheet.setFitToPage(true);
+                        formSheet.getPrintSetup().setFitWidth((short) 1);
+                        formSheet.getPrintSetup().setFitHeight((short) 0);
+
+
+                        String fileName = tmpUserSid.toPlainString() + ".xlsx";
+
+                        Path excelPath = tempDir.resolve(fileName);
+
+                        srcWorkbook.write(bos);
+
+                        Files.write(excelPath, bos.toByteArray());
+
+                        Path pdfPath = excelToPdf(excelPath,tempDir);
+
+                        pathArray.computeIfAbsent(
+                                tmpUserSid,
+                                k -> new ArrayList<>()
+                        ).add(0, pdfPath);
+
+                    }catch (Exception ex){
+                        throw new BizException("getNightWorkIns", ex.getMessage());
+                    }
+                }
+
+                PDFMergerUtility merger = new PDFMergerUtility();
+
+                for (List<Path> pdfList : pathArray.values()) {
+                    for (Path pdfPath : pdfList) {
+                        merger.addSource(pdfPath.toFile());
+                    }
+                }
+
+                Path finalPdfPath = tempDir.resolve("final.pdf");
+
+                merger.setDestinationFileName(finalPdfPath.toString());
+
+                merger.mergeDocuments(
+                        IOUtils.createTempFileOnlyStreamCache()
+                );
+                byte[] pdfBytes = Files.readAllBytes(finalPdfPath);
+                ret = ResponseDTO.<byte[]>builder().errFlag("N").errMsg("심야교통비 신청서 다운완료").data(pdfBytes).build();
+
+            } catch (Exception e) {
+                throw new BizException("getNightWorkIns",e.getMessage());
+            }finally {
+                deleteTempDirectory(tempDir);
+            }
+
+
+            return ret;
+        });
+    }
+
+    private void deleteTempDirectory(Path tempDir) {
+
+        if (tempDir == null || !Files.exists(tempDir)) {
+            return;
+        }
+
+        try (Stream<Path> paths = Files.walk(tempDir)) {
+
+            paths.sorted(Comparator.reverseOrder())
+                    .forEach(path -> {
+                        try {
+                            Files.deleteIfExists(path);
+                        } catch (IOException e) {
+                            ResponseDTO.setError2("deleteTempDirectory",e.getMessage());
+                        }
+                    });
+
+        } catch (IOException e) {
+            ResponseDTO.setError2("deleteTempDirectory",e.getMessage());
+        }
+    }
+
+    public Path excelToPdf(Path excelPath, Path outputDir)
+            throws Exception {
+
+        String soffice =
+                "C:\\Program Files\\LibreOffice\\program\\soffice.exe";
+
+        ProcessBuilder pb = new ProcessBuilder(
+                soffice,
+                "--headless",
+                "--convert-to", "pdf:calc_pdf_Export",
+                "--outdir", outputDir.toString(),
+                excelPath.toString()
+        );
+
+        pb.redirectErrorStream(true);
+
+        Process process = pb.start();
+
+        // 프로세스 출력 버퍼가 막히지 않도록 읽기
+        String output;
+        try (InputStream in = process.getInputStream()) {
+            output = new String(
+                    in.readAllBytes(),
+                    StandardCharsets.UTF_8
+            );
+        }
+
+        int exitCode = process.waitFor();
+
+        String fileName = excelPath.getFileName().toString();
+        fileName = fileName.substring(0, fileName.lastIndexOf("."));
+
+        Path pdfPath = outputDir.resolve(fileName + ".pdf");
+
+        if (exitCode != 0 || !Files.exists(pdfPath)) {
+            throw new IOException("PDF 변환 실패: " + output);
+        }
+
+        return pdfPath;
+    }
+
+    @Override
+    public ResponseDTO<?> getNightDetail(String date) {
+        ClsUserInfo info = UserContext.get();
+        WorkRepo repo = workRepoProvider.getObject();
+        return execute(repo,()->{
+            DbDto dbDto = null;
+            Row row = null;
+            Cell cell = null;
+            String yyyy = date.substring(0,4);
+            String mon = date.substring(4,6);
+            DecimalFormat df = new DecimalFormat("#,###");
+
+            ResponseDTO<byte[]> ret = fileClientService.fileRead("/IMG/TEMPLATE/NIGHT_DETAIL_FORM.xlsx");
+            if (ret.getErrFlag().equals("Y")) {
+                throw new BizException("getNightDetail", ret.getErrMsg());
+            }
+
+            ResponseDTO<List<Map<String, Object>>> res = clientService.get(ClientName.SYS,uriBuilder -> uriBuilder
+                    .path("/sys/getBaseOds")
+                    .queryParam("classCode", "HRDOC")
+                    .queryParam("codeName", "")
+                    .build(),new ParameterizedTypeReference<ResponseDTO<List<Map<String, Object>>>>() {});
+            if(res.getErrFlag().equals("Y")){
+                throw new BizException("getNightDetail", res.getErrMsg());
+            }
+
+            ResponseDTO<List<Map<String, Object>>> hrcos = clientService.get(ClientName.SYS,uriBuilder -> uriBuilder
+                    .path("/sys/getBaseOds")
+                    .queryParam("classCode", "HRCOS")
+                    .queryParam("codeName", "")
+                    .build(),new ParameterizedTypeReference<ResponseDTO<List<Map<String, Object>>>>() {});
+            if(res.getErrFlag().equals("Y")){
+                throw new BizException("getNightDetail", res.getErrMsg());
+            }
+
+            List<Map<String, Object>> hrcosArray = hrcos.getData();
+
+            dbDto = repo.setWorkM010_006(date.substring(0,4),date.substring(4,6),info.getUserLang(), Util.getGUID(),
+                    info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+            if(dbDto.getErrFlag().equals("Y")){
+                throw new BizException("getNightDetail", dbDto.getErrMsg());
+            }
+
+            if(dbDto.getResult().get(1).isEmpty()||dbDto.getResult().get(0).isEmpty()){
+                throw new BizException("getNightDetail", "출력할 자료가 없습니다.");
+            }
+
+            List<Map<String,DbTypeDTO>> detailList = dbDto.getResult().get(0);
+
+            int calLength = dbDto.getResult().get(2).size();
+
+            Map<String, List<ExcelDTO.NightDetailHeaderDTO>> headerGroup =    convHeaderGroup(res.getData(),dbDto.getResult().get(1));
+
+            try(XSSFWorkbook srcWorkbook = new XSSFWorkbook(new ByteArrayInputStream(ret.getData()));
+                ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+
+                CellCopyPolicy policy = new CellCopyPolicy.Builder()
+                        .cellStyle(true)
+                        .cellValue(true)
+                        .cellFormula(true)
+                        .mergedRegions(true)
+                        .rowHeight(true)
+                        .build();
+
+                //지급 명단 부분
+                XSSFSheet formSheet = srcWorkbook.getSheet("SHEET");
+                int sheetIndex = srcWorkbook.getSheetIndex(formSheet);
+                srcWorkbook.setSheetName(sheetIndex, mon+"월 지급명단");
+                //제목셋팅
+                row = formSheet.getRow(0);
+                cell = row.getCell(0,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                cell.setCellValue(yyyy+"년 "+mon+"월 심야교통비 지급 명단");
+
+                int totalCount = headerGroup.values().stream()
+                        .mapToInt(List::size)
+                        .sum();
+
+                if(totalCount > 1){
+                    formSheet.shiftRows(
+                            3,
+                            formSheet.getLastRowNum(),
+                            totalCount-1,
+                            true,
+                            false
+                    );
+                    for(int i = 0;i<totalCount-1;i++){
+                        formSheet.copyRows(
+                                totalCount+2,
+                                totalCount+2,
+                                3+i,
+                                policy
+                        );
+                    }
+                }
+
+                int seq = 1;
+                int srcIdx = 3;
+                BigDecimal sumAmount = BigDecimal.ZERO;
+                for(Map.Entry<String,List<ExcelDTO.NightDetailHeaderDTO>> entryRow:headerGroup.entrySet()){
+                    String teamName = entryRow.getKey();
+                    List<ExcelDTO.NightDetailHeaderDTO> value = entryRow.getValue();
+                    if(value == null||value.isEmpty()){
+                        continue;
+                    }
+
+                    //수당 내역부분
+                    XSSFSheet formSheet2 = srcWorkbook.getSheet("SHEET2");
+                    XSSFSheet copySheet = srcWorkbook.cloneSheet(
+                            srcWorkbook.getSheetIndex(formSheet2)
+                    );
+
+                    srcWorkbook.setSheetName(
+                            srcWorkbook.getSheetIndex(copySheet),
+                            mon+"월 수당내역("+teamName+")"
+                    );
+
+                    //세부내역 부분
+                    XSSFSheet formSheet3 = srcWorkbook.getSheet("SHEET3");
+                    XSSFSheet copySheet2 = srcWorkbook.cloneSheet(
+                            srcWorkbook.getSheetIndex(formSheet3)
+                    );
+
+                    srcWorkbook.setSheetName(
+                            srcWorkbook.getSheetIndex(copySheet2),
+                            "세부내역("+teamName+")");
+                    //시트 총함
+                    BigDecimal bodySumAmount = BigDecimal.ZERO;
+
+                    row = copySheet.getRow(0);
+                    cell = row.getCell(0);
+                    cell.setCellValue(mon+"월 심야교통비 수당내역("+teamName+")");
+
+                    //월 개수만큼 열 숨기기
+                    int monLength=31-calLength;
+                    for(int i =0;i<monLength;i++){
+                        copySheet.setColumnHidden(32-i, true);
+                    }
+
+                    //시트별 총개수만큼 행생성
+                    int payCount = value.stream()
+                            .mapToInt(dto -> dto.getCount() == null ? 0 : dto.getCount())
+                            .sum();
+                    copySheet.shiftRows(
+                            5,
+                            copySheet.getLastRowNum(),
+                            payCount,
+                            true,
+                            false
+                    );
+
+                    //지급내역셋팅
+                    int startIdx = srcIdx;
+                    String terminal = "";
+
+                    //수당내역셋팅
+                    int copyIdx = 5;
+                    int assingSeq = 1;
+                    BigDecimal totalSumAmount = BigDecimal.ZERO;
+
+                    //세부내역 셋팅
+                    row = copySheet2.getRow(0);
+                    cell = row.getCell(0);
+                    cell.setCellValue(mon+"월 심야 교통비 개인별 세부내역 ("+teamName+")");
+
+                    int depTotalCount = value.stream()
+                            .mapToInt(dto -> dto.getTotalCount() == null ? 0 : dto.getTotalCount())
+                            .sum();
+                    copySheet2.shiftRows(
+                            4,
+                            copySheet2.getLastRowNum(),
+                            depTotalCount,
+                            true,
+                            false
+                    );
+                    int bodyRowIdx = 4;
+                    //근무자 헤더 순환
+                    for(ExcelDTO.NightDetailHeaderDTO dtoRow:value){
+                        //지급명단 부분
+                        row = formSheet.getRow(srcIdx);
+                        cell = row.getCell(0,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                        cell.setCellValue(seq);
+                        cell = row.getCell(1,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                        cell.setCellValue(teamName);
+                        cell = row.getCell(2,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                        cell.setCellValue(dtoRow.getUserName());
+                        cell = row.getCell(3,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                        cell.setCellValue(dtoRow.getRegion());
+                        cell = row.getCell(4,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                        BigDecimal amount = Util.getDecimal(dtoRow.getAmount());
+                        sumAmount = sumAmount.add(amount);
+                        cell.setCellValue(df.format(amount));
+                        if (!terminal.isEmpty()
+                                && !terminal.equals(dtoRow.getTerminalCode())) {
+
+                            if (startIdx < srcIdx - 1) {
+                                formSheet.addMergedRegion(
+                                        new CellRangeAddress(startIdx, srcIdx - 1, 1, 1)
+                                );
+                            }
+
+                            startIdx = srcIdx;
+                        }
+
+                        terminal = dtoRow.getTerminalCode();
+                        srcIdx++;
+                        //수당내역 처리
+                        for(int i=0;i<dtoRow.getCount();i++){
+                            if(i==0){
+                                copySheet.copyRows(
+                                        payCount+5,
+                                        payCount+5,
+                                        copyIdx,
+                                        policy
+                                );
+                            }else if(i==dtoRow.getCount()-1)
+                            {
+                                copySheet.copyRows(
+                                        payCount+7,
+                                        payCount+7,
+                                        copyIdx+i,
+                                        policy
+                                );
+                            }else
+                            {
+                                copySheet.copyRows(
+                                        payCount+6,
+                                        payCount+6,
+                                        copyIdx+i,
+                                        policy
+                                );
+                            }
+                        }
+                        BigDecimal detailSumAmount = BigDecimal.ZERO;
+                        List<Map<String,DbTypeDTO>> filterDetail = detailList.stream()
+                                .filter(v-> dtoRow.getUserSid().compareTo(Util.getDecimal(v.get("USER_SID").getObj()))==0)
+                                .toList();
+                        if(filterDetail.isEmpty()){
+                            continue;
+                        }
+
+                        row = copySheet.getRow(copyIdx);
+                        cell = row.getCell(0,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                        cell.setCellValue(assingSeq);
+                        cell = row.getCell(1,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                        cell.setCellValue(dtoRow.getUserName());
+
+                        int detailSeq = 0;
+                        int count = 0;
+                        BigDecimal beforeAmount = BigDecimal.ZERO;
+                        int rowCount = 0;
+                        boolean holidayFlag = false;
+                        for(Map<String,DbTypeDTO> detailRow:filterDetail){
+                            rowCount++;
+                            int day = Util.getInteger(detailRow.get("DAY").getObj());
+                            if(Util.getStrChk(detailRow.get("HOLIDAY_FLAG").getObj()).equals("Y")){
+                                holidayFlag = true;
+                            }
+                            BigDecimal detaillAmount = Util.getDecimal(detailRow.get("AMOUNT").getObj());
+                            detailSumAmount = detailSumAmount.add(detaillAmount);
+                            totalSumAmount = totalSumAmount.add(detaillAmount);
+                            if(beforeAmount.compareTo(detaillAmount)!=0&&beforeAmount.compareTo(BigDecimal.ZERO)!=0){
+                                row = copySheet.getRow(copyIdx+detailSeq);
+                                cell = row.getCell(33,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                                cell.setCellValue(count);
+                                cell = row.getCell(34,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                                cell.setCellValue(df.format(beforeAmount));
+                                detailSeq++;
+                                count = 1;
+                            }else{
+                                count++;
+                            }
+
+                            row = copySheet.getRow(copyIdx+detailSeq);
+                            cell = row.getCell(day+1,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell.setCellValue("O");
+
+                            if(rowCount==filterDetail.size()){
+                                row = copySheet.getRow(copyIdx+detailSeq);
+                                cell = row.getCell(33,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                                cell.setCellValue(count);
+                                cell = row.getCell(34,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                                cell.setCellValue(df.format(detaillAmount));
+                            }
+
+                            beforeAmount = detaillAmount;
+                        }
+                        if(!holidayFlag){
+                            Map<String,Object> hrcosSelect = hrcosArray.stream()
+                                    .filter(v->"Y".equals(Util.getStrChk(v.get("VALUE3_CHAR")))).findFirst().orElse(null);
+                            if(hrcosSelect == null){
+                                throw new BizException("getNightDetail","심야교통비 코드에 휴일 교통비가 없습니다.");
+                            }
+                            row = copySheet.getRow(copyIdx+dtoRow.getCount()-1);
+                            cell = row.getCell(33,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell.setCellValue("0");
+                            cell = row.getCell(34,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            BigDecimal holiAmount = Util.getDecimal(hrcosSelect.get("VALUE1_CHAR"));
+                            cell.setCellValue(df.format(holiAmount));
+                        }
+
+                        row = copySheet.getRow(copyIdx);
+                        cell = row.getCell(35,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                        cell.setCellValue(df.format(detailSumAmount));
+
+                        copySheet.addMergedRegion(
+                                new CellRangeAddress(copyIdx, copyIdx+dtoRow.getCount()-1, 0, 0)
+                        );
+                        copySheet.addMergedRegion(
+                                new CellRangeAddress(copyIdx, copyIdx+dtoRow.getCount()-1, 1, 1)
+                        );
+                        copySheet.addMergedRegion(
+                                new CellRangeAddress(copyIdx, copyIdx+dtoRow.getCount()-1, 35, 35)
+                        );
+
+
+                        copyIdx = copyIdx+ dtoRow.getCount();
+                        seq++;
+                        assingSeq++;
+
+
+                        //세부내역 처리부분
+
+                        for(int i=0;i<dtoRow.getTotalCount();i++){
+                            if(i== dtoRow.getTotalCount()-1){
+                                copySheet2.copyRows(
+                                        depTotalCount+5,
+                                        depTotalCount+5,
+                                        bodyRowIdx+i,
+                                        policy
+                                );
+                            }else{
+                                copySheet2.copyRows(
+                                        depTotalCount+4,
+                                        depTotalCount+4,
+                                        bodyRowIdx+i,
+                                        policy
+                                );
+                            }
+
+                        }
+
+                        filterDetail = filterDetail.stream()
+                                .sorted(Comparator.comparingInt(
+                                        v -> Util.getInteger(v.get("DAY").getObj())
+                                ))
+                                .toList();
+                        int bodyRowSeq = bodyRowIdx;
+                        BigDecimal bodyRowAmount = BigDecimal.ZERO;
+                        for(Map<String,DbTypeDTO> detailRow:filterDetail){
+                            String userName = Util.getStrChk(detailRow.get("USER_NAME").getObj());
+                            String bodyDate = Util.getStrChk(detailRow.get("KOR_DATE").getObj());
+                            String reqStart = Util.getStrChk(detailRow.get("DETAIL_START_TIME").getObj());
+                            String reqEnd = Util.getStrChk(detailRow.get("DETAIL_END_TIME").getObj());
+                            String capsStart = Util.getStrChk(detailRow.get("CAPS_START_TIME").getObj());
+                            String capsEnd = Util.getStrChk(detailRow.get("CAPS_END_TIME").getObj());
+                            BigDecimal bodyAmount = Util.getDecimal(detailRow.get("AMOUNT").getObj());
+                            bodyRowAmount = bodyRowAmount.add(bodyAmount);
+                            bodySumAmount   =   bodySumAmount.add(bodyAmount);
+
+                            String bodyHolidayFlag = Util.getStrChk(detailRow.get("HOLIDAY_FLAG").getObj());
+
+                            row = copySheet2.getRow(bodyRowSeq);
+
+                            if(bodyRowIdx==4){
+                                cell = row.getCell(0,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                                cell.setCellValue(teamName);
+                            }
+
+                            if(bodyRowSeq==bodyRowIdx){
+                                cell = row.getCell(1,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                                cell.setCellValue(userName);
+                            }
+                            cell = row.getCell(2,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell.setCellValue(bodyDate);
+                            if(bodyHolidayFlag.equals("Y")){
+                                cell = row.getCell(3,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                                cell.setCellValue("휴무일 근무");
+                                copySheet2.addMergedRegion(
+                                        new CellRangeAddress(bodyRowSeq, bodyRowSeq, 3, 4)
+                                );
+                            }else{
+                                cell = row.getCell(3,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                                cell.setCellValue(reqStart);
+                                cell = row.getCell(4,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                                cell.setCellValue(reqEnd);
+                            }
+                            cell = row.getCell(5,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell.setCellValue(capsStart);
+                            cell = row.getCell(6,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell.setCellValue(capsEnd);
+                            cell = row.getCell(7,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell.setCellValue(df.format(bodyAmount));
+
+                            bodyRowSeq++;
+                        }
+
+                        //세부내역 처리부분
+                        //이름 병합부분
+                        if(filterDetail.size()>1){
+                            copySheet2.addMergedRegion(
+                                    new CellRangeAddress(bodyRowIdx, bodyRowSeq-1, 1, 1)
+                            );
+                        }
+
+
+                        //소계
+                        row = copySheet2.getRow(bodyRowSeq);
+                        cell = row.getCell(7,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                        cell.setCellValue(df.format(bodyRowAmount));
+                        bodyRowSeq++;
+
+
+                        bodyRowIdx = bodyRowSeq;
+                    }
+
+                    if(startIdx!=srcIdx-1){
+                        formSheet.addMergedRegion(
+                                new CellRangeAddress(startIdx, srcIdx-1, 1, 1)
+                        );
+                    }
+
+                    //수당내역 잉여행 숨기기
+                    row = copySheet.getRow(payCount+5);
+                    row.setZeroHeight(true);
+                    row = copySheet.getRow(payCount+6);
+                    row.setZeroHeight(true);
+                    row = copySheet.getRow(payCount+7);
+                    row.setZeroHeight(true);
+                    row = copySheet.getRow(payCount+8);
+                    cell= row.getCell(35);
+                    cell.setCellValue(df.format(totalSumAmount));
+
+                    //세부내역 부서병합부분
+                    copySheet2.addMergedRegion(
+                            new CellRangeAddress(4, bodyRowIdx-1, 0, 0)
+                    );
+                    //세부내역 잉여행 숨기기
+                    row = copySheet2.getRow(depTotalCount+4);
+                    row.setZeroHeight(true);
+                    row = copySheet2.getRow(depTotalCount+5);
+                    row.setZeroHeight(true);
+                    //세부내역 시트별 총합
+                    row = copySheet2.getRow(depTotalCount+6);
+                    cell = row.getCell(7,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                    cell.setCellValue(df.format(bodySumAmount));
+
+                }
+                //지급명단 총합
+                row = formSheet.getRow(srcIdx);
+                cell = row.getCell(4);
+                cell.setCellValue(df.format(sumAmount));
+
+
+                //SHEET2,SHEET3숨기기
+                boolean activeSet = false;
+
+                for (int i = 0; i < srcWorkbook.getNumberOfSheets(); i++) {
+                    String name = srcWorkbook.getSheetName(i);
+
+                    if ("SHEET3".equals(name)||"SHEET2".equals(name)  ) {
+                        srcWorkbook.setSheetHidden(i, true);
+                    } else if (!activeSet) {
+                        srcWorkbook.setActiveSheet(i);
+                        srcWorkbook.setSelectedTab(i);
+                        activeSet = true;
+                    }
+                }
+
+                //출력부분
+                srcWorkbook.write(bos);
+                ret = ResponseDTO.<byte[]>builder().errFlag("N").errMsg("세부내역 다운완료").data(bos.toByteArray()).build();
+
+            } catch (Exception e) {
+                throw new BizException("getNightDetail",e.getMessage());
+            }
+
+
+            return ret;
+        });
+    }
+
+    @Override
+    public ResponseDTO<?> getWorkL010_033(String monFlag, String startDate, String endDate, String teamCode, String terminalCode, String userName, String filter) {
+        ClsUserInfo info = UserContext.get();
+        WorkRepo repo = workRepoProvider.getObject();
+        return execute(repo,()->{
+            ResponseDTO<?> ret = null;
+
+            DbDto dbRet = repo.getWorkL010_033(monFlag,startDate,endDate,teamCode,terminalCode,userName,filter
+                    ,info.getUserLang(), Util.getGUID(), info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+
+            if(dbRet.getErrFlag().equals("Y")){
+                throw new BizException("getWorkL010_033",dbRet.getErrMsg());
+            }
+
+            ret = ResponseDTO.from(dbRet);
+
+            return ret;
+        });
+    }
+
+    @Override
+    public ResponseDTO<?> setWorkM010_017(WorkDTO.ApprDTO dto) {
+        ClsUserInfo info = UserContext.get();
+        WorkRepo repo = workRepoProvider.getObject();
+        return execute(repo,()->{
+            ResponseDTO<?> ret = null;
+            DbDto dbDto = null;
+            if(dto.array()==null||dto.array().isEmpty()){
+                throw new BizException("setWorkM010_017","항목이 없습니다.");
+            }
+
+            for(WorkDTO.WorkDefaultDTO row:dto.array()){
+                dbDto = repo.setWorkM010_017(row.year(),row.mon(),row.day(),row.userSid(),row.seq(),dto.type(),info.getUserId()
+                        ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
+
+                if(dbDto.getErrFlag().equals("Y")){
+                    throw new BizException("setWorkM010_017",dbDto.getErrMsg());
+                }
+            }
+
+
+            ret = ResponseDTO.from(dbDto);
+
+            return ret;
+        });
+    }
+
+    @Override
+    public ResponseDTO<?> setWorkM010_026(WorkDTO.ApprDTO dto) {
+        ClsUserInfo info = UserContext.get();
+        WorkRepo repo = workRepoProvider.getObject();
+        return execute(repo,()->{
+            ResponseDTO<?> ret = null;
+            DbDto dbDto = null;
+            if(dto.array()==null||dto.array().isEmpty()){
+                throw new BizException("setWorkM010_026","항목이 없습니다.");
+            }
+
+            for(WorkDTO.WorkDefaultDTO row:dto.array()){
+                dbDto = repo.setWorkM010_026(row.year(),row.mon(),row.day(),row.userSid(),row.seq(),dto.type()
+                        ,info.getUserLang(),Util.getGUID(),info.getUserId(),info.getUserIpAddress(),info.getPgmId());
+
+                if(dbDto.getErrFlag().equals("Y")){
+                    throw new BizException("setWorkM010_026",dbDto.getErrMsg());
+                }
+            }
+
+
+            ret = ResponseDTO.from(dbDto);
+
+            return ret;
+        });
+    }
+
+    @Override
+    public ResponseDTO<?> getOrgExcel() {
+        ClsUserInfo info = UserContext.get();
+        WorkRepo repo = workRepoProvider.getObject();
+        return execute(repo,()->{
+            DbDto dbDto = null;
+            Row row = null;
+            Cell cell = null;
+            ResponseDTO<byte[]> img = null;
+            int pictureIdx = 0;
+            Path tempDir = Paths.get(
+                    System.getProperty("user.dir"),
+                    ".test"
+            );
+
+            ResponseDTO<byte[]> ret = fileClientService.fileRead("/IMG/TEMPLATE/ORG_TEMPLATE.xlsx");
+
+            if (ret.getErrFlag().equals("Y")) {
+                throw new BizException("getOrgExcel", ret.getErrMsg());
+            }
+
+            //DB조회
+            dbDto = repo.getWorkM010_007(info.getUserLang(), Util.getGUID(),info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+
+            if(dbDto.getErrFlag().equals("Y")){
+                throw new BizException("getOrgExcel", dbDto.getErrMsg());
+            }
+
+            if(dbDto.getResult().get(0).isEmpty()){
+                throw new BizException("getOrgExcel", "부서목록이 없습니다.");
+            }
+
+            List<Map<String,DbTypeDTO>> dbHeader = dbDto.getResult().get(0);
+            int totalCount = 0;
+            int startFirst = 0;
+            int endFirst = 0;
+            for(int i = 0;i<dbHeader.size();i++){
+                Map<String,DbTypeDTO> headerRow = dbHeader.get(i);
+                int count = Util.getInteger(headerRow.get("DEPT_SUM").getObj());
+                int deptCount = Util.getInteger(headerRow.get("DEPT_COUNT").getObj());
+                int teamCount = Util.getInteger(headerRow.get("TEAM_COUNT").getObj());
+
+                if(i==0){
+                    startFirst = ((count*3)+(teamCount-1)*2)/2;
+                }else if(i==dbHeader.size()-1){
+                    endFirst = totalCount+((count*3)+(teamCount-1)*2)/2;
+                }
+                totalCount = totalCount+(count*3)+(teamCount-1)*2+deptCount;
+            }
+
+            try(XSSFWorkbook srcWorkbook = new XSSFWorkbook(new ByteArrayInputStream(ret.getData()));
+                ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+                CellRangeAddress region = null;
+                XSSFSheet formSheet = srcWorkbook.getSheet("SHEET");
+                CreationHelper helper = srcWorkbook.getCreationHelper();
+                Drawing<?> drawing = formSheet.createDrawingPatriarch();
+
+                region = new CellRangeAddress(2, 4, totalCount/2-10, totalCount/2+10);
+                formSheet.addMergedRegion(region);
+                setCellBorder(formSheet,region,"");
+
+                row = Optional.ofNullable(formSheet.getRow(2))
+                        .orElseGet(() -> formSheet.createRow(2));
+                cell = row.getCell(totalCount/2-10,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                cell.setCellValue("대표이사 이선호");
+                setCellFont(srcWorkbook, cell, 12, true);
+
+                drawCenterLine(formSheet,5,9,totalCount/2,totalCount/2,true,true);
+
+                img = fileClientService.fileRead("/IMG/ORGIMG/부사장.png");
+
+                if(img.getErrFlag().equals("Y")){
+                    throw new BizException("getOrgExcel",img.getErrMsg());
+                }
+
+                pictureIdx = srcWorkbook.addPicture(
+                        img.getData(),
+                        Workbook.PICTURE_TYPE_PNG
+                );
+
+                addPicture(formSheet,helper,drawing,pictureIdx,totalCount/2-1,totalCount/2+1,9,13);
+
+                region = new CellRangeAddress(9, 16, totalCount/2-1, totalCount/2+1);
+                setCellBorder(formSheet,region,"");
+                region = new CellRangeAddress(14, 14, totalCount/2-1, totalCount/2+1);
+                formSheet.addMergedRegion(region);
+                row = Optional.ofNullable(formSheet.getRow(14))
+                        .orElseGet(() -> formSheet.createRow(14));
+                cell = row.getCell(totalCount/2-1,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                cell.setCellValue("부사장 : 조경국");
+
+                region = new CellRangeAddress(15, 15, totalCount/2-1, totalCount/2+1);
+                formSheet.addMergedRegion(region);
+                row = Optional.ofNullable(formSheet.getRow(15))
+                        .orElseGet(() -> formSheet.createRow(15));
+                cell = row.getCell(totalCount/2-1,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                cell.setCellValue("744-1310");
+
+                region = new CellRangeAddress(16, 16, totalCount/2-1, totalCount/2+1);
+                formSheet.addMergedRegion(region);
+                row = Optional.ofNullable(formSheet.getRow(16))
+                        .orElseGet(() -> formSheet.createRow(16));
+                cell = row.getCell(totalCount/2-1,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                cell.setCellValue("010-5396-7552");
+
+                drawCenterLine(formSheet,17,20,totalCount/2,totalCount/2,true,true);
+
+                drawCenterLine(formSheet,20,20,startFirst,endFirst,true,true);
+
+                int deptAddCount = 0;
+                String userName = "";
+                int beforeSeq = 0;
+                for(int i = 0;i<dbHeader.size();i++){
+                    Map<String,DbTypeDTO> headerRow = dbHeader.get(i);
+                    int deptSum = Util.getInteger(headerRow.get("DEPT_SUM").getObj());
+                    int deptCount = Util.getInteger(headerRow.get("DEPT_COUNT").getObj());
+                    int teamCount = Util.getInteger(headerRow.get("TEAM_COUNT").getObj());
+                    int count = (deptSum*3)+(teamCount-1)*2;
+                    int seq = Util.getInteger(headerRow.get("SEQ").getObj());
+                    String tmpUserName = Util.getStrChk(headerRow.get("VALUE2_CHAR").getObj());
+                    String deptName = Util.getStrChk(headerRow.get("CODE_NAME").getObj());
+
+
+                    if(tmpUserName.isEmpty()){
+                        drawCenterLine(formSheet,20,34,deptAddCount+count/2,deptAddCount+count/2,true,true);
+                    }else{
+                        if(!tmpUserName.equals("PASS")){
+                            if(!userName.equals(tmpUserName)){
+                                drawCenterLine(formSheet,20,22,deptAddCount+count/2,deptAddCount+count/2,true,true);
+                                region = new CellRangeAddress(22, 29, deptAddCount+count/2-1, deptAddCount+count/2+1);
+                                setCellBorder(formSheet,region,"");
+                                if(seq==1){
+                                    drawCenterLine(formSheet,30,34,deptAddCount+count/2,deptAddCount+count/2,true,true);
+                                }else{
+                                    drawCenterLine(formSheet,30,32,deptAddCount+count/2,deptAddCount+count/2,true,true);
+                                }
+
+                            }
+                            userName = tmpUserName;
+                        }
+                    }
+
+                    if(seq==1){
+                        region = new CellRangeAddress(34, 34, deptAddCount, deptAddCount+count-1);
+                        setCellBorder(formSheet,region,"#FFC000");
+                        formSheet.addMergedRegion(region);
+                        row = Optional.ofNullable(formSheet.getRow(34))
+                                .orElseGet(() -> formSheet.createRow(34));
+                        cell = row.getCell(deptAddCount,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                        cell.setCellValue(deptName);
+                        setCellFont(srcWorkbook, cell, 8, true);
+                    }else{
+                        if(beforeSeq!=0&&beforeSeq==seq){
+                            drawCenterLine(formSheet,32,32,deptAddCount,deptAddCount+count/2,false,true);
+                        }else if(beforeSeq == 0){
+                            drawCenterLine(formSheet,32,32,deptAddCount+count/2,deptAddCount+count+deptCount,true,false);
+                            beforeSeq = seq;
+                        }else{
+                            beforeSeq = 0;
+                        }
+                    }
+                    deptAddCount = deptAddCount+count+deptCount;
+                }
+
+                //출력부분
+                srcWorkbook.write(bos);
+                Path excelPath = tempDir.resolve(Util.getGUID()+".xlsx");
+                Files.write(excelPath, bos.toByteArray());
+            } catch (Exception e) {
+                throw new BizException("getOrgExcel",e.getMessage());
+            }
+
+
+            return ret;
+        });
+    }
+
+    private void addPicture(XSSFSheet sheet,CreationHelper helper, Drawing<?> drawing,int pictureIdx,int startCol,int endCol,int startRow,int endRow){
+        ClientAnchor anchor1 = helper.createClientAnchor();
+
+        anchor1.setCol1(startCol);
+        anchor1.setCol2(endCol);
+        anchor1.setRow1(startRow);
+        anchor1.setRow2(endRow);
+
+        anchor1.setDx1(Units.pixelToEMU(
+                (int) (sheet.getColumnWidthInPixels(startCol) / 2)));
+        anchor1.setDx2(Units.pixelToEMU(
+                (int) (sheet.getColumnWidthInPixels(endCol) / 2))
+        );
+
+        Row row1 = sheet.getRow(startRow);
+        float height1 = row1 != null
+                ? row1.getHeightInPoints()
+                : sheet.getDefaultRowHeightInPoints();
+
+        Row row2 = sheet.getRow(endRow);
+        float height2 = row2 != null
+                ? row2.getHeightInPoints()
+                : sheet.getDefaultRowHeightInPoints();
+        anchor1.setDy1((int) (height1 * 12700 / 2));
+        anchor1.setDy2((int) (height2 * 12700 / 2));
+
+        drawing.createPicture(anchor1, pictureIdx);
+    }
+
+    private void drawCenterLine(
+            XSSFSheet sheet,
+            int startRow,
+            int endRow,
+            int startCol,
+            int endCol,
+            boolean startCenter,
+            boolean endCenter
+    ) {
+        XSSFDrawing drawing = sheet.createDrawingPatriarch();
+
+        XSSFClientAnchor anchor = new XSSFClientAnchor();
+
+        anchor.setCol1(startCol);
+        anchor.setCol2(endCol);
+
+        anchor.setRow1(startRow);
+        anchor.setRow2(endRow);
+        int centerX1 = 0;
+        int centerX2 = 0;
+        if(startCenter){
+            centerX1 = (int) (sheet.getColumnWidthInPixels(startCol) * 9525 / 2);
+
+        }
+
+        if(endCenter){
+            centerX2 = (int) (sheet.getColumnWidthInPixels(endCol) * 9525 / 2);
+        }
+
+        anchor.setDx1(centerX1);
+        anchor.setDx2(centerX2);
+
+        anchor.setDy1(0);
+        anchor.setDy2(0);
+
+        XSSFSimpleShape line = drawing.createSimpleShape(anchor);
+
+        line.setShapeType(ShapeTypes.LINE);
+        line.setLineStyleColor(0, 0, 0);
+        line.setLineWidth(1.5);
+    }
+    private void setCellFont(
+            XSSFWorkbook workbook,
+            Cell cell,
+            int fontSize,
+            boolean bold
+    ) {
+        // 1. 기존 셀 스타일 복사
+        XSSFCellStyle style = workbook.createCellStyle();
+        style.cloneStyleFrom(cell.getCellStyle());
+
+        // 2. 기존 폰트 가져오기
+        XSSFFont oldFont = workbook.getFontAt(style.getFontIndex());
+
+        // 3. 새 폰트 생성
+        XSSFFont font = workbook.createFont();
+
+        // 4. 기존 폰트 속성 복사
+        font.setFontName(oldFont.getFontName());
+        font.setColor(oldFont.getColor());
+        font.setItalic(oldFont.getItalic());
+        font.setUnderline(oldFont.getUnderline());
+        font.setStrikeout(oldFont.getStrikeout());
+        font.setTypeOffset(oldFont.getTypeOffset());
+        font.setCharSet(oldFont.getCharSet());
+
+        // 5. 변경할 부분만 수정
+        font.setFontHeightInPoints((short) fontSize);
+        font.setBold(bold);
+
+        // 6. 스타일 적용
+        style.setFont(font);
+        cell.setCellStyle(style);
+    }
+
+    private void setCellBorder(
+            XSSFSheet formSheet,
+            CellRangeAddress region,
+            String hexColor
+    ) {
+        XSSFWorkbook workbook = formSheet.getWorkbook();
+
+        XSSFColor bgColor = null;
+
+        if (hexColor != null && !hexColor.isBlank()) {
+            bgColor = new XSSFColor(
+                    java.awt.Color.decode(hexColor),
+                    new DefaultIndexedColorMap()
+            );
+        }
+
+        for (int r = region.getFirstRow(); r <= region.getLastRow(); r++) {
+
+            Row row = formSheet.getRow(r);
+            if (row == null) {
+                row = formSheet.createRow(r);
+            }
+
+            for (int c = region.getFirstColumn(); c <= region.getLastColumn(); c++) {
+
+                Cell cell = row.getCell(
+                        c,
+                        Row.MissingCellPolicy.CREATE_NULL_AS_BLANK
+                );
+
+                // 기존 스타일 복사
+                XSSFCellStyle style = workbook.createCellStyle();
+                style.cloneStyleFrom(cell.getCellStyle());
+
+                // HEX 배경색 설정
+                if (bgColor != null) {
+                    style.setFillForegroundColor(bgColor);
+                    style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+                }
+
+                cell.setCellStyle(style);
+            }
+        }
+
+        // 바깥 테두리
+        RegionUtil.setBorderTop(BorderStyle.MEDIUM, region, formSheet);
+        RegionUtil.setBorderBottom(BorderStyle.MEDIUM, region, formSheet);
+        RegionUtil.setBorderLeft(BorderStyle.MEDIUM, region, formSheet);
+        RegionUtil.setBorderRight(BorderStyle.MEDIUM, region, formSheet);
+    }
+
+    private Map<String, List<ExcelDTO.NightDetailHeaderDTO>> convHeaderGroup(List<Map<String, Object>> dto, List<Map<String,DbTypeDTO>> dbDto){
+        return execute(()->{
+            Map<String, List<ExcelDTO.NightDetailHeaderDTO>> retArray = new LinkedHashMap<>();
+            List<Map<String,List<String>>>  ret =   new ArrayList<>();
+
+            //지급부서 추출 및 sort
+            List<Map<String,Object>> tmpSort = dto.stream()
+                    .filter(v->"COV5".equals(v.get("VALUE1_CHAR")))
+                    .sorted(Comparator.comparingInt(v->Util.getInteger(v.get("ORDER_SEQ")))).toList();
+
+            for(Map<String,Object> row : tmpSort){
+                String value2 = Util.getStrChk(row.get("VALUE2_CHAR"));
+                String value3 = Util.getStrChk(row.get("VALUE3_CHAR"));
+                if(value3.isEmpty()){
+                    List<Map<String,Object>> tmpRowSort = dto.stream()
+                            .filter(v->"COV4".equals(v.get("VALUE1_CHAR"))&&value2.equals(v.get("VALUE2_CHAR")))
+                            .sorted(Comparator.comparingInt(v->Util.getInteger(v.get("ORDER_SEQ")))).toList();
+                    List<String> tmpArray = new ArrayList<>();
+                    for(Map<String,Object> sortRow : tmpRowSort){
+                        String code = Util.getStrChk(sortRow.get("CODE_CODE"));
+                        tmpArray.add(code);
+                    }
+                    Map<String,List<String>> tmpMap = new LinkedHashMap<>();
+                    tmpMap.put(value2,tmpArray);
+                    ret.add(tmpMap);
+                }else{
+                    List<String> tmpArray = new ArrayList<>();
+                    tmpArray.add(value3);
+                    Map<String,List<String>> tmpMap = new LinkedHashMap<>();
+                    tmpMap.put(value2,tmpArray);
+                    ret.add(tmpMap);
+                }
+            }
+
+            // 이미 배정된 사용자
+            Set<BigDecimal> assignedUsers = new HashSet<>();
+
+            for (Map<String, List<String>> row : ret) {
+
+                for (Map.Entry<String, List<String>> rowEntry : row.entrySet()) {
+
+                    String key = rowEntry.getKey();
+                    List<String> values = rowEntry.getValue();
+
+                    for (String code : values) {
+
+                        List<ExcelDTO.NightDetailHeaderDTO> result = dbDto.stream()
+
+                                .filter(v -> {
+                                    BigDecimal userSid =
+                                            Util.getDecimal(v.get("USER_SID").getObj());
+
+                                    String teamCode =
+                                            Util.getStrChk(v.get("TEAM_CODE").getObj());
+
+                                    // 코드가 일치하고 아직 추가하지 않은 사용자
+                                    return !teamCode.isEmpty()
+                                            && code.contains(teamCode)
+                                            && assignedUsers.add(userSid);
+                                })
+
+                                .map(v -> {
+                                    ExcelDTO.NightDetailHeaderDTO headerDto =
+                                            new ExcelDTO.NightDetailHeaderDTO();
+                                    headerDto.setUserSid(Util.getDecimal(v.get("USER_SID").getObj()));
+
+                                    headerDto.setUserName(
+                                            Util.getStrChk(v.get("USER_NAME").getObj())
+                                    );
+
+                                    headerDto.setRegion(
+                                            Util.getStrChk(v.get("HRCOS_NAME").getObj())
+                                    );
+
+                                    headerDto.setAmount(
+                                            Util.getStrChk(v.get("SUM_AMOUNT").getObj())
+                                    );
+                                    headerDto.setTerminalCode(
+                                            Util.getStrChk(v.get("TERMINAL_CODE").getObj())
+                                    );
+                                    headerDto.setCount(
+                                            Util.getInteger(v.get("AMOUNT_COUNT").getObj())
+                                    );
+                                    headerDto.setTotalCount(
+                                            Util.getInteger(v.get("TOTAL_COUNT").getObj())
+                                    );
+
+                                    return headerDto;
+                                })
+                                .toList();
+
+                        retArray.computeIfAbsent(
+                                key,
+                                k -> new ArrayList<>()
+                        ).addAll(result);
+                    }
+                }
+            }
+
+            List<Map<String,DbTypeDTO>> others = dbDto.stream()
+                    .filter(v -> {
+                        BigDecimal userSid =
+                                Util.getDecimal(v.get("USER_SID").getObj());
+
+                        return !assignedUsers.contains(userSid);
+                    })
+                    .toList();
+
+            for(Map<String,DbTypeDTO> row : others){
+                String teamName = Util.getStrChk(row.get("TEAM_NAME").getObj());
+
+                ExcelDTO.NightDetailHeaderDTO headerDto =
+                        new ExcelDTO.NightDetailHeaderDTO();
+                headerDto.setUserSid(Util.getDecimal(row.get("USER_SID").getObj()));
+
+                headerDto.setUserName(
+                        Util.getStrChk(row.get("USER_NAME").getObj())
+                );
+
+                headerDto.setRegion(
+                        Util.getStrChk(row.get("HRCOS_NAME").getObj())
+                );
+
+                headerDto.setAmount(
+                        Util.getStrChk(row.get("SUM_AMOUNT").getObj())
+                );
+
+                headerDto.setTerminalCode(
+                        Util.getStrChk(row.get("TERMINAL_CODE").getObj())
+                );
+                headerDto.setCount(
+                        Util.getInteger(row.get("AMOUNT_COUNT").getObj())
+                );
+                headerDto.setTotalCount(
+                        Util.getInteger(row.get("TOTAL_COUNT").getObj())
+                );
+
+                retArray.computeIfAbsent(
+                        teamName,
+                        k -> new ArrayList<>()
+                ).add(headerDto);
+            }
+
+
+
+            return retArray;
         });
     }
 
@@ -3922,6 +5398,30 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
 
             return result;
 
+        });
+    }
+
+    private Map<BigDecimal,List<Map<String,Object>>> convNightData(DbDto dto){
+        return execute(()->{
+            Map<BigDecimal,List<Map<String,Object>>> ret = new LinkedHashMap<>();
+
+            for(Map<String,DbTypeDTO> row : dto.getResult().get(0)){
+                BigDecimal userSid = Util.getDecimal(row.get("USER_SID").getObj());
+
+
+                if(!ret.containsKey(userSid)){
+                    ret.put(userSid,new ArrayList<>());
+                }
+                Map<String,Object> tmpMap = new LinkedHashMap<>();
+                for(Map.Entry<String,DbTypeDTO> entry : row.entrySet()){
+                    String key = entry.getKey();
+                    DbTypeDTO value = entry.getValue();
+                    tmpMap.put(key,value.getObj());
+                }
+                ret.get(userSid).add(tmpMap);
+            }
+
+            return ret;
         });
     }
 

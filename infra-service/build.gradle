@@ -17,6 +17,7 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     implementation 'com.microsoft.sqlserver:mssql-jdbc'
     implementation("org.apache.poi:poi-ooxml:5.4.1")
+    implementation("org.apache.pdfbox:pdfbox:3.0.7")
 }
 repositories {
     mavenCentral()
