@@ -835,7 +835,7 @@ public class WorkRepo extends BizBase {
     }
 
     public DbDto setWorkM010_014(String yyyy,String mon,String day, BigDecimal userSid,BigDecimal seq,
-                                 String code,String value1,String remark,
+                                 String code,String value1,String remark,String capsStartTime,String capsEndTime,
                                  String langCode, String guid, String userId, String ipAddr, String pgmId) {
 
         List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
@@ -848,6 +848,8 @@ public class WorkRepo extends BizBase {
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_CODE_CODE", code));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_VALUE1", value1));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REMARK", remark));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_CAPS_START_TIME", capsStartTime));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_CAPS_END_TIME", capsEndTime));
 
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_LANGUAGE_CODE", langCode));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_PROGRESS_GUID", guid));
@@ -918,6 +920,59 @@ public class WorkRepo extends BizBase {
 
     }
 
+    public DbDto setWorkM010_017(String yyyy,String mon,String day,BigDecimal userSid,BigDecimal seq,String typeCode,String approveId,
+                                 String langCode, String guid, String userId, String ipAddr, String pgmId) {
+
+        List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_YYYY", yyyy));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_MON", mon));
+        input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_USER_SID", userSid));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_DAY", day));
+        input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_SEQ", seq));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_TYPE_CODE", typeCode));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_APPROVE_ID", approveId));
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_LANGUAGE_CODE", langCode));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_PROGRESS_GUID", guid));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_USER_ID", userId));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_IP_ADDRESS", ipAddr));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_PROGRAM_ID", pgmId));
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_ERROR_FLAG", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_CODE", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_MESSAGE", ""));
+
+        return callProc("USR_WORK_REQUEST_M010.PHM_WORK_REQUEST_M010_017", input);
+
+    }
+
+    public DbDto setWorkM010_026(String yyyy,String mon,String day,BigDecimal userSid,BigDecimal seq,String typeCode,
+                                 String langCode, String guid, String userId, String ipAddr, String pgmId) {
+
+        List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_YYYY", yyyy));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_MON", mon));
+        input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_USER_SID", userSid));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_DAY", day));
+        input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_SEQ", seq));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_TYPE_CODE", typeCode));
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_LANGUAGE_CODE", langCode));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_PROGRESS_GUID", guid));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_USER_ID", userId));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_IP_ADDRESS", ipAddr));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_PROGRAM_ID", pgmId));
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_ERROR_FLAG", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_CODE", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_MESSAGE", ""));
+
+        return callProc("USR_WORK_REQUEST_M010.PHM_WORK_REQUEST_M010_026", input);
+
+    }
+
     public DbDto setWorkL010_019(String yyyy,String mon,String day,BigDecimal userSid,BigDecimal seq,
                                  String langCode, String guid, String userId, String ipAddr, String pgmId) {
 
@@ -940,6 +995,103 @@ public class WorkRepo extends BizBase {
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_MESSAGE", ""));
 
         return callProc("USR_WORK_REQUEST_L010.PHM_WORK_REQUEST_L010_019", input);
+
+    }
+
+    public DbDto setWorkM010_005(String yyyy,String mon,
+                                 String langCode, String guid, String userId, String ipAddr, String pgmId) {
+
+        List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_YYYY", yyyy));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_MON", mon));
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_LANGUAGE_CODE", langCode));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_PROGRESS_GUID", guid));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_USER_ID", userId));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_IP_ADDRESS", ipAddr));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_PROGRAM_ID", pgmId));
+
+        input.add(new DbTypeDTO(Type.CURSOR, Inout.OUT, "O_RESULT_CURSOR", ""));
+        input.add(new DbTypeDTO(Type.CURSOR, Inout.OUT, "O_RESULT_CURSOR_HEADER", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_ERROR_FLAG", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_CODE", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_MESSAGE", ""));
+
+        return callProc("USR_WORK_REQUEST_M010.PHM_WORK_REQUEST_M010_005", input);
+
+    }
+
+    public DbDto setWorkM010_006(String yyyy,String mon,
+                                 String langCode, String guid, String userId, String ipAddr, String pgmId) {
+
+        List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_YYYY", yyyy));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_MON", mon));
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_LANGUAGE_CODE", langCode));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_PROGRESS_GUID", guid));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_USER_ID", userId));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_IP_ADDRESS", ipAddr));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_PROGRAM_ID", pgmId));
+
+        input.add(new DbTypeDTO(Type.CURSOR, Inout.OUT, "O_RESULT_CURSOR", ""));
+        input.add(new DbTypeDTO(Type.CURSOR, Inout.OUT, "O_RESULT_CURSOR_HEADER", ""));
+        input.add(new DbTypeDTO(Type.CURSOR, Inout.OUT, "O_RESULT_CURSOR_CAL", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_ERROR_FLAG", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_CODE", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_MESSAGE", ""));
+
+        return callProc("USR_WORK_REQUEST_M010.PHM_WORK_REQUEST_M010_006", input);
+
+    }
+
+    public DbDto getWorkL010_033(String monFllag,String startDate,String endDate,String teamCode,String terminalCode,
+                                 String userName,String fileter,
+                                 String langCode, String guid, String userId, String ipAddr, String pgmId) {
+
+        List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_MON_FLAG", monFllag));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_START_DATE", startDate));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_END_DATE", endDate));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_TEAM_CODE", teamCode));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_TERMINAL_CODE", terminalCode));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_USER_NAME", userName));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_FILTER", fileter));
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_LANGUAGE_CODE", langCode));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_PROGRESS_GUID", guid));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_USER_ID", userId));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_IP_ADDRESS", ipAddr));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_PROGRAM_ID", pgmId));
+
+        input.add(new DbTypeDTO(Type.CURSOR, Inout.OUT, "O_RESULT_CURSOR", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_ERROR_FLAG", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_CODE", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_MESSAGE", ""));
+
+        return callProc("USR_WORK_REQUEST_L010.PHM_WORK_REQUEST_L010_033", input);
+
+    }
+
+    public DbDto getWorkM010_007(String langCode, String guid, String userId, String ipAddr, String pgmId) {
+
+        List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_LANGUAGE_CODE", langCode));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_PROGRESS_GUID", guid));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_USER_ID", userId));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_IP_ADDRESS", ipAddr));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_PROGRAM_ID", pgmId));
+
+        input.add(new DbTypeDTO(Type.CURSOR, Inout.OUT, "O_RESULT_CURSOR_HEADER", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_ERROR_FLAG", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_CODE", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_MESSAGE", ""));
+
+        return callProc("USR_WORK_REQUEST_M010.PHM_WORK_REQUEST_M010_007", input);
 
     }
 }

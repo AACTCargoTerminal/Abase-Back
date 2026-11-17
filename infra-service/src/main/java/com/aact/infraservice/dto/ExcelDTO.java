@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -219,5 +220,29 @@ public class ExcelDTO {
         private String mime;
         private byte[] data;
 
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class NightDetailHeaderDTO{
+        private BigDecimal userSid;
+        private String userName;
+        private String region;
+        private String amount;
+        private String terminalCode;
+        private Integer count;
+        private Integer totalCount;
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public class OrgDTO {
+
+        private String code;
+        private String name;
+
+        private List<OrgDTO> children = new ArrayList<>();
     }
 }

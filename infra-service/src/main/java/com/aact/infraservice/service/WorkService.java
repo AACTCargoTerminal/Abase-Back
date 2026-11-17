@@ -329,4 +329,51 @@ public interface WorkService {
      * @return
      */
     ResponseDTO<?> setWorkM010_025_1(WorkDTO.NightApprDTO dto);
+
+    /**
+     * 심야교통비 신청서 엑셀 추출
+     * @param date 날짜 YYYYMM
+     * @return
+     */
+    ResponseDTO<?> getNightWorkIns(String date);
+
+    /**
+     * 심야교통비 세부내역 엑셀 추출
+     * @param date  날짜 YYYYMM
+     * @return
+     */
+    ResponseDTO<?> getNightDetail(String date);
+
+    /**
+     * 심야교통비 인사팀 목록 조회
+     * @param monFlag   날짜 YYYYMM 으로 할지 YYYYMMDD-YYYYMMDD로 할찌 선택 N startDate만 YYYYMM
+     * @param startDate 날짜  YYYYMM OR YYYYMMDD
+     * @param endDate 날짜  YYYYMM OR YYYYMMDD
+     * @param teamCode  HRPAT   팀코드
+     * @param terminalCode   TRMCD   터미널코드
+     * @param userName  USER_NAME 근무자명
+     * @param filter 빈값이면 팀장 확정한거 전체 A면 팀장 확정하고 검토완료안한것만 B면 팀장 확정하고 검토완료 한것
+     * @return
+     */
+    ResponseDTO<?> getWorkL010_033(String monFlag,String startDate,String endDate,String teamCode,String terminalCode,String userName,String filter);
+
+    /**
+     * 타입에 따른 승인자 처리
+     * @param dto 객체
+     * @return
+     */
+    ResponseDTO<?> setWorkM010_017(WorkDTO.ApprDTO dto);
+
+    /**
+     * 타입에 따른 승인자 취소 처리
+     * @param dto 객체
+     * @return
+     */
+    ResponseDTO<?> setWorkM010_026(WorkDTO.ApprDTO dto);
+
+    /**
+     * 조직도 엑설 출력
+     * @return
+     */
+    ResponseDTO<?> getOrgExcel();
 }
