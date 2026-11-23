@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -52,6 +53,30 @@ public class InfraUser {
             @JsonProperty("VALUE2") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String value2,
             @JsonProperty("VALUE3") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String value3,
             @JsonProperty("VALUE4") @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class) @EmptyAsSupport.EmptyAs("") String value4) {
+    }
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record UserArrayRelDTO(
+            @JsonProperty("codeArray")List<UserRelDTO> codeArray
+    ){}
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class UserRelFileDTO {
+
+        @JsonProperty("userSid")
+        @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+        @EmptyAsSupport.EmptyAs(value = "*",label = "유저정보")
+        private BigDecimal userSid;
+
+        @JsonProperty("type")
+        @JsonDeserialize(using = EmptyAsSupport.EmptyAsDeserializer.class)
+        @EmptyAsSupport.EmptyAs(value = "*",label = "저장 타입")
+        private String type;
+
+        @JsonProperty("files")
+        private List<MultipartFile> files;
     }
 
     @Data

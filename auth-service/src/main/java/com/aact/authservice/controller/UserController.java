@@ -96,13 +96,9 @@ public class UserController {
     }
 
     @PostMapping(value = "/setUserRel")
-    public ResponseDTO<?> setUserRel(@RequestBody Map<String,List<InfraUser.UserRelDTO>> dtos) {
+    public ResponseDTO<?> setUserRel(@RequestBody InfraUser.UserArrayRelDTO dtos) {
 
-        if(dtos.get("SAVE")==null){
-            throw new SysException("setUserRel","요청데이터가 없습니다.");
-        }
-
-        return userSevice.setUserRel(dtos.get("SAVE"));
+        return userSevice.setUserRel(dtos);
     }
 
     @PostMapping(value = "/delUserRel")
@@ -127,5 +123,17 @@ public class UserController {
     public ResponseDTO<?> getUserGroup() {
 
         return userSevice.getUserGroup();
+    }
+    //setUserM010_014
+    @PostMapping(value = "/setUserM010_014", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseDTO<?> setUserM010_014(@Validated @ModelAttribute InfraUser.UserRelFileDTO dto) {
+        return userSevice.setUserM010_014(dto);
+    }
+    //getUserM010_004
+    @GetMapping(value = "/getUserM010_004")
+    public ResponseDTO<?> getUserM010_004(@RequestParam("userSid")BigDecimal userSid,
+                                          @RequestParam("type")String type) {
+
+        return userSevice.getUserM010_004(userSid,type);
     }
 }

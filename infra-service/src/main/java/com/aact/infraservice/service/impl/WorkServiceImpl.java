@@ -1245,6 +1245,7 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
 
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
             DateTimeFormatter formatter2 = DateTimeFormatter.ofPattern("HHmmss");
+            DateTimeFormatter formatter3 = DateTimeFormatter.ofPattern("yyyyMMddHHmm");
             String yyyyMM = dateStr.substring(0,6);
             String dd = dateStr.substring(6,8);
 
@@ -1261,9 +1262,10 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
             sql.append("AND\t\tODR.DAY\t\t=\tTOD.DAY AND\t\tODR.USER_SID\t=\tTOD.USER_SID AND\t\tODR.SEQ\t\t\t=\tTOD.SEQ AND\t\tODR.CLASS_CODE\t=\t'HRPAT' ");
             sql.append("AND\t\tODR.USABLE_FLAG\t=\t'Y'\t\t JOIN\tTHR_OT_DETAIL_REF\tODR2 ON\t\tODR2.YEAR\t=\tTOD.YEAR AND\t\tODR2.MON\t\t=\tTOD.MON ");
             sql.append("AND\t\tODR2.DAY\t\t=\tTOD.DAY AND\t\tODR2.USER_SID\t=\tTOD.USER_SID AND\t\tODR2.SEQ\t\t\t=\tTOD.SEQ AND\t\tODR2.CLASS_CODE\t=\t'TRMCD' ");
-            sql.append("AND\t\tODR2.USABLE_FLAG\t=\t'Y' WHERE\tNVL(TOD.APPROVE_FLAG,'N') = 'N' AND\t\tTOD.YEAR||TOD.MON = '" + yyyyMM+"' ");
+            sql.append("AND\t\tODR2.USABLE_FLAG\t=\t'Y' WHERE\tNVL(TOD.APPROVE_FLAG,'N') = 'Y' AND\t\tTOD.YEAR||TOD.MON = '" + yyyyMM+"' ");
             sql.append("AND TOT.REQ_START_TIME IS NULL ");
-            sql.append("AND TOT.CAPS_START_TIME IS NULL ");
+            //sql.append("AND TOT.CAPS_START_TIME IS NULL ");
+            sql.append("AND TOD.WORK_TYPE_CODE = 'X' AND ODR.CODE_CODE = '3202' ");
             sql.append("AND ( ");
             sql.append("    TO_NUMBER(TOD.DAY) < TO_NUMBER('" + dd + "') ");
             sql.append("    OR ( ");
@@ -1326,7 +1328,9 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
                 }
 
                 sql = new StringBuilder();
-                sql.append("SELECT NVL(TOT.CAPS_START_TIME, RPAD(TCM.VALUE2_CHAR,4,'0')) START_TIME, NVL(TOT.CAPS_END_TIME, RPAD(TCM.VALUE3_CHAR,4,'0')) END_TIME, TCM.VALUE1_NUMBER ADD_DAY ");
+                sql.append("SELECT CASE WHEN TOT.REQ_START_TIME IS NULL THEN CASE WHEN TCM.VALUE2_CHAR IS NULL THEN TOT.CAPS_START_TIME ELSE TCM.VALUE2_CHAR END ELSE TOT.CAPS_START_TIME END START_TIME ");
+                sql.append(", CASE WHEN TOT.REQ_START_TIME IS NULL THEN CASE WHEN TCM.VALUE3_CHAR IS NULL THEN TOT.CAPS_END_TIME ELSE TCM.VALUE3_CHAR END ELSE TOT.CAPS_END_TIME END END_TIME ");
+                sql.append(", CASE WHEN TOT.REQ_START_TIME IS NULL THEN TCM.VALUE1_NUMBER ELSE TOT.ADD_DAY END AS ADD_DAY ");
                 sql.append("FROM THR_OT_DETAIL TOD ");
                 sql.append("JOIN TCM_CODE_MASTER TCM ");
                 sql.append("ON TCM.CODE_CODE = TOD.WORK_TYPE_CODE AND TCM.USABLE_FLAG = 'Y' AND TCM.CLASS_CODE = 'OPCOD' ");
@@ -1338,7 +1342,8 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
                 sql.append("ORDER BY TOD.SEQ DESC");
 
                 StringBuilder sql2 = new StringBuilder();
-                sql2.append("SELECT NVL(TOT.CAPS_START_TIME, RPAD(TCM.VALUE2_CHAR,4,'0')) START_TIME, NVL(TOT.CAPS_END_TIME, RPAD(TCM.VALUE3_CHAR,4,'0')) END_TIME, TCM.VALUE1_NUMBER ADD_DAY ");
+                sql2.append("SELECT NVL(TOT.CAPS_START_TIME, RPAD(TCM.VALUE2_CHAR,4,'0')) START_TIME, NVL(TOT.CAPS_END_TIME, RPAD(TCM.VALUE3_CHAR,4,'0')) END_TIME ");
+                sql2.append(", CASE WHEN TOT.REQ_START_TIME IS NULL THEN TCM.VALUE1_NUMBER ELSE TOT.ADD_DAY END ADD_DAY ");
                 sql2.append("FROM THR_OT_DETAIL TOD ");
                 sql2.append("JOIN TCM_CODE_MASTER TCM ");
                 sql2.append("ON TCM.CODE_CODE = TOD.WORK_TYPE_CODE AND TCM.USABLE_FLAG = 'Y' AND TCM.CLASS_CODE = 'OPCOD' ");
@@ -1381,7 +1386,9 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
                                 saveStartTime = capsStart.getTime().substring(0,4);
                             }
                         }else{
-                            String tmpStartTime = startDate.plusDays(bfAddDay).format(formatter)+bfEndTime;
+                            String tmpStartTime = LocalDateTime.parse( startDate.plusDays(bfAddDay).format(formatter)+bfEndTime, formatter3)
+                                    .plusMinutes(30)
+                                    .format(formatter3);
                             String tmpEndTime = yyyy+mon+parsingDay+"2359";
 
                             CapsTimeDTO.CapsUserTimeDTO capsStart = capsTime.getData().stream()
@@ -1434,7 +1441,9 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
                                     saveEndTime = capsEnd.getTime().substring(0,4);
                                 }
                             }else{
-                                String tmpStartTime = endDate.format(formatter)+afStartTime;
+                                String tmpStartTime = LocalDateTime.parse( endDate.format(formatter)+afStartTime, formatter3)
+                                        .minusMinutes(30)
+                                        .format(formatter3);;
                                 String tmpEndTime = yyyy+mon+parsingDay+"0000";
 
                                 CapsTimeDTO.CapsUserTimeDTO capsEnd = capsTime.getData().stream()
@@ -4487,33 +4496,10 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
             }
 
             //DB조회
-            dbDto = repo.getWorkM010_007(info.getUserLang(), Util.getGUID(),info.getUserId(), info.getUserIpAddress(), info.getPgmId());
 
-            if(dbDto.getErrFlag().equals("Y")){
-                throw new BizException("getOrgExcel", dbDto.getErrMsg());
-            }
-
-            if(dbDto.getResult().get(0).isEmpty()){
-                throw new BizException("getOrgExcel", "부서목록이 없습니다.");
-            }
-
-            List<Map<String,DbTypeDTO>> dbHeader = dbDto.getResult().get(0);
-            int totalCount = 0;
-            int startFirst = 0;
-            int endFirst = 0;
-            for(int i = 0;i<dbHeader.size();i++){
-                Map<String,DbTypeDTO> headerRow = dbHeader.get(i);
-                int count = Util.getInteger(headerRow.get("DEPT_SUM").getObj());
-                int deptCount = Util.getInteger(headerRow.get("DEPT_COUNT").getObj());
-                int teamCount = Util.getInteger(headerRow.get("TEAM_COUNT").getObj());
-
-                if(i==0){
-                    startFirst = ((count*3)+(teamCount-1)*2)/2;
-                }else if(i==dbHeader.size()-1){
-                    endFirst = totalCount+((count*3)+(teamCount-1)*2)/2;
-                }
-                totalCount = totalCount+(count*3)+(teamCount-1)*2+deptCount;
-            }
+            List<ExcelDTO.OrgDTO> array = getOrg(repo);
+            int totalCount = array.stream().mapToInt(v->v.getColCount()*3+1).sum();
+                    //header.stream().mapToInt(v->v.getDeptSum().intValue()*3+(v.getTeamCount().intValue()-1)*2+v.getDeptCount().intValue()).sum();
 
             try(XSSFWorkbook srcWorkbook = new XSSFWorkbook(new ByteArrayInputStream(ret.getData()));
                 ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
@@ -4572,63 +4558,195 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
 
                 drawCenterLine(formSheet,17,20,totalCount/2,totalCount/2,true,true);
 
-                drawCenterLine(formSheet,20,20,startFirst,endFirst,true,true);
-
-                int deptAddCount = 0;
-                String userName = "";
-                int beforeSeq = 0;
-                for(int i = 0;i<dbHeader.size();i++){
-                    Map<String,DbTypeDTO> headerRow = dbHeader.get(i);
-                    int deptSum = Util.getInteger(headerRow.get("DEPT_SUM").getObj());
-                    int deptCount = Util.getInteger(headerRow.get("DEPT_COUNT").getObj());
-                    int teamCount = Util.getInteger(headerRow.get("TEAM_COUNT").getObj());
-                    int count = (deptSum*3)+(teamCount-1)*2;
-                    int seq = Util.getInteger(headerRow.get("SEQ").getObj());
-                    String tmpUserName = Util.getStrChk(headerRow.get("VALUE2_CHAR").getObj());
-                    String deptName = Util.getStrChk(headerRow.get("CODE_NAME").getObj());
-
-
-                    if(tmpUserName.isEmpty()){
-                        drawCenterLine(formSheet,20,34,deptAddCount+count/2,deptAddCount+count/2,true,true);
+                //시작부분
+                int endline = 0;
+                for(int i = 0;i<array.size();i++) {
+                    ExcelDTO.OrgDTO orgRow = array.get(i);
+                    int startLine = orgRow.getColCount()*3/2;
+                    if(i==0){
+                        drawCenterLine(formSheet,20,20,startLine,orgRow.getColCount()*3+1,true,true);
+                    }else if(i==array.size()-1){
+                        drawCenterLine(formSheet,20,20,endline
+                                ,endline+startLine,false,true);
                     }else{
-                        if(!tmpUserName.equals("PASS")){
-                            if(!userName.equals(tmpUserName)){
-                                drawCenterLine(formSheet,20,22,deptAddCount+count/2,deptAddCount+count/2,true,true);
-                                region = new CellRangeAddress(22, 29, deptAddCount+count/2-1, deptAddCount+count/2+1);
-                                setCellBorder(formSheet,region,"");
-                                if(seq==1){
-                                    drawCenterLine(formSheet,30,34,deptAddCount+count/2,deptAddCount+count/2,true,true);
-                                }else{
-                                    drawCenterLine(formSheet,30,32,deptAddCount+count/2,deptAddCount+count/2,true,true);
-                                }
-
-                            }
-                            userName = tmpUserName;
-                        }
+                        drawCenterLine(formSheet,20,20,endline
+                                ,endline+orgRow.getColCount()*3+1,false,false);
                     }
 
-                    if(seq==1){
-                        region = new CellRangeAddress(34, 34, deptAddCount, deptAddCount+count-1);
+                    if(orgRow.getRepUser()==null){
+                        drawCenterLine(formSheet,20,32,endline+startLine,endline+startLine,true,true);
+                    }else{
+                        drawCenterLine(formSheet,20,22,endline+startLine,endline+startLine,true,true);
+                        pictureIdx = srcWorkbook.addPicture(
+                                orgRow.getRepUser().getImg(),
+                                Workbook.PICTURE_TYPE_PNG
+                        );
+                        addOrgInfo(
+                                formSheet,
+                                helper,
+                                drawing,
+                                pictureIdx,
+                                endline+startLine,
+                                22,
+                                orgRow.getRepUser().getOrgName(),
+                                orgRow.getRepUser().getPhone(),
+                                orgRow.getRepUser().getMobile(),
+                                true
+                        );
+                        drawCenterLine(formSheet,30,32,endline+startLine,endline+startLine,true,true);
+                    }
+
+                    if(orgRow.getSeq()==1){
+                        drawCenterLine(formSheet,32,34,endline+startLine,endline+startLine,true,true);
+                        region = new CellRangeAddress(34, 34, endline, endline+orgRow.getColCount()*3-1);
                         setCellBorder(formSheet,region,"#FFC000");
                         formSheet.addMergedRegion(region);
                         row = Optional.ofNullable(formSheet.getRow(34))
                                 .orElseGet(() -> formSheet.createRow(34));
-                        cell = row.getCell(deptAddCount,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                        cell.setCellValue(deptName);
+                        cell = row.getCell(endline,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                        cell.setCellValue(orgRow.getName());
                         setCellFont(srcWorkbook, cell, 8, true);
                     }else{
-                        if(beforeSeq!=0&&beforeSeq==seq){
-                            drawCenterLine(formSheet,32,32,deptAddCount,deptAddCount+count/2,false,true);
-                        }else if(beforeSeq == 0){
-                            drawCenterLine(formSheet,32,32,deptAddCount+count/2,deptAddCount+count+deptCount,true,false);
-                            beforeSeq = seq;
-                        }else{
-                            beforeSeq = 0;
+                        int chilEndLine = endline;
+                        for(int j = 0;j<orgRow.getChildren().size();j++){
+                            int chilStartLine = orgRow.getChildren().get(j).getColCount()*3/2;
+                            if(j==0){
+                                drawCenterLine(formSheet,32,32,chilEndLine+chilStartLine,
+                                        chilEndLine+orgRow.getChildren().get(j).getColCount()*3+1,true,false);
+                            }else if(j==orgRow.getChildren().size()-1){
+                                drawCenterLine(formSheet,32,32,chilEndLine
+                                        ,chilEndLine+chilStartLine,false,true);
+                            }else{
+                                drawCenterLine(formSheet,32,32,chilEndLine,
+                                        chilEndLine+orgRow.getChildren().get(j).getColCount()*3+1,false,false);
+                            }
+                            drawCenterLine(formSheet,32,34,chilEndLine+chilStartLine,chilEndLine+chilStartLine,true,true);
+                            region = new CellRangeAddress(34, 34, chilEndLine, chilEndLine+orgRow.getChildren().get(j).getColCount()*3-1);
+                            setCellBorder(formSheet,region,"#FFC000");
+                            formSheet.addMergedRegion(region);
+                            row = Optional.ofNullable(formSheet.getRow(34))
+                                    .orElseGet(() -> formSheet.createRow(34));
+                            cell = row.getCell(chilEndLine,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            cell.setCellValue(orgRow.getChildren().get(j).getName());
+                            setCellFont(srcWorkbook, cell, 8, true);
+                            chilEndLine += orgRow.getChildren().get(j).getColCount()*3+1;
                         }
                     }
-                    deptAddCount = deptAddCount+count+deptCount;
-                }
 
+                    if(orgRow.getTerminal()!=null&&!orgRow.getTerminal().isEmpty()){
+                        if(orgRow.getTerminal().size()==1){
+                            List<ExcelDTO.OrgUserDTO> users = orgRow.getTerminal().values().iterator().next();
+
+                            int userLine = 35;
+                            int colCount = orgRow.getColCount();
+
+                            for (int j = 0; j < users.size(); j++) {
+
+                                userLine = 35 + (j / colCount) * 7;
+                                int x = endline + (j % colCount) * 3+1;
+
+                                if (users.get(j).getImg() != null) {
+                                    pictureIdx = srcWorkbook.addPicture(
+                                            users.get(j).getImg(),
+                                            Workbook.PICTURE_TYPE_PNG
+                                    );
+                                }else{
+                                    pictureIdx = -1;
+                                }
+
+                                addOrgInfo(
+                                        formSheet,
+                                        helper,
+                                        drawing,
+                                        pictureIdx,
+                                        x,
+                                        userLine,
+                                        users.get(j).getOrgName(),
+                                        users.get(j).getPhone(),
+                                        users.get(j).getMobile(),
+                                        false
+                                );
+                            }
+
+                            int result = (int) Math.ceil(
+                                    (double) users.size() / orgRow.getColCount()
+                            );
+                            CellRangeAddress borderRegion = new CellRangeAddress(
+                                    35,
+                                    35+result*7,
+                                    endline,
+                                    endline+colCount*3-1
+                            );
+
+                            setCellBorder(formSheet, borderRegion, "");
+                        }else{
+                            int plusTerminal = endline;
+                            for(Map.Entry<String,List<ExcelDTO.OrgUserDTO>> entry:orgRow.getTerminal().entrySet()){
+                                String key = entry.getKey();
+                                List<ExcelDTO.OrgUserDTO> users = entry.getValue();
+                                CellRangeAddress borderRegion = new CellRangeAddress(
+                                        35,
+                                        35,
+                                        plusTerminal,
+                                        plusTerminal+orgRow.getColCount()*3/orgRow.getTerminal().size()-1
+                                );
+                                formSheet.addMergedRegion(borderRegion);
+                                setCellBorder(formSheet, borderRegion, "#FDE9D9");
+                                row = formSheet.getRow(35);
+                                cell = row.getCell(plusTerminal);
+                                cell.setCellValue(key);
+                                setCellFont(srcWorkbook, cell, 8, true);
+
+                                int userLine = 36;
+                                int colCount = orgRow.getColCount()*3/orgRow.getTerminal().size();
+
+                                for (int j = 0; j < users.size(); j++) {
+
+                                    userLine = 36 + (j / colCount) * 7;
+                                    int x = plusTerminal + (j % colCount) * 3+1;
+
+                                    if (users.get(j).getImg() != null) {
+                                        pictureIdx = srcWorkbook.addPicture(
+                                                users.get(j).getImg(),
+                                                Workbook.PICTURE_TYPE_PNG
+                                        );
+                                    }else{
+                                        pictureIdx = -1;
+                                    }
+
+                                    addOrgInfo(
+                                            formSheet,
+                                            helper,
+                                            drawing,
+                                            pictureIdx,
+                                            x,
+                                            userLine,
+                                            users.get(j).getOrgName(),
+                                            users.get(j).getPhone(),
+                                            users.get(j).getMobile(),
+                                            false
+                                    );
+                                }
+
+                                int result = (int) Math.ceil(
+                                        (double) users.size() / orgRow.getColCount()
+                                );
+                                borderRegion = new CellRangeAddress(
+                                        36,
+                                        36+result*7,
+                                        endline,
+                                        endline+colCount*3-1
+                                );
+
+                                setCellBorder(formSheet, borderRegion, "");
+
+                                plusTerminal += orgRow.getColCount()*3/orgRow.getTerminal().size();
+                            }
+                        }
+                    }
+
+                    endline += orgRow.getColCount()*3+1;
+                }
                 //출력부분
                 srcWorkbook.write(bos);
                 Path excelPath = tempDir.resolve(Util.getGUID()+".xlsx");
@@ -4640,6 +4758,299 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
 
             return ret;
         });
+    }
+
+    private void addOrgInfo(
+            XSSFSheet sheet,
+            CreationHelper helper,
+            Drawing<?> drawing,
+            int pictureIdx,
+            int centerCol,
+            int startRow,
+            String name,
+            String tel,
+            String mobile,
+            boolean borderFlag
+    ) {
+        int startCol = centerCol - 1;
+        int endCol = centerCol + 1;
+
+        if(pictureIdx!=-1){
+            // 1. 이미지 삽입
+            addPicture(
+                    sheet, helper, drawing,
+                    pictureIdx,
+                    startCol, endCol,
+                    startRow, startRow + 4
+            );
+        }
+
+
+        if(borderFlag){
+            // 2. 전체 영역 테두리
+            CellRangeAddress borderRegion = new CellRangeAddress(
+                    startRow,
+                    startRow + 7,
+                    startCol,
+                    endCol
+            );
+
+            setCellBorder(sheet, borderRegion, "");
+        }
+
+
+        // 3. 텍스트 입력
+        String[] values = {name, tel, mobile};
+
+        for (int i = 0; i < values.length; i++) {
+            int rowIdx = startRow + 5 + i;
+
+            CellRangeAddress region = new CellRangeAddress(
+                    rowIdx, rowIdx,
+                    startCol, endCol
+            );
+
+            sheet.addMergedRegion(region);
+
+            Row row = sheet.getRow(rowIdx);
+            if (row == null) {
+                row = sheet.createRow(rowIdx);
+            }
+
+            Cell cell = row.getCell(
+                    startCol,
+                    Row.MissingCellPolicy.CREATE_NULL_AS_BLANK
+            );
+
+            cell.setCellValue(values[i] != null ? values[i] : "");
+
+            // 텍스트 가운데 정렬
+            XSSFCellStyle style =
+                    sheet.getWorkbook().createCellStyle();
+
+            style.cloneStyleFrom(cell.getCellStyle());
+            style.setAlignment(HorizontalAlignment.CENTER);
+            style.setVerticalAlignment(VerticalAlignment.CENTER);
+
+            cell.setCellStyle(style);
+        }
+    }
+
+    private List<ExcelDTO.OrgDTO> getOrg(WorkRepo repo){
+        List<ExcelDTO.OrgDTO> ret = new ArrayList<>();
+
+        //부서 가져오기
+        DbDto dbDto = repo.getHrdpt();
+        if(dbDto.getErrFlag().equals("Y")){
+            throw new BizException("getOrg",dbDto.getErrMsg());
+        }
+
+        for(Map<String,DbTypeDTO> hrpatRow:dbDto.getResult().get(0)){
+            ExcelDTO.OrgDTO tmpRet = null;
+            int seq = Util.getInteger(hrpatRow.get("VALUE1_NUMBER").getObj());
+            String code = Util.getStrChk(hrpatRow.get("CODE_CODE").getObj());
+            String name = Util.getStrChk(hrpatRow.get("CODE_NAME").getObj());
+            BigDecimal userSid = Util.getDecimal(hrpatRow.get("USER_SID").getObj());
+            int userCount = Util.getInteger(hrpatRow.get("USER_COUNT").getObj());
+            int teamCount = Util.getInteger(hrpatRow.get("TEAM_COUNT").getObj());
+            int colCount = Util.getInteger(hrpatRow.get("ORG_COL").getObj());
+
+
+            ExcelDTO.OrgUserDTO repUser = null;
+            LinkedHashMap<String,List<ExcelDTO.OrgUserDTO>> userList = null;
+            List<ExcelDTO.OrgDTO> tmpTeam = null;
+            if(userSid.compareTo(BigDecimal.ZERO)>0){
+                repUser = getUserDetail(repo,userSid);
+
+            }
+            if(userCount>0){
+                userList = getTeamUser(repo,code);
+                colCount = colCount * userList.size();
+            }
+            if(teamCount > 0){
+                tmpTeam = rowTeamSearch(repo,code);
+
+                int maxColCount = getMaxColCount(tmpTeam);
+                if(maxColCount>colCount){
+                    colCount = maxColCount;
+                }
+            }
+
+            if(seq==1){
+                tmpRet = new ExcelDTO.OrgDTO();
+                tmpRet.setCode(code);
+                tmpRet.setName(name);
+
+                tmpRet.setColCount(colCount);
+                tmpRet.setChildren(tmpTeam);
+                tmpRet.setTerminal(userList);
+                ret.add(tmpRet);
+            }else{
+                tmpRet = ret.stream()
+                        .filter(v->v.getSeq()==seq).findFirst().orElse(null);
+                if(tmpRet==null){
+                    tmpRet = new ExcelDTO.OrgDTO();
+                    tmpRet.setChildren(new ArrayList<>());
+                    ret.add(tmpRet);
+                }
+                tmpRet.setColCount(tmpRet.getColCount()+colCount);
+                ExcelDTO.OrgDTO tmpRowRet = new ExcelDTO.OrgDTO();
+                tmpRowRet.setCode(code);
+                tmpRowRet.setName(name);
+                tmpRowRet.setColCount(colCount);
+                tmpRowRet.setChildren(tmpTeam);
+                tmpRowRet.setTerminal(userList);
+                tmpRet.getChildren().add(tmpRowRet);
+            }
+            tmpRet.setSeq(seq);
+            tmpRet.setRepUser(repUser);
+
+
+
+
+        }
+
+
+
+        return ret;
+    }
+
+    private int getMaxColCount(List<ExcelDTO.OrgDTO> orgList) {
+
+        if (orgList == null || orgList.isEmpty()) {
+            return 0;
+        }
+
+        // 현재 orgList 전체 합계
+        int currentSum = orgList.stream()
+                .mapToInt(org ->
+                        org.getColCount() *
+                                (org.getTerminal() == null ? 1 : org.getTerminal().size())
+                )
+                .sum();
+
+        int maxCount = currentSum;
+
+        // 각 조직의 children 리스트를 개별적으로 재귀 탐색
+        for (ExcelDTO.OrgDTO org : orgList) {
+
+            int childSum = getMaxColCount(org.getChildren());
+
+            maxCount = Math.max(maxCount, childSum);
+        }
+
+        return maxCount;
+    }
+
+    private LinkedHashMap<String,List<ExcelDTO.OrgUserDTO>> getTeamUser(WorkRepo repo, String teamCode){
+        LinkedHashMap<String,List<ExcelDTO.OrgUserDTO>> ret = new LinkedHashMap<>();
+
+        DbDto dbDto = repo.getOrgTeamUser(teamCode);
+        if(dbDto.getErrFlag().equals("Y")){
+            throw new BizException("getTeamUser",dbDto.getErrMsg());
+        }
+        for(Map<String,DbTypeDTO> row : dbDto.getResult().get(0)){
+            String terminalCode = Util.getStrChk(row.get("TERMINAL_CODE").getObj());
+            String orgName = Util.getStrChk(row.get("ORG_NAME").getObj());
+            String mobile = Util.getStrChk(row.get("MOBILE").getObj());
+            String phone = Util.getStrChk(row.get("PHONE").getObj());
+
+            String fullPath = Util.getStrChk(row.get("FULL_PATH").getObj());
+            byte[] file = null;
+
+            if(!fullPath.isEmpty()){
+                ResponseDTO<byte[]> imgRet = fileClientService.fileRead(fullPath);
+                if(imgRet.getErrFlag().equals("Y")){
+                    throw new BizException("getTeamUser",imgRet.getErrMsg());
+                }
+                file = imgRet.getData();
+            }
+
+            List<ExcelDTO.OrgUserDTO> tmpArray = ret.get(terminalCode);
+            if(tmpArray == null){
+                tmpArray = new ArrayList<>();
+                ret.put(terminalCode, tmpArray);
+            }
+            ExcelDTO.OrgUserDTO tmpObj = new ExcelDTO.OrgUserDTO();
+            tmpObj.setOrgName(orgName);
+            tmpObj.setImg(file);
+            tmpObj.setMobile(mobile);
+            tmpObj.setPhone(phone);
+            tmpArray.add(tmpObj);
+
+        }
+
+
+        return ret;
+    }
+
+    private ExcelDTO.OrgUserDTO getUserDetail(WorkRepo repo,BigDecimal userSid){
+
+        ExcelDTO.OrgUserDTO ret = new ExcelDTO.OrgUserDTO();
+        DbDto dbDto = repo.getOrgUserInfo(userSid);
+        if(dbDto.getErrFlag().equals("Y")){
+            throw new BizException("getUserDetail",dbDto.getErrMsg());
+        }
+        Map<String,DbTypeDTO> row = dbDto.getResult().get(0).get(0);
+        String fullPath = Util.getStrChk(row.get("FULL_PATH").getObj());
+        if(!fullPath.isEmpty()){
+            ResponseDTO<byte[]> imgRet = fileClientService.fileRead(fullPath);
+            if(imgRet.getErrFlag().equals("Y")){
+                throw new BizException("rowTeamSearch",imgRet.getErrMsg());
+            }
+            ret.setImg(imgRet.getData());
+        }
+        ret.setOrgName(Util.getStrChk(row.get("ORG_NAME").getObj()));
+        ret.setMobile(Util.getStrChk(row.get("MOBILE").getObj()));
+        ret.setPhone(Util.getStrChk(row.get("PHONE").getObj()));
+
+        return ret;
+    }
+
+    private List<ExcelDTO.OrgDTO> rowTeamSearch(WorkRepo repo,String code){
+        List<ExcelDTO.OrgDTO> result = new ArrayList<>();
+
+        DbDto dbDto = repo.getRowTeam(code);
+
+        if(dbDto.getErrFlag().equals("Y")){
+            throw new BizException("rowTeamSearch",dbDto.getErrMsg());
+        }
+
+        List<Map<String, DbTypeDTO>> rows = dbDto.getResult().get(0);
+
+
+        for (Map<String, DbTypeDTO> row : rows) {
+            LinkedHashMap<String,List<ExcelDTO.OrgUserDTO>> userList = null;
+
+            String childCode =
+                    Util.getStrChk(row.get("CODE_CODE").getObj());
+            int userCount = Util.getInteger(row.get("USER_COUNT").getObj());
+
+            ExcelDTO.OrgDTO org = new ExcelDTO.OrgDTO();
+
+            org.setCode(childCode);
+            org.setName(
+                    Util.getStrChk(row.get("CODE_NAME").getObj())
+            );
+            int colCount = Util.getInteger(row.get("ORG_COL").getObj());
+
+            List<ExcelDTO.OrgDTO> children = rowTeamSearch(repo, childCode);
+
+            int childColCount = children.stream()
+                    .mapToInt(v->v.getColCount()*(v.getTerminal()==null?0:v.getTerminal().size()))
+                    .sum();
+
+            org.setColCount(Math.max(colCount, childColCount));
+
+            org.setChildren(children);
+            if(userCount>0){
+                userList = getTeamUser(repo,childCode);
+            }
+            org.setTerminal(userList);
+            result.add(org);
+        }
+
+        return result;
     }
 
     private void addPicture(XSSFSheet sheet,CreationHelper helper, Drawing<?> drawing,int pictureIdx,int startCol,int endCol,int startRow,int endRow){

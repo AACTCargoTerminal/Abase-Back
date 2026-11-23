@@ -1,11 +1,10 @@
 package com.aact.infraservice.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -238,11 +237,28 @@ public class ExcelDTO {
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
-    public class OrgDTO {
+    @Builder
+    public static class OrgDTO {
 
         private String code;
         private String name;
+        private OrgUserDTO repUser;
+        private int colCount;
+        private int seq;
 
-        private List<OrgDTO> children = new ArrayList<>();
+        private List<OrgDTO> children;
+        private LinkedHashMap<String,List<OrgUserDTO>> terminal;
+
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Builder
+    public static class OrgUserDTO{
+        private byte[] img;
+        private String orgName;
+        private String mobile;
+        private String phone;
     }
 }
