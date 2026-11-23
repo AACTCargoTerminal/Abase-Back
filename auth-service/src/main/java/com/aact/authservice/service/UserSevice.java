@@ -126,7 +126,7 @@ public interface UserSevice {
      * @param dtos 인사설정 저장용 객체
      * @return
      */
-    ResponseDTO<?> setUserRel(List<InfraUser.UserRelDTO> dtos);
+    ResponseDTO<?> setUserRel(InfraUser.UserArrayRelDTO dtos);
 
     /**
      * Intra 전용 인사설정 삭제용
@@ -134,4 +134,19 @@ public interface UserSevice {
      * @return
      */
     ResponseDTO<?> delUserRel(List<InfraUser.UserRelDTO>dtos);
+
+    /**
+     * USER 관련 파일 저장
+     * @param dto USER 관련 파일 저장 객체
+     * @return
+     */
+    ResponseDTO<?> setUserM010_014(InfraUser.UserRelFileDTO dto);
+
+    /**
+     * USER 관련 파일 조회
+     * @param userSid USER테이블 키값
+     * @param type HRFLE
+     * @return
+     */
+    ResponseDTO<?> getUserM010_004(BigDecimal userSid,String type);
 }

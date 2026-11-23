@@ -1087,11 +1087,214 @@ public class WorkRepo extends BizBase {
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_PROGRAM_ID", pgmId));
 
         input.add(new DbTypeDTO(Type.CURSOR, Inout.OUT, "O_RESULT_CURSOR_HEADER", ""));
+        input.add(new DbTypeDTO(Type.CURSOR, Inout.OUT, "O_RESULT_CURSOR", ""));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_ERROR_FLAG", ""));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_CODE", ""));
         input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_MESSAGE", ""));
 
         return callProc("USR_WORK_REQUEST_M010.PHM_WORK_REQUEST_M010_007", input);
 
+    }
+
+    public DbDto getHrdpt(){
+        String sql="WITH TEAM_CNT AS (\n" +
+                "    SELECT  TCM.VALUE2_CHAR AS HRDPT_CODE\n" +
+                "        ,   COUNT(DISTINCT TCM.CODE_CODE) AS TEAM_COUNT\n" +
+                "    FROM    TCM_CODE_MASTER TCM\n" +
+                "    WHERE   TCM.CLASS_CODE = 'HRPAT'\n" +
+                "    AND     TCM.USABLE_FLAG = 'Y'\n" +
+                "    AND     TCM.CODE_CODE != TCM.VALUE2_CHAR\n" +
+                "    GROUP BY TCM.VALUE2_CHAR\n" +
+                "),\n" +
+                "LATEST_HRPAT AS (\n" +
+                "    SELECT  T.*\n" +
+                "        ,   ROW_NUMBER() OVER (\n" +
+                "                PARTITION BY T.USER_SID\n" +
+                "                ORDER BY NVL(T.VALUE1, '00010101') DESC,\n" +
+                "                         T.CREATED_TIME DESC\n" +
+                "            ) AS RN\n" +
+                "    FROM    TCM_INTRA_USER_RELATION T\n" +
+                "    WHERE   T.CLASS_CODE = 'HRPAT'\n" +
+                "    AND     T.USABLE_FLAG = 'Y'\n" +
+                "),\n" +
+                "USER_CNT AS (\n" +
+                "    SELECT  IUR.CODE_CODE AS HRDPT_CODE\n" +
+                "        ,   COUNT(DISTINCT IUR.USER_SID) AS USER_COUNT\n" +
+                "        ,   COUNT(DISTINCT IUR2.CODE_CODE) AS TERMINAL_COUNT\n" +
+                "    FROM    LATEST_HRPAT IUR\n" +
+                "    LEFT JOIN TCM_INTRA_USER_RELATION IUR2\n" +
+                "    ON      IUR2.USER_SID = IUR.USER_SID\n" +
+                "    AND     IUR2.CLASS_CODE = 'TRMCD'\n" +
+                "    AND     IUR2.USABLE_FLAG = 'Y'\n" +
+                "    WHERE   IUR.RN = 1\n" +
+                "    GROUP BY IUR.CODE_CODE\n" +
+                ")\n" +
+                "SELECT  TCM.CODE_CODE\n" +
+                "    ,   TCM.CODE_NAME\n" +
+                "    ,   TCM.ORDER_SEQ\n" +
+                "    ,   TCM.VALUE1_NUMBER\n" +
+                "    ,   TUM.USER_SID\n" +
+                "    ,   NVL(TC.TEAM_COUNT, 0) AS TEAM_COUNT\n" +
+                "    ,   CASE WHEN NVL(UC.USER_COUNT, 0) > 0\n" +
+                "    \tAND\tUSER_SID\tIS\tNOT\tNULL\n" +
+                "    \tTHEN \tNVL(UC.USER_COUNT, 0)-1\n" +
+                "    \tELSE\tNVL(UC.USER_COUNT, 0)\n" +
+                "    \tEND\t\tAS USER_COUNT" +
+                "    ,   NVL(UC.TERMINAL_COUNT, 0) AS TERMINAL_COUNT\n" +
+                "    ,   TCM3.VALUE4_NUMBER AS ORG_COL\n" +
+                "FROM    TCM_CODE_MASTER TCM\n" +
+                "LEFT JOIN TEAM_CNT TC\n" +
+                "ON      TC.HRDPT_CODE = TCM.CODE_CODE\n" +
+                "LEFT JOIN USER_CNT UC\n" +
+                "ON      UC.HRDPT_CODE = TCM.CODE_CODE\n" +
+                "LEFT JOIN TCM_USER_MASTER TUM\n" +
+                "ON      TUM.USER_ID = TCM.VALUE2_CHAR\n" +
+                "AND     TUM.USABLE_FLAG = 'Y'\n" +
+                "LEFT JOIN TCM_CODE_MASTER TCM3\n" +
+                "ON      TCM3.CLASS_CODE = 'HRPAT'\n" +
+                "AND     TCM3.CODE_CODE = TCM.CODE_CODE\n" +
+                "AND     TCM3.USABLE_FLAG = 'Y'\n" +
+                "WHERE   TCM.CLASS_CODE = 'HRDPT'\n" +
+                "AND     TCM.USABLE_FLAG = 'Y'\n" +
+                "AND     TCM.VALUE1_NUMBER > 0\n" +
+                "ORDER BY TCM.ORDER_SEQ";
+        return callSql(sql);
+    }
+
+    public DbDto getOrgUserInfo(BigDecimal userSid){
+        String sql = "SELECT  TCM.CODE_NAME || ' : ' || SYS_FUNCTION.FCM_GET_USER_NAME_BY_SID(IUR.USER_SID,'ENG') ORG_NAME\n" +
+                "\t,\tIUR.VALUE1 \tMOBILE\n" +
+                "\t,\tIUR.VALUE2\tPHONE\n" +
+                "\t,\tURF.FULL_PATH\n" +
+                "FROM\tTCM_INTRA_USER_RELATION IUR\n" +
+                "JOIN\tTCM_CODE_MASTER\tTCM\n" +
+                "ON\t\tTCM.CLASS_CODE\t=\t'HRORG'\n" +
+                "AND\t\tTCM.CODE_CODE\t=\tIUR.CODE_CODE\n" +
+                "AND\t\tTCM.USABLE_FLAG\t=\t'Y'\n" +
+                "LEFT\n" +
+                "JOIN\tTCM_USER_RELATION_FILE URF\n" +
+                "ON\t\tIUR.USER_SID\t=\tURF.USER_SID\n" +
+                "AND\t\tURF.USABLE_FLAG\t=\t'Y'\n" +
+                "AND\t\tURF.TYPE\t\t=\t'A'\n" +
+                "WHERE\tIUR.CLASS_CODE\t=\t'HRORG'\n" +
+                "AND\t\tIUR.USER_SID\t= " +userSid.toString()+" "+
+                "AND\t\tIUR.USABLE_FLAG\t=\t'Y'";
+
+        return callSql(sql);
+    }
+
+    public DbDto getOrgTeamUser(String teamCode){
+        String sql = "WITH TARGET AS (\n" +
+                "    SELECT  T.*\n" +
+                "        ,   ROW_NUMBER() OVER (\n" +
+                "                PARTITION BY T.USER_SID\n" +
+                "                ORDER BY NVL(T.VALUE1, '00010101') DESC,\n" +
+                "                         T.CREATED_TIME DESC\n" +
+                "            ) AS RN\n" +
+                "    FROM    TCM_INTRA_USER_RELATION T\n" +
+                "    WHERE   T.CLASS_CODE = 'HRPAT'\n" +
+                "    AND     T.USABLE_FLAG = 'Y'\n" +
+                ")\n" +
+                "SELECT  TCM.CODE_NAME || ' : ' || TUM.USER_NAME AS ORG_NAME\n" +
+                "    ,   IUR.VALUE1 AS MOBILE\n" +
+                "    ,   IUR.VALUE2 AS PHONE\n" +
+                "    ,   URF.FULL_PATH\n" +
+                "    ,   IUR2.CODE_CODE AS TERMINAL_CODE\n" +
+                "FROM    TCM_USER_MASTER TUM\n" +
+                "JOIN    TARGET\n" +
+                "ON      TARGET.USER_SID = TUM.USER_SID\n" +
+                "AND     TARGET.RN = 1\n" +
+                "JOIN    TCM_INTRA_USER_RELATION IUR2\n" +
+                "ON      IUR2.CLASS_CODE = 'TRMCD'\n" +
+                "AND     IUR2.USER_SID = TUM.USER_SID\n" +
+                "AND     IUR2.USABLE_FLAG = 'Y'\n" +
+                "JOIN\tTCM_INTRA_USER_RELATION\tIUR4\n" +
+                "ON\t\tIUR4.CLASS_CODE\t=\t'HRWDT'\n" +
+                "AND\t\tIUR4.CODE_CODE\t=\t'A'\n" +
+                "AND\t\tIUR4.USER_SID\t=\tTUM.USER_SID\n" +
+                "AND\t\tIUR4.USABLE_FLAG\t=\t'Y'\n" +
+                "LEFT JOIN TCM_INTRA_USER_RELATION IUR\n" +
+                "ON      IUR.USER_SID = TUM.USER_SID\n" +
+                "AND     IUR.CLASS_CODE = 'HRORG'\n" +
+                "AND     IUR.USABLE_FLAG = 'Y'\n" +
+                "LEFT JOIN TCM_CODE_MASTER TCM\n" +
+                "ON      TCM.CODE_CODE = IUR.CODE_CODE\n" +
+                "AND     TCM.USABLE_FLAG = 'Y'\n" +
+                "AND     TCM.CLASS_CODE = 'HRORG'\n" +
+                "LEFT JOIN TCM_USER_RELATION_FILE URF\n" +
+                "ON      URF.USER_SID = TUM.USER_SID\n" +
+                "AND     URF.TYPE = 'A'\n" +
+                "AND     URF.USABLE_FLAG = 'Y'\n" +
+                "LEFT JOIN TCM_INTRA_USER_RELATION IUR3\n" +
+                "ON\t\tIUR3.CLASS_CODE\t=\t'HRTAU'\n" +
+                "AND\t\tIUR3.CODE_CODE\t=\tTARGET.CODE_CODE\n" +
+                "AND\t\tIUR3.USER_SID\t=\tTUM.USER_SID\n" +
+                "AND\t\tIUR3.USABLE_FLAG\t=\t'Y'\n" +
+                "LEFT JOIN TCM_CODE_MASTER\tTCM2\n" +
+                "ON\t\tTCM2.CLASS_CODE\t=\t'POSTN'\n" +
+                "AND\t\tTCM2.CODE_CODE\t=\tIUR3.VALUE2\n" +
+                "AND\t\tTCM2.USABLE_FLAG\t=\t'Y'\n" +
+                "WHERE   NVL(TCM.VALUE1_NUMBER, 0) = 0\n" +
+                "AND     TARGET.CODE_CODE = '" +teamCode+"' "+
+                "ORDER BY IUR2.CODE_CODE\n" +
+                "\t,\tCASE\tWHEN\tTCM2.CODE_CODE\tIS\tNULL\n" +
+                "\t\tTHEN\t999\n" +
+                "\t\tELSE\tTCM2.ORDER_SEQ\n" +
+                "\t\tEND\n" +
+                "\t,\tCASE\tWHEN\tTCM.CODE_CODE\tIS\tNULL\n" +
+                "\t\tTHEN\t999\n" +
+                "\t\tELSE\tTCM.ORDER_SEQ\n" +
+                "\t\tEND\n" +
+                "\t,\tNVL(IUR4.VALUE1,'00010101')\n" +
+                "\t,\tTUM.USER_NAME";
+
+        return callSql(sql);
+    }
+
+    public DbDto getRowTeam(String code){
+        String sql = "SELECT TCM.CODE_CODE\n" +
+                "\t,\tTCM.CODE_NAME\n" +
+                "\t,\tTCM.ORDER_SEQ\n" +
+                "\t,\tTCM.VALUE4_NUMBER\tORG_COL\n" +
+                "\t,\tCOUNT(DISTINCT IUR.USER_SID)\tUSER_COUNT\n" +
+                "FROM\tTCM_CODE_MASTER\tTCM\n" +
+                "LEFT\n" +
+                "JOIN\t(\n" +
+                "\t\t\t\t\tSELECT\tT.*\n" +
+                "\t\t\t\t\t\t,\tROW_NUMBER() OVER (\n" +
+                "\t\t\t\t\t\t\t\t   PARTITION BY USER_SID\n" +
+                "\t\t\t\t\t\t\t\t   ORDER BY NVL(VALUE1,'00010101')\tDESC\n" +
+                "\t\t\t\t\t\t\t   ) AS RN\t\n" +
+                "\t\t\t\t\tFROM\tTCM_INTRA_USER_RELATION T\n" +
+                "\t\t\t\t\tWHERE\tT.CLASS_CODE\t=\t'HRPAT'\n" +
+                "\t\t\t\t\tAND\t\tT.USABLE_FLAG\t=\t'Y'\n" +
+                "\t\t\t)\tIUR\n" +
+                "ON\t\tIUR.CODE_CODE\t=\tTCM.CODE_CODE\t\t\t\n" +
+                "AND\t\tIUR.RN\t=\t1\n" +
+                "LEFT\n" +
+                "JOIN\tTCM_INTRA_USER_RELATION IUR2\n" +
+                "ON\t\tIUR2.USER_SID\t=\tIUR.USER_SID\n" +
+                "AND\t\tIUR2.CLASS_CODE\t=\t'TRMCD'\n" +
+                "AND\t\tIUR2.USABLE_FLAG\t=\t'Y'\n" +
+                "LEFT\n" +
+                "JOIN\tTCM_INTRA_USER_RELATION IUR3\n" +
+                "ON\t\tIUR3.USER_SID\t=\tIUR.USER_SID\n" +
+                "AND\t\tIUR3.CLASS_CODE\t=\t'HRORG'\n" +
+                "AND\t\tIUR3.USABLE_FLAG\t=\t'Y'\n" +
+                "LEFT\n" +
+                "JOIN\tTCM_CODE_MASTER\tTCM2\n" +
+                "ON\t\tTCM2.CLASS_CODE\t=\t'HRORG'\n" +
+                "AND\t\tTCM2.CODE_CODE\t=\tIUR3.CODE_CODE\n" +
+                "AND\t\tTCM2.USABLE_FLAG\t=\t'Y'\n" +
+                "WHERE TCM.CLASS_CODE\t=\t'HRPAT'\n" +
+                "AND\tTCM.USABLE_FLAG\t=\t'Y'\n" +
+                "AND\tTCM.CODE_CODE != TCM.VALUE2_CHAR\n" +
+                "AND TCM.VALUE2_CHAR = '" +code+"' "+
+                "AND\tTCM.CODE_CODE\t!=\t'1'\n" +
+                "AND\tNVL(TCM2.VALUE1_NUMBER,0) = 0\n" +
+                "GROUP BY TCM.CODE_CODE,\tTCM.CODE_NAME, TCM.VALUE4_NUMBER, TCM.ORDER_SEQ\n" +
+                "ORDER BY TCM.ORDER_SEQ";
+
+        return callSql(sql);
     }
 }

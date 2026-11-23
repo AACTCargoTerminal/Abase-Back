@@ -9,6 +9,7 @@ import com.aact.common.*;
 import com.aact.common.ServiceBase;
 import com.aact.commonClient.service.ClientService;
 import com.aact.commonClient.service.FileClientService;
+import com.fasterxml.jackson.core.type.TypeReference;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -31,9 +32,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Duration;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -1143,7 +1142,7 @@ public class UserServiceImpl extends ServiceBase implements UserSevice {
         });
     }
     @Override
-    public ResponseDTO<?> setUserRel(List<InfraUser.UserRelDTO> dtos) {
+    public ResponseDTO<?> setUserRel(InfraUser.UserArrayRelDTO dtos) {
 
         ClsUserInfo info = UserContext.get();
         UserRepo repo = userRepo.getObject();
@@ -1151,14 +1150,14 @@ public class UserServiceImpl extends ServiceBase implements UserSevice {
         return execute(repo,()->{
             DbDto dbRet = null;
 
-            for(InfraUser.UserRelDTO row: dtos){
+            for(InfraUser.UserRelDTO row: dtos.codeArray()){
                 dbRet = repo.setUserRel(row.userSid(),row.classCode(),row.codeCode(),row.yyyy(),row.value1(),row.value2(),row.value3(),row.value4(),info.getUserLang(), Util.getGUID(), info.getUserId(), info.getUserIpAddress(), info.getPgmId());
                 if(dbRet.getErrFlag().equals("Y")){
                     throw new BizException("setUserRel", dbRet.getErrMsg());
                 }
             }
             String key = "sess:user:";
-            for(InfraUser.UserRelDTO row: dtos){
+            for(InfraUser.UserRelDTO row: dtos.codeArray()){
                 String sessionKey = stringRedisTemplate.opsForValue().get(key+row.userSid());
                 if (sessionKey == null) {
                     continue;
@@ -1207,6 +1206,76 @@ public class UserServiceImpl extends ServiceBase implements UserSevice {
             }
 
             return okOrThrow("delUserRel", dbRet);});
+    }
+
+    @Override
+    public ResponseDTO<?> setUserM010_014(InfraUser.UserRelFileDTO dto) {
+        ClsUserInfo info = UserContext.get();
+        UserRepo repo = userRepo.getObject();
+        return execute(repo,()->{
+            DbDto dbRet = null;
+
+            if(dto.getFiles() == null || dto.getFiles().isEmpty()){
+                throw new BizException("setUserM010_014", "저장할 파일이 없습니다.");
+            }
+
+            ResponseDTO<?> saveRet = fileClientService.fileSave(dto.getFiles());
+            if (saveRet.getErrFlag().equals("Y")) {
+                throw new BizException("setUserM010_014", "파일저장실패 : " + saveRet.getErrMsg());
+            }
+            List<FileMeta> metaRet = Util.castIfMatch(saveRet.getData(), new TypeReference<List<FileMeta>>() {
+            });
+            if (metaRet == null || metaRet.isEmpty()) {
+                throw new BizException("setUserM010_014", "파일변환실패");
+            }
+            for(int i = 0;i<metaRet.size();i++){
+                BigDecimal fileSize = Util.getDecimal(metaRet.get(i).getSize());
+                if (fileSize.compareTo(BigDecimal.ZERO) == 0) {
+                    throw new BizException("setUserM010_014", "파일사이즈 문제");
+                }
+                FileMeta meta = metaRet.get(i);
+                dbRet = repo.setUserM010_014(dto.getUserSid(), dto.getType(),meta.getDir(), meta.getChangeName(), meta.getFullpath(),
+                        fileSize, meta.getMime(), meta.getExt(), info.getUserLang(), Util.getGUID(),
+                        info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+                if (dbRet.getErrFlag().equals("Y")) {
+                    throw new BizException("setUserRel", dbRet.getErrMsg());
+                }
+            }
+
+
+            return okOrThrow("setUserM010_014", dbRet);});
+    }
+
+    @Override
+    public ResponseDTO<?> getUserM010_004(BigDecimal userSid, String type) {
+        ClsUserInfo info = UserContext.get();
+        UserRepo repo = userRepo.getObject();
+        return execute(repo,()->{
+            DbDto dbRet = null;
+            ResponseDTO<byte[]> imgRet = null;
+            ResponseDTO<?> ret = null;
+
+                    dbRet = repo.getUserM010_004(userSid,type, info.getUserLang(), Util.getGUID(),
+                    info.getUserId(), info.getUserIpAddress(), info.getPgmId());
+
+            if (dbRet.getErrFlag().equals("Y")) {
+                throw new BizException("getUserM010_004", dbRet.getErrMsg());
+            }
+
+            List<Map<String,Object>> tmpRet = new ArrayList<>();
+            for(Map<String,DbTypeDTO> row : dbRet.getResult().get(0)){
+                String fullPath = Util.getStrChk(row.get("FULL_PATH").getObj());
+                imgRet = fileClientService.fileRead(fullPath);
+                Map<String,Object> tmpMap = new LinkedHashMap<>();
+                tmpMap.put("MIME", Util.getStrChk(row.get("MIME").getObj()));
+                tmpMap.put("FILE_NAME", Util.getStrChk(row.get("FILE_NAME").getObj()));
+                tmpMap.put("DATA",imgRet.getData());
+                tmpRet.add(tmpMap);
+            }
+
+            ret = new ResponseDTO<>("N","조회완료",tmpRet);
+
+            return okOrThrow("getUserM010_004", ret);});
     }
 
     private void setCellValue(Row row, int index, String value) {

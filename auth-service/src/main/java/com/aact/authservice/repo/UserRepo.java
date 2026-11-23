@@ -227,6 +227,56 @@ public class UserRepo extends BizBase {
         return callProc("USR_USER_M010.PCM_USER_M010_013", input);
     }
 
+    public DbDto setUserM010_014(BigDecimal userSid,String type, String dir,String fileName
+                                ,String filePath,BigDecimal fileSize,String mime,String ext
+                                , String lang, String prgressGuid, String requestId, String requestIp,
+                            String programId) {
+        List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
+
+        input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_USER_SID", userSid));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_TYPE", type));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_DIR", dir));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_FILE_NAME", fileName));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_FULL_PATH", filePath));
+        input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_FILE_SIZE", fileSize));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_MIME", mime));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_EXT", ext));
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_LANGUAGE_CODE", lang));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_PROGRESS_GUID", prgressGuid));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_USER_ID", requestId));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_IP_ADDRESS", requestIp));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_PROGRAM_ID", programId));
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_ERROR_FLAG", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_CODE", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_MESSAGE", ""));
+
+        return callProc("USR_USER_M010.PCM_USER_M010_014", input);
+    }
+
+    public DbDto getUserM010_004(BigDecimal userSid,String type,
+                                 String lang, String prgressGuid, String requestId, String requestIp,
+                                 String programId) {
+        List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
+
+        input.add(new DbTypeDTO(Type.DECIMAL, Inout.IN, "I_USER_SID", userSid));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_TYPE", type));
+
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_LANGUAGE_CODE", lang));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_PROGRESS_GUID", prgressGuid));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_USER_ID", requestId));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_IP_ADDRESS", requestIp));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_PROGRAM_ID", programId));
+
+        input.add(new DbTypeDTO(Type.CURSOR, Inout.OUT, "O_RESULT_CURSOR", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_ERROR_FLAG", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_CODE", ""));
+        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_MESSAGE", ""));
+
+        return callProc("USR_USER_M010.PCM_USER_M010_004", input);
+    }
+
     public DbDto getUserRel(BigDecimal userSid, String usableFlag,String lang, String prgressGuid, String requestId, String requestIp,
                             String programId) {
         List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
