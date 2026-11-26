@@ -50,6 +50,9 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
     private final FileClientService fileClientService;
     private final ClientService clientService;
 
+    private static final int CARD_ROWS = 8;
+    private static final int ORG_GAP = 1;
+
     @Override
     public ResponseDTO<?> getWorkM010_002(String date, String deptCode, String terminalCode,String approveFlag) {
         ClsUserInfo info = UserContext.get();
@@ -1262,10 +1265,8 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
             sql.append("AND\t\tODR.DAY\t\t=\tTOD.DAY AND\t\tODR.USER_SID\t=\tTOD.USER_SID AND\t\tODR.SEQ\t\t\t=\tTOD.SEQ AND\t\tODR.CLASS_CODE\t=\t'HRPAT' ");
             sql.append("AND\t\tODR.USABLE_FLAG\t=\t'Y'\t\t JOIN\tTHR_OT_DETAIL_REF\tODR2 ON\t\tODR2.YEAR\t=\tTOD.YEAR AND\t\tODR2.MON\t\t=\tTOD.MON ");
             sql.append("AND\t\tODR2.DAY\t\t=\tTOD.DAY AND\t\tODR2.USER_SID\t=\tTOD.USER_SID AND\t\tODR2.SEQ\t\t\t=\tTOD.SEQ AND\t\tODR2.CLASS_CODE\t=\t'TRMCD' ");
-            sql.append("AND\t\tODR2.USABLE_FLAG\t=\t'Y' WHERE\tNVL(TOD.APPROVE_FLAG,'N') = 'Y' AND\t\tTOD.YEAR||TOD.MON = '" + yyyyMM+"' ");
+            sql.append("AND\t\tODR2.USABLE_FLAG\t=\t'Y' WHERE\tNVL(TOD.APPROVE_FLAG,'N') = 'N' AND\t\tTOD.YEAR||TOD.MON = '" + yyyyMM+"' ");
             sql.append("AND TOT.REQ_START_TIME IS NULL ");
-            //sql.append("AND TOT.CAPS_START_TIME IS NULL ");
-            sql.append("AND TOD.WORK_TYPE_CODE = 'X' AND ODR.CODE_CODE = '3202' ");
             sql.append("AND ( ");
             sql.append("    TO_NUMBER(TOD.DAY) < TO_NUMBER('" + dd + "') ");
             sql.append("    OR ( ");
@@ -4474,739 +4475,447 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
         });
     }
 
-    @Override
     public ResponseDTO<?> getOrgExcel() {
-        ClsUserInfo info = UserContext.get();
         WorkRepo repo = workRepoProvider.getObject();
-        return execute(repo,()->{
-            DbDto dbDto = null;
-            Row row = null;
-            Cell cell = null;
-            ResponseDTO<byte[]> img = null;
-            int pictureIdx = 0;
-            Path tempDir = Paths.get(
-                    System.getProperty("user.dir"),
-                    ".test"
-            );
-
+        return execute(repo, () -> {
             ResponseDTO<byte[]> ret = fileClientService.fileRead("/IMG/TEMPLATE/ORG_TEMPLATE.xlsx");
-
-            if (ret.getErrFlag().equals("Y")) {
+            if ("Y".equals(ret.getErrFlag())) {
                 throw new BizException("getOrgExcel", ret.getErrMsg());
             }
-
-            //DB조회
-
-            List<ExcelDTO.OrgDTO> array = getOrg(repo);
-            int totalCount = array.stream().mapToInt(v->v.getColCount()*3+1).sum();
-                    //header.stream().mapToInt(v->v.getDeptSum().intValue()*3+(v.getTeamCount().intValue()-1)*2+v.getDeptCount().intValue()).sum();
-
-            try(XSSFWorkbook srcWorkbook = new XSSFWorkbook(new ByteArrayInputStream(ret.getData()));
-                ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
-                CellRangeAddress region = null;
-                XSSFSheet formSheet = srcWorkbook.getSheet("SHEET");
-                CreationHelper helper = srcWorkbook.getCreationHelper();
-                Drawing<?> drawing = formSheet.createDrawingPatriarch();
-
-                region = new CellRangeAddress(2, 4, totalCount/2-10, totalCount/2+10);
-                formSheet.addMergedRegion(region);
-                setCellBorder(formSheet,region,"");
-
-                row = Optional.ofNullable(formSheet.getRow(2))
-                        .orElseGet(() -> formSheet.createRow(2));
-                cell = row.getCell(totalCount/2-10,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                cell.setCellValue("대표이사 이선호");
-                setCellFont(srcWorkbook, cell, 12, true);
-
-                drawCenterLine(formSheet,5,9,totalCount/2,totalCount/2,true,true);
-
-                img = fileClientService.fileRead("/IMG/ORGIMG/부사장.png");
-
-                if(img.getErrFlag().equals("Y")){
-                    throw new BizException("getOrgExcel",img.getErrMsg());
-                }
-
-                pictureIdx = srcWorkbook.addPicture(
-                        img.getData(),
-                        Workbook.PICTURE_TYPE_PNG
-                );
-
-                addPicture(formSheet,helper,drawing,pictureIdx,totalCount/2-1,totalCount/2+1,9,13);
-
-                region = new CellRangeAddress(9, 16, totalCount/2-1, totalCount/2+1);
-                setCellBorder(formSheet,region,"");
-                region = new CellRangeAddress(14, 14, totalCount/2-1, totalCount/2+1);
-                formSheet.addMergedRegion(region);
-                row = Optional.ofNullable(formSheet.getRow(14))
-                        .orElseGet(() -> formSheet.createRow(14));
-                cell = row.getCell(totalCount/2-1,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                cell.setCellValue("부사장 : 조경국");
-
-                region = new CellRangeAddress(15, 15, totalCount/2-1, totalCount/2+1);
-                formSheet.addMergedRegion(region);
-                row = Optional.ofNullable(formSheet.getRow(15))
-                        .orElseGet(() -> formSheet.createRow(15));
-                cell = row.getCell(totalCount/2-1,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                cell.setCellValue("744-1310");
-
-                region = new CellRangeAddress(16, 16, totalCount/2-1, totalCount/2+1);
-                formSheet.addMergedRegion(region);
-                row = Optional.ofNullable(formSheet.getRow(16))
-                        .orElseGet(() -> formSheet.createRow(16));
-                cell = row.getCell(totalCount/2-1,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                cell.setCellValue("010-5396-7552");
-
-                drawCenterLine(formSheet,17,20,totalCount/2,totalCount/2,true,true);
-
-                //시작부분
-                int endline = 0;
-                for(int i = 0;i<array.size();i++) {
-                    ExcelDTO.OrgDTO orgRow = array.get(i);
-                    int startLine = orgRow.getColCount()*3/2;
-                    if(i==0){
-                        drawCenterLine(formSheet,20,20,startLine,orgRow.getColCount()*3+1,true,true);
-                    }else if(i==array.size()-1){
-                        drawCenterLine(formSheet,20,20,endline
-                                ,endline+startLine,false,true);
-                    }else{
-                        drawCenterLine(formSheet,20,20,endline
-                                ,endline+orgRow.getColCount()*3+1,false,false);
-                    }
-
-                    if(orgRow.getRepUser()==null){
-                        drawCenterLine(formSheet,20,32,endline+startLine,endline+startLine,true,true);
-                    }else{
-                        drawCenterLine(formSheet,20,22,endline+startLine,endline+startLine,true,true);
-                        pictureIdx = srcWorkbook.addPicture(
-                                orgRow.getRepUser().getImg(),
-                                Workbook.PICTURE_TYPE_PNG
-                        );
-                        addOrgInfo(
-                                formSheet,
-                                helper,
-                                drawing,
-                                pictureIdx,
-                                endline+startLine,
-                                22,
-                                orgRow.getRepUser().getOrgName(),
-                                orgRow.getRepUser().getPhone(),
-                                orgRow.getRepUser().getMobile(),
-                                true
-                        );
-                        drawCenterLine(formSheet,30,32,endline+startLine,endline+startLine,true,true);
-                    }
-
-                    if(orgRow.getSeq()==1){
-                        drawCenterLine(formSheet,32,34,endline+startLine,endline+startLine,true,true);
-                        region = new CellRangeAddress(34, 34, endline, endline+orgRow.getColCount()*3-1);
-                        setCellBorder(formSheet,region,"#FFC000");
-                        formSheet.addMergedRegion(region);
-                        row = Optional.ofNullable(formSheet.getRow(34))
-                                .orElseGet(() -> formSheet.createRow(34));
-                        cell = row.getCell(endline,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                        cell.setCellValue(orgRow.getName());
-                        setCellFont(srcWorkbook, cell, 8, true);
-                    }else{
-                        int chilEndLine = endline;
-                        for(int j = 0;j<orgRow.getChildren().size();j++){
-                            int chilStartLine = orgRow.getChildren().get(j).getColCount()*3/2;
-                            if(j==0){
-                                drawCenterLine(formSheet,32,32,chilEndLine+chilStartLine,
-                                        chilEndLine+orgRow.getChildren().get(j).getColCount()*3+1,true,false);
-                            }else if(j==orgRow.getChildren().size()-1){
-                                drawCenterLine(formSheet,32,32,chilEndLine
-                                        ,chilEndLine+chilStartLine,false,true);
-                            }else{
-                                drawCenterLine(formSheet,32,32,chilEndLine,
-                                        chilEndLine+orgRow.getChildren().get(j).getColCount()*3+1,false,false);
-                            }
-                            drawCenterLine(formSheet,32,34,chilEndLine+chilStartLine,chilEndLine+chilStartLine,true,true);
-                            region = new CellRangeAddress(34, 34, chilEndLine, chilEndLine+orgRow.getChildren().get(j).getColCount()*3-1);
-                            setCellBorder(formSheet,region,"#FFC000");
-                            formSheet.addMergedRegion(region);
-                            row = Optional.ofNullable(formSheet.getRow(34))
-                                    .orElseGet(() -> formSheet.createRow(34));
-                            cell = row.getCell(chilEndLine,Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                            cell.setCellValue(orgRow.getChildren().get(j).getName());
-                            setCellFont(srcWorkbook, cell, 8, true);
-                            chilEndLine += orgRow.getChildren().get(j).getColCount()*3+1;
-                        }
-                    }
-
-                    if(orgRow.getTerminal()!=null&&!orgRow.getTerminal().isEmpty()){
-                        if(orgRow.getTerminal().size()==1){
-                            List<ExcelDTO.OrgUserDTO> users = orgRow.getTerminal().values().iterator().next();
-
-                            int userLine = 35;
-                            int colCount = orgRow.getColCount();
-
-                            for (int j = 0; j < users.size(); j++) {
-
-                                userLine = 35 + (j / colCount) * 7;
-                                int x = endline + (j % colCount) * 3+1;
-
-                                if (users.get(j).getImg() != null) {
-                                    pictureIdx = srcWorkbook.addPicture(
-                                            users.get(j).getImg(),
-                                            Workbook.PICTURE_TYPE_PNG
-                                    );
-                                }else{
-                                    pictureIdx = -1;
-                                }
-
-                                addOrgInfo(
-                                        formSheet,
-                                        helper,
-                                        drawing,
-                                        pictureIdx,
-                                        x,
-                                        userLine,
-                                        users.get(j).getOrgName(),
-                                        users.get(j).getPhone(),
-                                        users.get(j).getMobile(),
-                                        false
-                                );
-                            }
-
-                            int result = (int) Math.ceil(
-                                    (double) users.size() / orgRow.getColCount()
-                            );
-                            CellRangeAddress borderRegion = new CellRangeAddress(
-                                    35,
-                                    35+result*7,
-                                    endline,
-                                    endline+colCount*3-1
-                            );
-
-                            setCellBorder(formSheet, borderRegion, "");
-                        }else{
-                            int plusTerminal = endline;
-                            for(Map.Entry<String,List<ExcelDTO.OrgUserDTO>> entry:orgRow.getTerminal().entrySet()){
-                                String key = entry.getKey();
-                                List<ExcelDTO.OrgUserDTO> users = entry.getValue();
-                                CellRangeAddress borderRegion = new CellRangeAddress(
-                                        35,
-                                        35,
-                                        plusTerminal,
-                                        plusTerminal+orgRow.getColCount()*3/orgRow.getTerminal().size()-1
-                                );
-                                formSheet.addMergedRegion(borderRegion);
-                                setCellBorder(formSheet, borderRegion, "#FDE9D9");
-                                row = formSheet.getRow(35);
-                                cell = row.getCell(plusTerminal);
-                                cell.setCellValue(key);
-                                setCellFont(srcWorkbook, cell, 8, true);
-
-                                int userLine = 36;
-                                int colCount = orgRow.getColCount()*3/orgRow.getTerminal().size();
-
-                                for (int j = 0; j < users.size(); j++) {
-
-                                    userLine = 36 + (j / colCount) * 7;
-                                    int x = plusTerminal + (j % colCount) * 3+1;
-
-                                    if (users.get(j).getImg() != null) {
-                                        pictureIdx = srcWorkbook.addPicture(
-                                                users.get(j).getImg(),
-                                                Workbook.PICTURE_TYPE_PNG
-                                        );
-                                    }else{
-                                        pictureIdx = -1;
-                                    }
-
-                                    addOrgInfo(
-                                            formSheet,
-                                            helper,
-                                            drawing,
-                                            pictureIdx,
-                                            x,
-                                            userLine,
-                                            users.get(j).getOrgName(),
-                                            users.get(j).getPhone(),
-                                            users.get(j).getMobile(),
-                                            false
-                                    );
-                                }
-
-                                int result = (int) Math.ceil(
-                                        (double) users.size() / orgRow.getColCount()
-                                );
-                                borderRegion = new CellRangeAddress(
-                                        36,
-                                        36+result*7,
-                                        endline,
-                                        endline+colCount*3-1
-                                );
-
-                                setCellBorder(formSheet, borderRegion, "");
-
-                                plusTerminal += orgRow.getColCount()*3/orgRow.getTerminal().size();
-                            }
-                        }
-                    }
-
-                    endline += orgRow.getColCount()*3+1;
-                }
-                //출력부분
-                srcWorkbook.write(bos);
-                Path excelPath = tempDir.resolve(Util.getGUID()+".xlsx");
-                Files.write(excelPath, bos.toByteArray());
+            OrgData data = new OrgData(repo);
+            List<ExcelDTO.OrgDTO> groups = getOrg(data);
+            try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(ret.getData()));
+                 ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+                OrgRender ctx = new OrgRender(workbook);
+                if (groups.isEmpty()) throw new BizException("getOrgExcel", "조직 정보가 없습니다.");
+                drawOrg(ctx, groups, data);
+                workbook.write(bos);
+                byte[] result = bos.toByteArray();
+                ret.setData(result); // 템플릿이 아니라 생성된 파일 반환 (DTO setter 확인 필요)
+                return ret;
             } catch (Exception e) {
-                throw new BizException("getOrgExcel",e.getMessage());
+                throw new BizException("getOrgExcel", e.getMessage());
             }
-
-
-            return ret;
         });
     }
 
-    private void addOrgInfo(
-            XSSFSheet sheet,
-            CreationHelper helper,
-            Drawing<?> drawing,
-            int pictureIdx,
-            int centerCol,
-            int startRow,
-            String name,
-            String tel,
-            String mobile,
-            boolean borderFlag
-    ) {
-        int startCol = centerCol - 1;
-        int endCol = centerCol + 1;
+    private final class OrgData {
+        final List<Map<String, DbTypeDTO>> departments;
+        final List<Map<String, DbTypeDTO>> teams;
+        final Map<String, List<Map<String, DbTypeDTO>>> normalTeams = new HashMap<>();
+        final List<Map<String, DbTypeDTO>> rowTeams = new ArrayList<>();
+        final Map<String, List<Map<String, DbTypeDTO>>> users = new HashMap<>();
+        final Map<BigDecimal, Map<String, DbTypeDTO>> representatives = new HashMap<>();
+        final Map<String, byte[]> images = new HashMap<>();
 
-        if(pictureIdx!=-1){
-            // 1. 이미지 삽입
-            addPicture(
-                    sheet, helper, drawing,
-                    pictureIdx,
-                    startCol, endCol,
-                    startRow, startRow + 4
-            );
-        }
-
-
-        if(borderFlag){
-            // 2. 전체 영역 테두리
-            CellRangeAddress borderRegion = new CellRangeAddress(
-                    startRow,
-                    startRow + 7,
-                    startCol,
-                    endCol
-            );
-
-            setCellBorder(sheet, borderRegion, "");
-        }
-
-
-        // 3. 텍스트 입력
-        String[] values = {name, tel, mobile};
-
-        for (int i = 0; i < values.length; i++) {
-            int rowIdx = startRow + 5 + i;
-
-            CellRangeAddress region = new CellRangeAddress(
-                    rowIdx, rowIdx,
-                    startCol, endCol
-            );
-
-            sheet.addMergedRegion(region);
-
-            Row row = sheet.getRow(rowIdx);
-            if (row == null) {
-                row = sheet.createRow(rowIdx);
-            }
-
-            Cell cell = row.getCell(
-                    startCol,
-                    Row.MissingCellPolicy.CREATE_NULL_AS_BLANK
-            );
-
-            cell.setCellValue(values[i] != null ? values[i] : "");
-
-            // 텍스트 가운데 정렬
-            XSSFCellStyle style =
-                    sheet.getWorkbook().createCellStyle();
-
-            style.cloneStyleFrom(cell.getCellStyle());
-            style.setAlignment(HorizontalAlignment.CENTER);
-            style.setVerticalAlignment(VerticalAlignment.CENTER);
-
-            cell.setCellStyle(style);
-        }
-    }
-
-    private List<ExcelDTO.OrgDTO> getOrg(WorkRepo repo){
-        List<ExcelDTO.OrgDTO> ret = new ArrayList<>();
-
-        //부서 가져오기
-        DbDto dbDto = repo.getHrdpt();
-        if(dbDto.getErrFlag().equals("Y")){
-            throw new BizException("getOrg",dbDto.getErrMsg());
-        }
-
-        for(Map<String,DbTypeDTO> hrpatRow:dbDto.getResult().get(0)){
-            ExcelDTO.OrgDTO tmpRet = null;
-            int seq = Util.getInteger(hrpatRow.get("VALUE1_NUMBER").getObj());
-            String code = Util.getStrChk(hrpatRow.get("CODE_CODE").getObj());
-            String name = Util.getStrChk(hrpatRow.get("CODE_NAME").getObj());
-            BigDecimal userSid = Util.getDecimal(hrpatRow.get("USER_SID").getObj());
-            int userCount = Util.getInteger(hrpatRow.get("USER_COUNT").getObj());
-            int teamCount = Util.getInteger(hrpatRow.get("TEAM_COUNT").getObj());
-            int colCount = Util.getInteger(hrpatRow.get("ORG_COL").getObj());
-
-
-            ExcelDTO.OrgUserDTO repUser = null;
-            LinkedHashMap<String,List<ExcelDTO.OrgUserDTO>> userList = null;
-            List<ExcelDTO.OrgDTO> tmpTeam = null;
-            if(userSid.compareTo(BigDecimal.ZERO)>0){
-                repUser = getUserDetail(repo,userSid);
-
-            }
-            if(userCount>0){
-                userList = getTeamUser(repo,code);
-                colCount = colCount * userList.size();
-            }
-            if(teamCount > 0){
-                tmpTeam = rowTeamSearch(repo,code);
-
-                int maxColCount = getMaxColCount(tmpTeam);
-                if(maxColCount>colCount){
-                    colCount = maxColCount;
+        OrgData(WorkRepo repo) {
+            departments = orgRows(repo.getHrdpt());
+            teams = orgRows(repo.getAllRowTeams());
+            for (var row : teams) {
+                if (orgStr(row, "ROW_PARENT").isEmpty()) {
+                    normalTeams.computeIfAbsent(orgStr(row, "PARENT_CODE"), k -> new ArrayList<>()).add(row);
+                } else {
+                    rowTeams.add(row);
                 }
             }
+            for (var row : orgRows(repo.getAllOrgTeamUsers())) {
+                users.computeIfAbsent(orgStr(row, "TEAM_CODE"), k -> new ArrayList<>()).add(row);
+            }
+            for (var row : orgRows(repo.getAllOrgRepresentatives())) {
+                representatives.putIfAbsent(orgDecimal(row, "USER_SID").stripTrailingZeros(), row);
+            }
+        }
 
-            if(seq==1){
-                tmpRet = new ExcelDTO.OrgDTO();
-                tmpRet.setCode(code);
-                tmpRet.setName(name);
-
-                tmpRet.setColCount(colCount);
-                tmpRet.setChildren(tmpTeam);
-                tmpRet.setTerminal(userList);
-                ret.add(tmpRet);
-            }else{
-                tmpRet = ret.stream()
-                        .filter(v->v.getSeq()==seq).findFirst().orElse(null);
-                if(tmpRet==null){
-                    tmpRet = new ExcelDTO.OrgDTO();
-                    tmpRet.setChildren(new ArrayList<>());
-                    ret.add(tmpRet);
+        byte[] image(String path) {
+            return images.computeIfAbsent(path, key -> {
+                ResponseDTO<byte[]> response = fileClientService.fileRead(key);
+                if ("Y".equals(response.getErrFlag()) || response.getData() == null) {
+                    throw new BizException("getOrgExcel", "이미지 조회 실패: " + key + " / " + response.getErrMsg());
                 }
-                tmpRet.setColCount(tmpRet.getColCount()+colCount);
-                ExcelDTO.OrgDTO tmpRowRet = new ExcelDTO.OrgDTO();
-                tmpRowRet.setCode(code);
-                tmpRowRet.setName(name);
-                tmpRowRet.setColCount(colCount);
-                tmpRowRet.setChildren(tmpTeam);
-                tmpRowRet.setTerminal(userList);
-                tmpRet.getChildren().add(tmpRowRet);
-            }
-            tmpRet.setSeq(seq);
-            tmpRet.setRepUser(repUser);
-
-
-
-
+                return response.getData();
+            });
         }
-
-
-
-        return ret;
     }
 
-    private int getMaxColCount(List<ExcelDTO.OrgDTO> orgList) {
-
-        if (orgList == null || orgList.isEmpty()) {
-            return 0;
-        }
-
-        // 현재 orgList 전체 합계
-        int currentSum = orgList.stream()
-                .mapToInt(org ->
-                        org.getColCount() *
-                                (org.getTerminal() == null ? 1 : org.getTerminal().size())
-                )
-                .sum();
-
-        int maxCount = currentSum;
-
-        // 각 조직의 children 리스트를 개별적으로 재귀 탐색
-        for (ExcelDTO.OrgDTO org : orgList) {
-
-            int childSum = getMaxColCount(org.getChildren());
-
-            maxCount = Math.max(maxCount, childSum);
-        }
-
-        return maxCount;
+    private List<Map<String, DbTypeDTO>> orgRows(DbDto dto) {
+        if ("Y".equals(dto.getErrFlag())) throw new BizException("getOrg", dto.getErrMsg());
+        return dto.getResult().get(0);
+    }
+    private Object orgValue(Map<String, DbTypeDTO> row, String key) {
+        DbTypeDTO v = row.get(key);
+        return v == null ? null : v.getObj();
+    }
+    private String orgStr(Map<String, DbTypeDTO> row, String key) {
+        return Util.getStrChk(orgValue(row, key));
+    }
+    private int orgInt(Map<String, DbTypeDTO> row, String key) {
+        return Util.getInteger(orgValue(row, key));
+    }
+    private BigDecimal orgDecimal(Map<String, DbTypeDTO> row, String key) {
+        Object v = orgValue(row, key);
+        return v == null ? BigDecimal.ZERO : Util.getDecimal(v);
+    }
+    private List<ExcelDTO.OrgDTO> children(ExcelDTO.OrgDTO org) {
+        return org.getChildren() == null ? Collections.emptyList() : org.getChildren();
+    }
+    private int terminalCount(ExcelDTO.OrgDTO org) {
+        return org.getTerminal() == null ? 1 : Math.max(1, org.getTerminal().size());
+    }
+    private int orgWidth(ExcelDTO.OrgDTO org) {
+        return Math.max(1, org.getTotalCount());
+    }
+    private int groupWidth(List<ExcelDTO.OrgDTO> list) {
+        return list.stream().mapToInt(this::orgWidth).sum() + Math.max(0, list.size()-1)*ORG_GAP;
     }
 
-    private LinkedHashMap<String,List<ExcelDTO.OrgUserDTO>> getTeamUser(WorkRepo repo, String teamCode){
-        LinkedHashMap<String,List<ExcelDTO.OrgUserDTO>> ret = new LinkedHashMap<>();
-
-        DbDto dbDto = repo.getOrgTeamUser(teamCode);
-        if(dbDto.getErrFlag().equals("Y")){
-            throw new BizException("getTeamUser",dbDto.getErrMsg());
-        }
-        for(Map<String,DbTypeDTO> row : dbDto.getResult().get(0)){
-            String terminalCode = Util.getStrChk(row.get("TERMINAL_CODE").getObj());
-            String orgName = Util.getStrChk(row.get("ORG_NAME").getObj());
-            String mobile = Util.getStrChk(row.get("MOBILE").getObj());
-            String phone = Util.getStrChk(row.get("PHONE").getObj());
-
-            String fullPath = Util.getStrChk(row.get("FULL_PATH").getObj());
-            byte[] file = null;
-
-            if(!fullPath.isEmpty()){
-                ResponseDTO<byte[]> imgRet = fileClientService.fileRead(fullPath);
-                if(imgRet.getErrFlag().equals("Y")){
-                    throw new BizException("getTeamUser",imgRet.getErrMsg());
-                }
-                file = imgRet.getData();
-            }
-
-            List<ExcelDTO.OrgUserDTO> tmpArray = ret.get(terminalCode);
-            if(tmpArray == null){
-                tmpArray = new ArrayList<>();
-                ret.put(terminalCode, tmpArray);
-            }
-            ExcelDTO.OrgUserDTO tmpObj = new ExcelDTO.OrgUserDTO();
-            tmpObj.setOrgName(orgName);
-            tmpObj.setImg(file);
-            tmpObj.setMobile(mobile);
-            tmpObj.setPhone(phone);
-            tmpArray.add(tmpObj);
-
-        }
-
-
-        return ret;
-    }
-
-    private ExcelDTO.OrgUserDTO getUserDetail(WorkRepo repo,BigDecimal userSid){
-
-        ExcelDTO.OrgUserDTO ret = new ExcelDTO.OrgUserDTO();
-        DbDto dbDto = repo.getOrgUserInfo(userSid);
-        if(dbDto.getErrFlag().equals("Y")){
-            throw new BizException("getUserDetail",dbDto.getErrMsg());
-        }
-        Map<String,DbTypeDTO> row = dbDto.getResult().get(0).get(0);
-        String fullPath = Util.getStrChk(row.get("FULL_PATH").getObj());
-        if(!fullPath.isEmpty()){
-            ResponseDTO<byte[]> imgRet = fileClientService.fileRead(fullPath);
-            if(imgRet.getErrFlag().equals("Y")){
-                throw new BizException("rowTeamSearch",imgRet.getErrMsg());
-            }
-            ret.setImg(imgRet.getData());
-        }
-        ret.setOrgName(Util.getStrChk(row.get("ORG_NAME").getObj()));
-        ret.setMobile(Util.getStrChk(row.get("MOBILE").getObj()));
-        ret.setPhone(Util.getStrChk(row.get("PHONE").getObj()));
-
-        return ret;
-    }
-
-    private List<ExcelDTO.OrgDTO> rowTeamSearch(WorkRepo repo,String code){
+    private List<ExcelDTO.OrgDTO> getOrg(OrgData data) {
         List<ExcelDTO.OrgDTO> result = new ArrayList<>();
-
-        DbDto dbDto = repo.getRowTeam(code);
-
-        if(dbDto.getErrFlag().equals("Y")){
-            throw new BizException("rowTeamSearch",dbDto.getErrMsg());
-        }
-
-        List<Map<String, DbTypeDTO>> rows = dbDto.getResult().get(0);
-
-
-        for (Map<String, DbTypeDTO> row : rows) {
-            LinkedHashMap<String,List<ExcelDTO.OrgUserDTO>> userList = null;
-
-            String childCode =
-                    Util.getStrChk(row.get("CODE_CODE").getObj());
-            int userCount = Util.getInteger(row.get("USER_COUNT").getObj());
-
-            ExcelDTO.OrgDTO org = new ExcelDTO.OrgDTO();
-
-            org.setCode(childCode);
-            org.setName(
-                    Util.getStrChk(row.get("CODE_NAME").getObj())
-            );
-            int colCount = Util.getInteger(row.get("ORG_COL").getObj());
-
-            List<ExcelDTO.OrgDTO> children = rowTeamSearch(repo, childCode);
-
-            int childColCount = children.stream()
-                    .mapToInt(v->v.getColCount()*(v.getTerminal()==null?0:v.getTerminal().size()))
-                    .sum();
-
-            org.setColCount(Math.max(colCount, childColCount));
-
-            org.setChildren(children);
-            if(userCount>0){
-                userList = getTeamUser(repo,childCode);
+        Map<Integer, ExcelDTO.OrgDTO> groups = new LinkedHashMap<>();
+        for (var row : data.departments) {
+            int seq = orgInt(row, "VALUE1_NUMBER");
+            String code = orgStr(row, "CODE_CODE");
+            String name = orgStr(row, "CODE_NAME");
+            ExcelDTO.OrgDTO dept = buildOrg(data, row, false, new HashSet<>(), orgInt(row,"TEAM_COUNT") > 0);
+            dept.setSeq(seq);
+            BigDecimal sid = orgDecimal(row, "USER_SID");
+            ExcelDTO.OrgUserDTO rep = null;
+            if (sid.signum() > 0) {
+                var detail = data.representatives.get(sid.stripTrailingZeros());
+                if (detail == null) throw new BizException("getOrg", name + "부서에 관리자는 직급이 없습니다.");
+                rep = orgUser(data, detail, false);
             }
-            org.setTerminal(userList);
-            result.add(org);
+            if (seq == 1) {
+                dept.setRepUser(rep);
+                result.add(dept);
+            } else {
+                ExcelDTO.OrgDTO group = groups.get(seq);
+                if (group == null) {
+                    group = new ExcelDTO.OrgDTO();
+                    group.setSeq(seq);
+                    group.setChildren(new ArrayList<>());
+                    groups.put(seq, group);
+                    result.add(group);
+                }
+                group.getChildren().add(dept);
+                // 기존 마지막 행 덮어쓰기 대신 마지막 유효 관리자 유지.
+                if (rep != null) group.setRepUser(rep);
+            }
         }
-
+        for (var group : groups.values()) {
+            group.setTeamCount(group.getChildren().size());
+            group.setTotalCount(groupWidth(group.getChildren()));
+        }
         return result;
     }
 
-    private void addPicture(XSSFSheet sheet,CreationHelper helper, Drawing<?> drawing,int pictureIdx,int startCol,int endCol,int startRow,int endRow){
-        ClientAnchor anchor1 = helper.createClientAnchor();
-
-        anchor1.setCol1(startCol);
-        anchor1.setCol2(endCol);
-        anchor1.setRow1(startRow);
-        anchor1.setRow2(endRow);
-
-        anchor1.setDx1(Units.pixelToEMU(
-                (int) (sheet.getColumnWidthInPixels(startCol) / 2)));
-        anchor1.setDx2(Units.pixelToEMU(
-                (int) (sheet.getColumnWidthInPixels(endCol) / 2))
-        );
-
-        Row row1 = sheet.getRow(startRow);
-        float height1 = row1 != null
-                ? row1.getHeightInPoints()
-                : sheet.getDefaultRowHeightInPoints();
-
-        Row row2 = sheet.getRow(endRow);
-        float height2 = row2 != null
-                ? row2.getHeightInPoints()
-                : sheet.getDefaultRowHeightInPoints();
-        anchor1.setDy1((int) (height1 * 12700 / 2));
-        anchor1.setDy2((int) (height2 * 12700 / 2));
-
-        drawing.createPicture(anchor1, pictureIdx);
-    }
-
-    private void drawCenterLine(
-            XSSFSheet sheet,
-            int startRow,
-            int endRow,
-            int startCol,
-            int endCol,
-            boolean startCenter,
-            boolean endCenter
-    ) {
-        XSSFDrawing drawing = sheet.createDrawingPatriarch();
-
-        XSSFClientAnchor anchor = new XSSFClientAnchor();
-
-        anchor.setCol1(startCol);
-        anchor.setCol2(endCol);
-
-        anchor.setRow1(startRow);
-        anchor.setRow2(endRow);
-        int centerX1 = 0;
-        int centerX2 = 0;
-        if(startCenter){
-            centerX1 = (int) (sheet.getColumnWidthInPixels(startCol) * 9525 / 2);
-
-        }
-
-        if(endCenter){
-            centerX2 = (int) (sheet.getColumnWidthInPixels(endCol) * 9525 / 2);
-        }
-
-        anchor.setDx1(centerX1);
-        anchor.setDx2(centerX2);
-
-        anchor.setDy1(0);
-        anchor.setDy2(0);
-
-        XSSFSimpleShape line = drawing.createSimpleShape(anchor);
-
-        line.setShapeType(ShapeTypes.LINE);
-        line.setLineStyleColor(0, 0, 0);
-        line.setLineWidth(1.5);
-    }
-    private void setCellFont(
-            XSSFWorkbook workbook,
-            Cell cell,
-            int fontSize,
-            boolean bold
-    ) {
-        // 1. 기존 셀 스타일 복사
-        XSSFCellStyle style = workbook.createCellStyle();
-        style.cloneStyleFrom(cell.getCellStyle());
-
-        // 2. 기존 폰트 가져오기
-        XSSFFont oldFont = workbook.getFontAt(style.getFontIndex());
-
-        // 3. 새 폰트 생성
-        XSSFFont font = workbook.createFont();
-
-        // 4. 기존 폰트 속성 복사
-        font.setFontName(oldFont.getFontName());
-        font.setColor(oldFont.getColor());
-        font.setItalic(oldFont.getItalic());
-        font.setUnderline(oldFont.getUnderline());
-        font.setStrikeout(oldFont.getStrikeout());
-        font.setTypeOffset(oldFont.getTypeOffset());
-        font.setCharSet(oldFont.getCharSet());
-
-        // 5. 변경할 부분만 수정
-        font.setFontHeightInPoints((short) fontSize);
-        font.setBold(bold);
-
-        // 6. 스타일 적용
-        style.setFont(font);
-        cell.setCellStyle(style);
-    }
-
-    private void setCellBorder(
-            XSSFSheet formSheet,
-            CellRangeAddress region,
-            String hexColor
-    ) {
-        XSSFWorkbook workbook = formSheet.getWorkbook();
-
-        XSSFColor bgColor = null;
-
-        if (hexColor != null && !hexColor.isBlank()) {
-            bgColor = new XSSFColor(
-                    java.awt.Color.decode(hexColor),
-                    new DefaultIndexedColorMap()
-            );
-        }
-
-        for (int r = region.getFirstRow(); r <= region.getLastRow(); r++) {
-
-            Row row = formSheet.getRow(r);
-            if (row == null) {
-                row = formSheet.createRow(r);
-            }
-
-            for (int c = region.getFirstColumn(); c <= region.getLastColumn(); c++) {
-
-                Cell cell = row.getCell(
-                        c,
-                        Row.MissingCellPolicy.CREATE_NULL_AS_BLANK
-                );
-
-                // 기존 스타일 복사
-                XSSFCellStyle style = workbook.createCellStyle();
-                style.cloneStyleFrom(cell.getCellStyle());
-
-                // HEX 배경색 설정
-                if (bgColor != null) {
-                    style.setFillForegroundColor(bgColor);
-                    style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+    private ExcelDTO.OrgDTO buildOrg(OrgData data, Map<String, DbTypeDTO> row,
+                                     boolean rowFlag, Set<String> ancestors, boolean searchChildren) {
+        String code = orgStr(row,"CODE_CODE");
+        if (!ancestors.add(code)) throw new BizException("getOrg", "조직 순환 참조: " + code);
+        try {
+            ExcelDTO.OrgDTO org = new ExcelDTO.OrgDTO();
+            org.setCode(code);
+            org.setName(orgStr(row,"CODE_NAME"));
+            org.setCol(Math.max(1, orgInt(row,"ORG_COL")));
+            org.setRowFlag(rowFlag);
+            List<ExcelDTO.OrgDTO> list = new ArrayList<>();
+            if (searchChildren) {
+                for (var child : data.normalTeams.getOrDefault(code, Collections.emptyList())) {
+                    list.add(buildOrg(data, child, false, ancestors, true));
                 }
+                // 기존 INSTR(VALUE4_CHAR, code)>0 의미 그대로 유지.
+                for (var child : data.rowTeams) {
+                    if (orgStr(child,"ROW_PARENT").contains(code)) {
+                        list.add(buildOrg(data, child, true, ancestors, true));
+                    }
+                }
+            }
+            org.setChildren(list);
+            org.setTeamCount(list.size());
+            LinkedHashMap<String, List<ExcelDTO.OrgUserDTO>> terminal = new LinkedHashMap<>();
+            if (orgInt(row,"USER_COUNT") > 0) {
+                for (var user : data.users.getOrDefault(code, Collections.emptyList())) {
+                    terminal.computeIfAbsent(orgStr(user,"TERMINAL_CODE"), k -> new ArrayList<>())
+                            .add(orgUser(data, user, true));
+                }
+            }
+            org.setTerminal(terminal);
+            // 기존 배정 폭 유지: 형제 조직 전체 + 1열 간격. true/false는 출력 시 별도 행으로 처리.
+            org.setTotalCount(Math.max(org.getCol()*terminalCount(org), groupWidth(list)));
+            return org;
+        } finally {
+            ancestors.remove(code);
+        }
+    }
 
-                cell.setCellStyle(style);
+    private ExcelDTO.OrgUserDTO orgUser(OrgData data, Map<String, DbTypeDTO> row, boolean fallback) {
+        ExcelDTO.OrgUserDTO user = new ExcelDTO.OrgUserDTO();
+        user.setOrgName(orgStr(row,"ORG_NAME"));
+        user.setPhone(orgStr(row,"PHONE"));
+        user.setMobile(orgStr(row,"MOBILE"));
+        String path = orgStr(row,"FULL_PATH");
+        if (!path.isEmpty()) user.setImg(data.image(path));
+        return user;
+    }
+
+    // 2. 엑셀 출력 전용 컨텍스트: Workbook 단위 캐시
+    private record OrgStyleKey(int base, String color, int edges, boolean center, int size, boolean bold) {}
+    private record OrgFontKey(int base, int size, boolean bold) {}
+    private final class OrgRender {
+        final XSSFWorkbook workbook;
+        final XSSFSheet sheet;
+        final XSSFDrawing drawing;
+        final Map<OrgStyleKey, XSSFCellStyle> styles = new HashMap<>();
+        final Map<OrgFontKey, XSSFFont> fonts = new HashMap<>();
+        final Map<String, XSSFColor> colors = new HashMap<>();
+        final Map<byte[], Integer> pictures = new IdentityHashMap<>();
+        OrgRender(XSSFWorkbook workbook) {
+            this.workbook = workbook;
+            sheet = workbook.getSheet("SHEET");
+            if (sheet == null) throw new BizException("getOrgExcel", "SHEET 시트가 없습니다.");
+            drawing = sheet.createDrawingPatriarch();
+        }
+        int picture(byte[] bytes) {
+            return bytes == null || bytes.length == 0 ? -1 : pictures.computeIfAbsent(bytes,
+                    v -> workbook.addPicture(v, Workbook.PICTURE_TYPE_PNG));
+        }
+        Cell cell(int y, int x) {
+            Row row = sheet.getRow(y);
+            if (row == null) row = sheet.createRow(y);
+            return row.getCell(x, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+        }
+        void style(Cell cell, String color, int edges, boolean center, int size, boolean bold) {
+            XSSFCellStyle base = (XSSFCellStyle) cell.getCellStyle();
+            OrgStyleKey key = new OrgStyleKey(base.getIndex() & 0xffff, color, edges, center, size, bold);
+            XSSFCellStyle style = styles.computeIfAbsent(key, k -> {
+                XSSFCellStyle s = workbook.createCellStyle();
+                s.cloneStyleFrom(base);
+                if (!color.isEmpty()) {
+                    s.setFillForegroundColor(colors.computeIfAbsent(color, c ->
+                            new XSSFColor(java.awt.Color.decode(c), new DefaultIndexedColorMap())));
+                    s.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+                }
+                if ((edges & 1) != 0) s.setBorderTop(BorderStyle.MEDIUM);
+                if ((edges & 2) != 0) s.setBorderBottom(BorderStyle.MEDIUM);
+                if ((edges & 4) != 0) s.setBorderLeft(BorderStyle.MEDIUM);
+                if ((edges & 8) != 0) s.setBorderRight(BorderStyle.MEDIUM);
+                if (center) {
+                    s.setAlignment(HorizontalAlignment.CENTER);
+                    s.setVerticalAlignment(VerticalAlignment.CENTER);
+                }
+                if (size > 0) {
+                    OrgFontKey fk = new OrgFontKey(base.getFontIndex(), size, bold);
+                    s.setFont(fonts.computeIfAbsent(fk, f -> {
+                        XSSFFont old = workbook.getFontAt(f.base());
+                        XSSFFont font = workbook.createFont();
+                        font.getCTFont().set(old.getCTFont());
+                        font.setFontHeightInPoints((short) size);
+                        font.setBold(bold);
+                        return font;
+                    }));
+                }
+                return s;
+            });
+            cell.setCellStyle(style);
+        }
+        void border(int y1, int y2, int x1, int x2, String color) {
+            if (y2 < y1 || x2 < x1) return;
+            for (int y=y1; y<=y2; y++) {
+                for (int x=x1; x<=x2; x++) {
+                    int edges = (y==y1?1:0)|(y==y2?2:0)|(x==x1?4:0)|(x==x2?8:0);
+                    if (edges != 0 || !color.isEmpty()) style(cell(y,x), color, edges, false, 0, false);
+                }
             }
         }
-
-        // 바깥 테두리
-        RegionUtil.setBorderTop(BorderStyle.MEDIUM, region, formSheet);
-        RegionUtil.setBorderBottom(BorderStyle.MEDIUM, region, formSheet);
-        RegionUtil.setBorderLeft(BorderStyle.MEDIUM, region, formSheet);
-        RegionUtil.setBorderRight(BorderStyle.MEDIUM, region, formSheet);
+        void header(int y1, int y2, int x1, int x2, String text, String color, int size) {
+            if (y1 != y2 || x1 != x2) sheet.addMergedRegion(new CellRangeAddress(y1,y2,x1,x2));
+            border(y1,y2,x1,x2,color);
+            Cell cell = cell(y1,x1);
+            cell.setCellValue(text);
+            style(cell,"",0,true,size,true);
+        }
+        void text(int y, int x, String value) {
+            Cell cell = cell(y,x);
+            cell.setCellValue(value == null ? "" : value);
+            style(cell,"",0,true,0,false);
+        }
     }
+
+    // 3. 조직도 배치. 기존 행 위치와 직원 8행 카드를 유지.
+    private void drawOrg(OrgRender c, List<ExcelDTO.OrgDTO> groups, OrgData data) {
+        int center = groupWidth(groups)/2;
+        c.header(2,4,Math.max(0,center-10),center+10,"대표이사 이선호","",12);
+        line(c,5,9,center,center,true,true);
+        drawPicture(c,c.picture(data.image("/IMG/ORGIMG/부사장.png")),center,9);
+        c.border(9,16,center,center,"");
+        c.text(14,center,"부사장 : 조경국");
+        c.text(15,center,"744-1310");
+        c.text(16,center,"010-5396-7552");
+        line(c,17,20,center,center,true,true);
+        branch(c,groups,0,20,center);
+        int x = 0;
+        for (var group : groups) {
+            int mid = x+orgWidth(group)/2;
+            if (group.getRepUser() == null) line(c,20,32,mid,mid,true,true);
+            else {
+                line(c,20,22,mid,mid,true,true);
+                card(c,group.getRepUser(),mid,22,true);
+                line(c,30,32,mid,mid,true,true);
+            }
+            if (group.getSeq()==1) {
+                line(c,32,34,mid,mid,true,true);
+                c.header(34,34,x,x+orgWidth(group)-1,group.getName(),"#FFC000",8);
+                drawBody(c,group,x,35);
+            } else {
+                var departments = children(group);
+                branch(c,departments,x,32,mid);
+                int dx=x;
+                for (var dept : departments) {
+                    int dm=dx+orgWidth(dept)/2;
+                    line(c,32,34,dm,dm,true,true);
+                    c.header(34,34,dx,dx+orgWidth(dept)-1,dept.getName(),"#FFC000",8);
+                    drawBody(c,dept,dx,35);
+                    dx+=orgWidth(dept)+ORG_GAP;
+                }
+            }
+            x+=orgWidth(group)+ORG_GAP;
+        }
+    }
+
+    // 마지막 사용 행의 다음 행 반환. 직원/하위 조직 겹침 방지.
+    private int drawBody(OrgRender c, ExcelDTO.OrgDTO org, int x, int y) {
+        int cursor = drawUsers(c,org,x,y);
+        var rows = children(org).stream().filter(ExcelDTO.OrgDTO::isRowFlag).toList();
+        var linked = children(org).stream().filter(v -> !v.isRowFlag()).toList();
+        if (!rows.isEmpty()) cursor = drawChildren(c,rows,x,cursor);
+        if (linked.isEmpty()) return cursor;
+
+        int childX = x + Math.max(0,(orgWidth(org)-groupWidth(linked))/2);
+        // 배정 폭이 아니라 실제 직원/팀 박스의 폭으로 연결점 계산.
+        OrgLinePoint parent = teamCenter(c,x,visibleTeamWidth(org));
+        List<OrgLinePoint> points = new ArrayList<>();
+        int dx = childX;
+        for (var child : linked) {
+            points.add(teamCenter(c,dx,visibleTeamWidth(child)));
+            dx += orgWidth(child)+ORG_GAP;
+        }
+
+        int branchY = cursor + 1;
+        teamLine(c,cursor,branchY,parent,parent);
+        OrgLinePoint left = parent, right = parent;
+        for (var point : points) {
+            if (comparePoint(point,left)<0) left=point;
+            if (comparePoint(point,right)>0) right=point;
+        }
+        teamLine(c,branchY,branchY,left,right);
+        for (var point : points) teamLine(c,branchY,branchY+1,point,point);
+        return drawChildren(c,linked,childX,branchY+1);
+    }
+    private int visibleTeamWidth(ExcelDTO.OrgDTO org) {
+        return Math.max(1,org.getCol())*terminalCount(org);
+    }
+    private record OrgLinePoint(int col,int dx) {}
+    private int comparePoint(OrgLinePoint a,OrgLinePoint b) {
+        int cmp=Integer.compare(a.col(),b.col());
+        return cmp!=0?cmp:Integer.compare(a.dx(),b.dx());
+    }
+    private OrgLinePoint teamCenter(OrgRender c,int x,int width) {
+        double total=0;
+        for(int i=x;i<x+width;i++) total+=c.sheet.getColumnWidthInPixels(i);
+        double remaining=total/2.0;
+        for(int i=x;i<x+width;i++) {
+            double w=c.sheet.getColumnWidthInPixels(i);
+            if(remaining<w || i==x+width-1)
+                return new OrgLinePoint(i,(int)Math.round(remaining*Units.EMU_PER_PIXEL));
+            remaining-=w;
+        }
+        return new OrgLinePoint(x,0);
+    }
+    private void teamLine(OrgRender c,int y1,int y2,OrgLinePoint p1,OrgLinePoint p2) {
+        if(y1==y2 && comparePoint(p1,p2)==0) return;
+        XSSFClientAnchor a=new XSSFClientAnchor();
+        a.setCol1(p1.col()); a.setCol2(p2.col());
+        a.setRow1(y1); a.setRow2(y2);
+        a.setDx1(p1.dx()); a.setDx2(p2.dx());
+        XSSFSimpleShape shape=c.drawing.createSimpleShape(a);
+        shape.setShapeType(ShapeTypes.LINE);
+        shape.setLineStyleColor(0,0,0);
+        shape.setLineWidth(1.5);
+    }
+    private int drawChildren(OrgRender c, List<ExcelDTO.OrgDTO> list, int x, int y) {
+        int next=y;
+        for (var child : list) {
+            int width=visibleTeamWidth(child);
+            c.header(y,y,x,x+width-1,child.getName(),"#FCD5B4",8);
+            next=Math.max(next,drawBody(c,child,x,y+1));
+            x+=orgWidth(child)+ORG_GAP;
+        }
+        return next;
+    }
+    private int drawUsers(OrgRender c, ExcelDTO.OrgDTO org, int x, int y) {
+        var terminal = org.getTerminal();
+        if (terminal == null || terminal.isEmpty()) return y;
+        int cols=Math.max(1,org.getCol());
+        boolean multi=terminal.size()>1;
+        int maxRows=terminal.values().stream().mapToInt(v->(v.size()+cols-1)/cols).max().orElse(0);
+        int start=y+(multi?1:0);
+        int end=start+maxRows*CARD_ROWS;
+        for (var entry : terminal.entrySet()) {
+            if (multi) c.header(y,y,x,x+cols-1,entry.getKey(),"#FDE9D9",8);
+            var users=entry.getValue();
+            for (int i=0;i<users.size();i++) card(c,users.get(i),x+i%cols,start+(i/cols)*CARD_ROWS,false);
+            if (end>start) c.border(start,end-1,x,x+cols-1,"");
+            x+=cols;
+        }
+        return end;
+    }
+    private void card(OrgRender c, ExcelDTO.OrgUserDTO user, int x, int y, boolean border) {
+        drawPicture(c,c.picture(user.getImg()),x,y);
+        if (border) c.border(y,y+7,x,x,"");
+        c.text(y+5,x,user.getOrgName());
+        c.text(y+6,x,user.getPhone());
+        c.text(y+7,x,user.getMobile());
+    }
+    private double rowHeight(XSSFSheet sheet,int y) {
+        Row row=sheet.getRow(y);
+        return row==null?sheet.getDefaultRowHeightInPoints():row.getHeightInPoints();
+    }
+    private void drawPicture(OrgRender c,int idx,int x,int y) {
+        if (idx<0) return;
+        int width=(int)Math.round(c.sheet.getColumnWidthInPixels(x)*Units.EMU_PER_PIXEL);
+        int top=(int)Math.round(rowHeight(c.sheet,y)*12700/2.0);
+        int bottom=(int)Math.round(rowHeight(c.sheet,y+4)*12700/2.0);
+        // 기존 여백 유지, 음수 dx2 대신 마지막 셀 내부 양수 좌표 사용.
+        int pad=Math.max(0,Math.min(top,(width-1)/2));
+        XSSFClientAnchor a=new XSSFClientAnchor();
+        a.setCol1(x); a.setCol2(x); a.setRow1(y); a.setRow2(y+4);
+        a.setDx1(pad); a.setDx2(width-pad); a.setDy1(top); a.setDy2(bottom);
+        c.drawing.createPicture(a,idx);
+    }
+    private void branch(OrgRender c,List<ExcelDTO.OrgDTO> list,int x,int y,int parentCenter) {
+        if (list.isEmpty()) return;
+        int first=x+orgWidth(list.get(0))/2;
+        int last=x+groupWidth(list)-orgWidth(list.get(list.size()-1))+(orgWidth(list.get(list.size()-1))/2);
+        int left=Math.min(first,parentCenter), right=Math.max(last,parentCenter);
+        if (left!=right) line(c,y,y,left,right,true,true);
+    }
+    private void line(OrgRender c,int y1,int y2,int x1,int x2,boolean center1,boolean center2) {
+        if (x1==x2 && y1==y2 && center1==center2) return;
+        XSSFClientAnchor a=new XSSFClientAnchor();
+        a.setCol1(x1); a.setCol2(x2); a.setRow1(y1); a.setRow2(y2);
+        // 기존 중앙 보정 +5px 유지. 셀 너비가 좁으면 범위 내부로 제한.
+        a.setDx1(center1?centerOffset(c.sheet,x1):0);
+        a.setDx2(center2?centerOffset(c.sheet,x2):0);
+        XSSFSimpleShape shape=c.drawing.createSimpleShape(a);
+        shape.setShapeType(ShapeTypes.LINE);
+        shape.setLineStyleColor(0,0,0);
+        shape.setLineWidth(1.5);
+    }
+    private int centerOffset(XSSFSheet sheet,int col) {
+        double width=sheet.getColumnWidthInPixels(col);
+        return (int)Math.round(Math.min(width,width/2.0+5.0)*Units.EMU_PER_PIXEL);
+    }
+
 
     private Map<String, List<ExcelDTO.NightDetailHeaderDTO>> convHeaderGroup(List<Map<String, Object>> dto, List<Map<String,DbTypeDTO>> dbDto){
         return execute(()->{
