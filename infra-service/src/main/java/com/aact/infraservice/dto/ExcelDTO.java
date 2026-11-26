@@ -243,8 +243,11 @@ public class ExcelDTO {
         private String code;
         private String name;
         private OrgUserDTO repUser;
-        private int colCount;
+        private int col;
         private int seq;
+        private int teamCount;
+        private int totalCount;
+        private boolean rowFlag;
 
         private List<OrgDTO> children;
         private LinkedHashMap<String,List<OrgUserDTO>> terminal;
