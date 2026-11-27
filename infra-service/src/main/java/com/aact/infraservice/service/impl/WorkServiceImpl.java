@@ -1329,8 +1329,8 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
                 }
 
                 sql = new StringBuilder();
-                sql.append("SELECT CASE WHEN TOT.REQ_START_TIME IS NULL THEN CASE WHEN TCM.VALUE2_CHAR IS NULL THEN TOT.CAPS_START_TIME ELSE TCM.VALUE2_CHAR END ELSE TOT.CAPS_START_TIME END START_TIME ");
-                sql.append(", CASE WHEN TOT.REQ_START_TIME IS NULL THEN CASE WHEN TCM.VALUE3_CHAR IS NULL THEN TOT.CAPS_END_TIME ELSE TCM.VALUE3_CHAR END ELSE TOT.CAPS_END_TIME END END_TIME ");
+                sql.append("SELECT CASE WHEN TOT.REQ_START_TIME IS NULL THEN CASE WHEN TCM.VALUE2_CHAR IS NULL THEN TOT.CAPS_START_TIME ELSE RPAD(TCM.VALUE2_CHAR,4,'0') END ELSE TOT.CAPS_START_TIME END START_TIME ");
+                sql.append(", CASE WHEN TOT.REQ_START_TIME IS NULL THEN CASE WHEN TCM.VALUE3_CHAR IS NULL THEN TOT.CAPS_END_TIME ELSE RPAD(TCM.VALUE3_CHAR,4,'0') END ELSE TOT.CAPS_END_TIME END END_TIME ");
                 sql.append(", CASE WHEN TOT.REQ_START_TIME IS NULL THEN TCM.VALUE1_NUMBER ELSE TOT.ADD_DAY END AS ADD_DAY ");
                 sql.append("FROM THR_OT_DETAIL TOD ");
                 sql.append("JOIN TCM_CODE_MASTER TCM ");
@@ -1343,8 +1343,9 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
                 sql.append("ORDER BY TOD.SEQ DESC");
 
                 StringBuilder sql2 = new StringBuilder();
-                sql2.append("SELECT NVL(TOT.CAPS_START_TIME, RPAD(TCM.VALUE2_CHAR,4,'0')) START_TIME, NVL(TOT.CAPS_END_TIME, RPAD(TCM.VALUE3_CHAR,4,'0')) END_TIME ");
-                sql2.append(", CASE WHEN TOT.REQ_START_TIME IS NULL THEN TCM.VALUE1_NUMBER ELSE TOT.ADD_DAY END ADD_DAY ");
+                sql2.append("SELECT CASE WHEN TOT.REQ_START_TIME IS NULL THEN CASE WHEN TCM.VALUE2_CHAR IS NULL THEN TOT.CAPS_START_TIME ELSE RPAD(TCM.VALUE2_CHAR,4,'0') END ELSE TOT.CAPS_START_TIME END START_TIME ");
+                sql2.append(", CASE WHEN TOT.REQ_START_TIME IS NULL THEN CASE WHEN TCM.VALUE3_CHAR IS NULL THEN TOT.CAPS_END_TIME ELSE RPAD(TCM.VALUE3_CHAR,4,'0') END ELSE TOT.CAPS_END_TIME END END_TIME ");
+                sql2.append(", CASE WHEN TOT.REQ_START_TIME IS NULL THEN TCM.VALUE1_NUMBER ELSE TOT.ADD_DAY END AS ADD_DAY ");
                 sql2.append("FROM THR_OT_DETAIL TOD ");
                 sql2.append("JOIN TCM_CODE_MASTER TCM ");
                 sql2.append("ON TCM.CODE_CODE = TOD.WORK_TYPE_CODE AND TCM.USABLE_FLAG = 'Y' AND TCM.CLASS_CODE = 'OPCOD' ");
@@ -4577,6 +4578,7 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
             String name = orgStr(row, "CODE_NAME");
             ExcelDTO.OrgDTO dept = buildOrg(data, row, false, new HashSet<>(), orgInt(row,"TEAM_COUNT") > 0);
             dept.setSeq(seq);
+            dept.setLineFlag(orgInt(row, "VALUE2_NUMBER") == 1);
             BigDecimal sid = orgDecimal(row, "USER_SID");
             ExcelDTO.OrgUserDTO rep = null;
             if (sid.signum() > 0) {
@@ -4765,7 +4767,7 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
             if (group.getSeq()==1) {
                 line(c,32,34,mid,mid,true,true);
                 c.header(34,34,x,x+orgWidth(group)-1,group.getName(),"#FFC000",8);
-                drawBody(c,group,x,35);
+                drawDepartmentBody(c,group,x,35);
             } else {
                 var departments = children(group);
                 branch(c,departments,x,32,mid);
@@ -4774,7 +4776,7 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
                     int dm=dx+orgWidth(dept)/2;
                     line(c,32,34,dm,dm,true,true);
                     c.header(34,34,dx,dx+orgWidth(dept)-1,dept.getName(),"#FFC000",8);
-                    drawBody(c,dept,dx,35);
+                    drawDepartmentBody(c,dept,dx,35);
                     dx+=orgWidth(dept)+ORG_GAP;
                 }
             }
@@ -4782,34 +4784,121 @@ public class WorkServiceImpl extends ServiceBase implements WorkService {
         }
     }
 
-    // 마지막 사용 행의 다음 행 반환. 직원/하위 조직 겹침 방지.
-    private int drawBody(OrgRender c, ExcelDTO.OrgDTO org, int x, int y) {
-        int cursor = drawUsers(c,org,x,y);
-        var rows = children(org).stream().filter(ExcelDTO.OrgDTO::isRowFlag).toList();
-        var linked = children(org).stream().filter(v -> !v.isRowFlag()).toList();
-        if (!rows.isEmpty()) cursor = drawChildren(c,rows,x,cursor);
-        if (linked.isEmpty()) return cursor;
+    private int drawDepartmentBody(
+            OrgRender c,
+            ExcelDTO.OrgDTO org,
+            int x,
+            int y
+    ) {
+        // VALUE2_NUMBER = 1 : 연결선 표시
+        if (org.isLineFlag()) {
+            return drawBody(c, org, x, y);
+        }
 
-        int childX = x + Math.max(0,(orgWidth(org)-groupWidth(linked))/2);
-        // 배정 폭이 아니라 실제 직원/팀 박스의 폭으로 연결점 계산.
-        OrgLinePoint parent = teamCenter(c,x,visibleTeamWidth(org));
+        // VALUE2_NUMBER = 0 : 연결선 미표시
+        int cursor = drawUsers(c, org, x, y);
+
+        var rows = children(org).stream()
+                .filter(ExcelDTO.OrgDTO::isRowFlag)
+                .toList();
+
+        var linked = children(org).stream()
+                .filter(v -> !v.isRowFlag())
+                .toList();
+
+        if (!rows.isEmpty()) {
+            cursor = drawChildren(c, rows, x, cursor);
+        }
+
+        if (!linked.isEmpty()) {
+            cursor = drawChildren(c, linked, x, cursor);
+        }
+
+        return cursor;
+    }
+
+    // 마지막 사용 행의 다음 행 반환. 직원/하위 조직 겹침 방지.
+    private int drawBody(
+            OrgRender c,
+            ExcelDTO.OrgDTO org,
+            int x,
+            int y
+    ) {
+        int cursor = drawUsers(c, org, x, y);
+
+        var rows = children(org).stream()
+                .filter(ExcelDTO.OrgDTO::isRowFlag)
+                .toList();
+
+        var linked = children(org).stream()
+                .filter(v -> !v.isRowFlag())
+                .toList();
+
+        // 연결선 없는 하위 조직
+        if (!rows.isEmpty()) {
+            cursor = drawChildren(c, rows, x, cursor);
+        }
+
+        if (linked.isEmpty()) {
+            return cursor;
+        }
+
+        // 상위 조직의 중앙 좌표
+        OrgLinePoint parent = teamCenter(
+                c, x, visibleTeamWidth(org)
+        );
+
+        // 하위 조직이 하나인 경우 수직선만 생성
+        if (linked.size() == 1) {
+            int childY = cursor + 2;
+
+            teamLine(c, cursor, childY, parent, parent);
+
+            return drawChildren(c, linked, x, childY);
+        }
+
+        // 하위 조직이 여러 개인 경우 기존 분기선 유지
+        int childX = x + Math.max(
+                0,
+                (orgWidth(org) - groupWidth(linked)) / 2
+        );
+
         List<OrgLinePoint> points = new ArrayList<>();
+
         int dx = childX;
+
         for (var child : linked) {
-            points.add(teamCenter(c,dx,visibleTeamWidth(child)));
-            dx += orgWidth(child)+ORG_GAP;
+            points.add(
+                    teamCenter(c, dx, visibleTeamWidth(child))
+            );
+
+            dx += orgWidth(child) + ORG_GAP;
         }
 
         int branchY = cursor + 1;
-        teamLine(c,cursor,branchY,parent,parent);
-        OrgLinePoint left = parent, right = parent;
+
+        teamLine(c, cursor, branchY, parent, parent);
+
+        OrgLinePoint left = parent;
+        OrgLinePoint right = parent;
+
         for (var point : points) {
-            if (comparePoint(point,left)<0) left=point;
-            if (comparePoint(point,right)>0) right=point;
+            if (comparePoint(point, left) < 0) {
+                left = point;
+            }
+
+            if (comparePoint(point, right) > 0) {
+                right = point;
+            }
         }
-        teamLine(c,branchY,branchY,left,right);
-        for (var point : points) teamLine(c,branchY,branchY+1,point,point);
-        return drawChildren(c,linked,childX,branchY+1);
+
+        teamLine(c, branchY, branchY, left, right);
+
+        for (var point : points) {
+            teamLine(c, branchY, branchY + 1, point, point);
+        }
+
+        return drawChildren(c, linked, childX, branchY + 1);
     }
     private int visibleTeamWidth(ExcelDTO.OrgDTO org) {
         return Math.max(1,org.getCol())*terminalCount(org);

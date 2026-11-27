@@ -247,6 +247,7 @@ public class ExcelDTO {
         private int seq;
         private int teamCount;
         private int totalCount;
+        private boolean lineFlag = false;
         private boolean rowFlag;
 
         private List<OrgDTO> children;
