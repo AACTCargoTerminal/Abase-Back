@@ -1144,7 +1144,9 @@ public class WorkRepo extends BizBase {
             ,   TCM3.VALUE4_NUMBER AS ORG_COL
             ,     COUNT(DISTINCT TCM.CODE_CODE) OVER (
               PARTITION BY TCM.VALUE1_NUMBER
-          ) AS GROUP_COUNT FROM    TCM_CODE_MASTER TCM
+          ) AS GROUP_COUNT 
+            ,   NVL(TCM.VALUE2_NUMBER, 0) AS VALUE2_NUMBER
+        FROM    TCM_CODE_MASTER TCM
         LEFT JOIN TEAM_CNT TC
         ON      TC.HRDPT_CODE = TCM.CODE_CODE
         LEFT JOIN USER_CNT UC
