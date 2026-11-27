@@ -1076,26 +1076,6 @@ public class WorkRepo extends BizBase {
 
     }
 
-    public DbDto getWorkM010_007(String langCode, String guid, String userId, String ipAddr, String pgmId) {
-
-        List<DbTypeDTO> input = new ArrayList<DbTypeDTO>();
-
-        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_LANGUAGE_CODE", langCode));
-        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_PROGRESS_GUID", guid));
-        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_USER_ID", userId));
-        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_IP_ADDRESS", ipAddr));
-        input.add(new DbTypeDTO(Type.VARCHAR, Inout.IN, "I_REQUEST_PROGRAM_ID", pgmId));
-
-        input.add(new DbTypeDTO(Type.CURSOR, Inout.OUT, "O_RESULT_CURSOR_HEADER", ""));
-        input.add(new DbTypeDTO(Type.CURSOR, Inout.OUT, "O_RESULT_CURSOR", ""));
-        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_ERROR_FLAG", ""));
-        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_CODE", ""));
-        input.add(new DbTypeDTO(Type.VARCHAR, Inout.OUT, "O_RETURN_MESSAGE", ""));
-
-        return callProc("USR_WORK_REQUEST_M010.PHM_WORK_REQUEST_M010_007", input);
-
-    }
-
     public DbDto getHrdpt() {
         String sql = """
         WITH TEAM_CNT AS (
